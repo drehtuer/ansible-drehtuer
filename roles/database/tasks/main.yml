@@ -12,22 +12,107 @@
   ansible.builtin.stat:
     path: /root/.mysql_root_password_set
   register: database_mysql_root_password_set
-- name: Set root password
-  community.mysql.mysql_user:
-    name: "{{ database.mysql.root.user }}"
-    host: "{{ database.mysql.ip4 }}"
-    password: "{{ database.mysql.root.password }}"
+# Root authentication is reconciled on every run rather than once
+# behind the marker file above, because the marker only ever recorded
+# that the *first* run happened - it could not notice a host whose root
+# account had since been changed by hand, and one had been. `carcosa`
+# and a freshly provisioned host disagreed completely: production had
+# the password on root@localhost with no socket alternative and no
+# root@127.0.0.1 at all, while this role produced the opposite. A
+# rebuild from this repository would therefore not have reproduced
+# production, which is the whole claim the repository exists to make.
+- name: Read how root@localhost authenticates
+  # Both halves matter and they fail differently: the password may be
+  # absent or stale, and the socket alternative may have been dropped.
+  # PASSWORD() hashes the candidate server-side so the comparison never
+  # sends or stores a plaintext copy.
+  community.mysql.mysql_query:
     login_unix_socket: "{{ database.mysql.socket }}"
-    check_implicit_admin: true
-    column_case_sensitive: true
-    priv: "*.*:ALL,GRANT"
-    state: present
-  when: not database_mysql_root_password_set.stat.exists
+    # The credential is supplied as well as the socket, and both are
+    # needed for this to work on every host it has to. A host that
+    # already has Ubuntu's default authenticates by socket and ignores
+    # the password; `carcosa`, whose root@localhost had been changed to
+    # password-only with no socket alternative, can only be reached
+    # with the password - and that is precisely the host this task
+    # exists to reconcile. Requiring the socket alone would have made
+    # the fix unable to apply itself to the one host that needed it.
+    login_user: "{{ database.mysql.root.user }}"
+    login_password: "{{ database.mysql.root.password }}"
+    query: >-
+      SELECT
+        JSON_VALUE(Priv, '$.authentication_string') = PASSWORD(%s)
+          AS password_matches,
+        JSON_SEARCH(Priv, 'one', 'unix_socket') IS NOT NULL
+          AS socket_allowed
+      FROM mysql.global_priv
+      WHERE User = 'root' AND Host = 'localhost'
+    positional_args:
+      - "{{ database.mysql.root.password }}"
+  register: database_root_auth
+  changed_when: false
+  check_mode: false
+  no_log: true
+
+- name: Give root@localhost both socket and password authentication
+  # `IDENTIFIED VIA unix_socket OR mysql_native_password` is what
+  # Ubuntu ships and what this role used to discard. Keeping both is
+  # not a compromise between them - each answers a different caller.
+  # The socket half means the system root user always gets in, so a
+  # wrong or lost password can never lock this host out of its own
+  # database, and it is what `mariadb` with no arguments, the packaged
+  # /etc/mysql/debian.cnf and `roles/backup`'s dump all assume. The
+  # password half is what every community.mysql task here authenticates
+  # with, and what a non-root system user needs.
+  community.mysql.mysql_query:
+    login_unix_socket: "{{ database.mysql.socket }}"
+    # The credential is supplied as well as the socket, and both are
+    # needed for this to work on every host it has to. A host that
+    # already has Ubuntu's default authenticates by socket and ignores
+    # the password; `carcosa`, whose root@localhost had been changed to
+    # password-only with no socket alternative, can only be reached
+    # with the password - and that is precisely the host this task
+    # exists to reconcile. Requiring the socket alone would have made
+    # the fix unable to apply itself to the one host that needed it.
+    login_user: "{{ database.mysql.root.user }}"
+    login_password: "{{ database.mysql.root.password }}"
+    query: >-
+      ALTER USER 'root'@'localhost'
+      IDENTIFIED VIA unix_socket
+      OR mysql_native_password USING PASSWORD(%s)
+    positional_args:
+      - "{{ database.mysql.root.password }}"
+  when: >-
+    database_root_auth.query_result[0] | length == 0
+    or not database_root_auth.query_result[0][0].password_matches
+    or not database_root_auth.query_result[0][0].socket_allowed
+  no_log: true
   notify:
     - Remove anonymous users
     - Disable remote root login
     - Remove test database
     - Create initial installation done file
+
+- name: Remove the password-only root account on the loopback address
+  # This role used to create `root@127.0.0.1` and set the password
+  # there instead of on root@localhost, because the task was given
+  # `host: database.mysql.ip4`. That is a second superuser with GRANT,
+  # authenticated by password alone, where Ubuntu deliberately ships
+  # none - and it was never the account anything actually connected as,
+  # since community.mysql defaults to login_host `localhost` and so
+  # reaches root@localhost over the socket. Removed rather than left:
+  # an unused administrative account is a liability with no offsetting
+  # use.
+  community.mysql.mysql_user:
+    name: "{{ database.mysql.root.user }}"
+    host: "{{ database.mysql.ip4 }}"
+    state: absent
+    login_unix_socket: "{{ database.mysql.socket }}"
+    # Credentials as well as the socket, for the same reason as the two
+    # tasks above: on a host that has not been reconciled yet the
+    # socket alone cannot authenticate, and this task runs before the
+    # ALTER has necessarily taken effect on a re-run.
+    login_user: "{{ database.mysql.root.user }}"
+    login_password: "{{ database.mysql.root.password }}"
 - name: Configure mariaDB bind address
   ansible.builtin.template:
     src: templates/mysql/bind-address.cnf.j2

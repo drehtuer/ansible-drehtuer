@@ -136,7 +136,7 @@ The most likely thing to go wrong is a bad upgrade or a mistaken deletion, and n
 Two things follow from having it:
 
 * `roles/cloud` should take a snapshot before it extracts a release over the top, alongside the database dump it already takes. STATUS records that the dump "is the only thing that makes an upgrade reversible" because a schema migration cannot be undone by re-extracting a tarball — a file snapshot closes the other half.
-* The "extract over the top and delete nothing" decision in `roles/cloud` is explicitly justified there by there being *no backup strategy in this repo yet*. Once snapshots exist that trade can be revisited. Noted as a consequence, not proposed as a change.
+* The "extract over the top and delete nothing" decision in `roles/cloud` was explicitly justified there by there being *no backup strategy in this repo yet*. Snapshots now exist and cover that directory, so the trade *can* be revisited — `doc/STATUS.adoc` records that alongside the decision. Noted as a consequence, not proposed as a change, and nothing has been changed there.
 
 === RSpamd's Bayes classifier is not backed up
 
@@ -247,14 +247,13 @@ A backup of a file that was being written is a file that will not restore. Each 
 
 * **MariaDB** — `mariadb-dump --single-transaction` per database to a dump directory, and let restic take the directory. Never back up a live `/var/lib/mysql`.
 +
-**This page originally specified a `unix_socket` account here, and production disproved it.** The plan was to copy what `roles/monitoring` does for `mysqld-exporter` — no password to store, rotate or leak into a `--diff`. That works there because the exporter runs as the *system* user `prometheus` and `unix_socket` authenticates by matching the two names; the backup script runs as root precisely so it can read `/home` and the DKIM keys, so the account it would authenticate as is `root@localhost`.
-+
-And on `carcosa`, measured on 2026-08-22, `root@localhost` is `mysql_native_password` rather than `unix_socket` — `roles/database` gives it a password — so a passwordless connection as root is refused outright. The dump therefore uses an explicit credential from a `0600` file, read with `--defaults-extra-file` so it never reaches a command line where `ps` would show it to every user on the host.
-+
-**The lab did not catch this, and the reason is worth keeping.** On `yuggoth` the same passwordless connection *succeeds* — not because that host uses `unix_socket`, but because its `root@localhost` carries a 7-character `authentication_string` that is not a valid hash, which MariaDB treats as no password at all. So the lab passed by accident while production would have failed, and only running it on `carcosa` could tell the two apart. That is also a finding about `roles/database` rather than about this role, and is recorded in `doc/TODO.adoc`.
-* **Nextcloud** — hold `maintenance:mode` around the *database dump only*, never across a walk of 104 GB. Put the mode-off in an `always:` block, exactly as `roles/cloud` does for the upgrade path, so a failure cannot leave the instance behind a maintenance page.
-* **Maildirs** — message files are immutable once written, so a live copy is safe. Excludes as noted above.
-* **Home directories** — no quiescing needed, and none available; a file being written during the run is captured mid-write and that is accepted.
+**This page originally specified a `unix_socket` account here, and the story is worth keeping straight.** The plan was to copy what `roles/monitoring` does for `mysqld-exporter`. That works there because the exporter runs as the *system* user `prometheus` and `unix_socket` authenticates by matching the two names; the backup script runs as root precisely so it can read `/home` and the DKIM keys, so the account it presents is `root@localhost`.
+
+At the time, `carcosa`'s `root@localhost` had been changed to password-only with the socket alternative removed, so a passwordless connection as root was refused and the dump could not have worked. The dump therefore takes an explicit credential from a `0600` file, read with `--defaults-extra-file` so it never reaches a command line where `ps` would show it.
+
+**The lab appeared to disagree, and the first explanation written here was wrong.** `yuggoth` succeeded not because it had no password but because it still carried Ubuntu's default: `mysql_native_password` with the placeholder `invalid`, which can never match, *OR* `unix_socket`, which matches the system root user. That is secure rather than open — the lab was right and production had drifted away from it.
+
+`roles/database` reconciles that on every run now, so both hosts carry socket *and* password and the socket path this section originally wanted exists on both. The credential file stays: it costs nothing and covers a caller that is not the system root user.
 
 == Retention and integrity
 
