@@ -65,6 +65,23 @@ Use `git commit --no-verify` to bypass it for a single commit.
 
 Editor-side formatting is described in `.editorconfig`, which mirrors the same rules (two spaces, 80 columns, final newline, no trailing whitespace). VS Code needs the EditorConfig extension for it to take effect; it is installed by the Dev Container.
 
+== Documentation
+
+:url-pages: https://pages.github.com[GitHub Pages^]
+
+Every page under `doc/` is AsciiDoc and renders to a static site:
+
+[source, bash]
+----
+invoke docs      # -> public/
+----
+
+`README.adoc` becomes the landing page and each page under `doc/` a chapter, with the links between them rewritten from `.adoc` to `.html` so both readers work: the sources browse correctly on GitHub, and the rendered pages point at each other.
+
+The output references no third party. Asciidoctor's defaults link out to Google Fonts and twice to cdnjs, which `:data-uri:` does not prevent - it embeds images and leaves stylesheets alone - so the build highlights with `rouge` server-side and turns web fonts and icon fonts off.
+
+`.github/workflows/docs.yml` publishes it to link:{url-pages} on every push to `main`.
+
 == Testing
 
 :url-doc-testing: doc/TESTING.adoc[Testing]
@@ -85,6 +102,22 @@ invoke check-drift
 ----
 
 See link:{url-doc-testing} for what each layer catches, what it does not, and how to add a scenario for another role.
+
+== Backup
+
+:url-doc-backup: doc/BACKUP.adoc[Backup]
+
+`roles/backup` takes a nightly `restic` snapshot of the state a playbook run cannot produce - the database dumps, the home directories and mail, the secrets generated on the host that this repository does not hold - and verifies the repository weekly. It reports its own outcome to Prometheus, so a backup that stops running is visible rather than merely absent.
+
+[source, bash]
+----
+# Deploy it
+invoke run-playbook --playbook=playbooks/backup.yml --hosts=production
+# Run one now, rather than waiting for the timer
+ssh <host> sudo systemctl start backup.service
+----
+
+See link:{url-doc-backup} for what is backed up, what deliberately is not and why, and - the part most likely to cost time under pressure - the order a restore has to happen in.
 
 == License
 

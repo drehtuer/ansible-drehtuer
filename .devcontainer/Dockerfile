@@ -4,7 +4,7 @@ FROM  ubuntu:26.04
 
 LABEL name="Ansible controller" \
     description="Control node running Ubuntu 26.04" \
-    version="1.15"
+    version="1.16"
 
 ARG   DEBIAN_FRONTEND=noninteractive
 ARG   ARG_USER
@@ -90,6 +90,11 @@ RUN   \
     # why .github/workflows/lint.yml installs a pinned gem rather than
     # the runner's apt package - see the comment there.
     asciidoctor \
+    # Rouge highlights source blocks server-side for `invoke docs`,
+    # where asciidoctor's default highlight.js fetches a stylesheet
+    # and a script from cdnjs at read time. It is what lets the
+    # published pages reference no third party at all.
+    ruby-rouge \
     # Network
     ca-certificates \
     curl \

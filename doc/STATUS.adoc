@@ -609,6 +609,10 @@ Worth knowing for the next deploy: Grafana runs its database migrations before i
 
 == Documentation
 
+The pages render to a static site with `invoke docs` and are published to GitHub Pages by `.github/workflows/docs.yml` on every push to `main`. `README.adoc` becomes the landing page and each page below a chapter; the links between them are rewritten from `.adoc` to `.html` in the *rendered HTML* rather than in the source, which is what keeps both readers working - the sources browse correctly on GitHub, where `.adoc` links resolve, and the site's pages point at each other.
+
+**The output references no third party**, which took three overrides rather than the `:data-uri:` already in the shared attributes file: that embeds images and leaves stylesheets alone, so a default render links out to Google Fonts and twice to cdnjs. `rouge` highlights server-side and embeds its CSS where highlight.js fetches both at read time, and web fonts and icon fonts are turned off - no page here uses an admonition, so the icon font bought nothing. Turned off at build time rather than removed from the source, so a `NOTE` added later still renders, as a text label.
+
 * `README.adoc` — top-level overview, license, environment setup pointer.
 * `doc/BACKUP.adoc` — what is backed up, what deliberately is not, and the restore order. The local tier is implemented and running on `carcosa`; the off-site copy and the deploy stamp are still design.
 * `doc/environment-setup.adoc` — Dev Container / VS Code host setup.

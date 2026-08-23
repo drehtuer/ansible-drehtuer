@@ -1,0 +1,85 @@
+# Renders the AsciiDoc pages and publishes them to GitHub Pages.
+#
+# The pages were written for this: every one of them opens with
+# `include::doc/.attributes-page.adoc[]`, which has set `:backend:
+# html5`, `:data-uri:` and `:toc: auto` since long before anything
+# rendered them. What was missing was only the build and the publish.
+#
+# Deliberately separate from lint.yml, which also runs asciidoctor.
+# That job renders to /dev/null to find faults and gates every pull
+# request; this one produces artefacts and runs on `main` alone. A
+# failure here means the site is stale, not that the branch is bad.
+name: Documentation
+
+"on":
+  push:
+    branches:
+      - main
+  # So the site can be rebuilt without an empty commit, e.g. after
+  # enabling Pages for the first time.
+  workflow_dispatch:
+
+# Least privilege: `pages` and `id-token` are what deploy-pages needs,
+# and `contents: read` is what checkout needs. Nothing here writes to
+# the repository.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One publish at a time, and never cancel one in flight - a cancelled
+# deployment can leave Pages serving a half-uploaded artefact.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Render
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v5
+
+      # The same pinned gem as the AsciiDoc job in lint.yml, and for
+      # the same reason recorded there: 24.04's apt package is 2.0.20,
+      # which is silent on the incomplete-table error that once
+      # dropped 44 KB of doc/STATUS.adoc from its own render. A site
+      # built with it would publish that damage rather than fail.
+      #
+      # Keep in step with lint.yml and with the asciidoctor package in
+      # .devcontainer/Dockerfile.
+      - name: Install asciidoctor
+        run: |
+          sudo gem install --no-document asciidoctor -v 2.0.26
+          # Pinned for the same reason, and installed as a gem here
+          # while the Dev Container takes Ubuntu's ruby-rouge - the
+          # same split asciidoctor already has, for the same reason.
+          sudo gem install --no-document rouge -v 4.7.0
+
+      # invoke drives this rather than the workflow calling asciidoctor
+      # itself, so that `invoke docs` locally and the published site
+      # are built by one piece of code. The task also rewrites the
+      # inter-page links, which a bare asciidoctor call would not.
+      - name: Install invoke
+        run: sudo apt-get install --no-install-recommends --yes python3-invoke
+
+      - name: Render the pages
+        run: invoke docs
+
+      - name: Upload the artefact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+
+  deploy:
+    name: Publish
+    needs: build
+    runs-on: ubuntu-24.04
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

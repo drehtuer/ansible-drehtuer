@@ -9,7 +9,8 @@ for complex parameters.
 """
 
 from pathlib import Path
-from shutil import which
+from re import compile as re_compile
+from shutil import rmtree, which
 
 from invoke import Exit, context, task
 
@@ -39,6 +40,12 @@ HOOKS_DIR = '.githooks'
 # Every AsciiDoc page: doc/, README.adoc and
 # .claude/CLAUDE.adoc alike.
 DOCS_GLOB = '*.adoc'
+# Rendered documentation. Named for what it holds rather than for the
+# tool: `playbooks/site.yml` builds a *host*, and these two must not be
+# confused when someone greps for "site".
+DOCS_OUT_DIR = 'public'
+DOCS_DIR = 'doc'
+README = 'README.adoc'
 ASK_PASS = '--ask-pass'
 ASK_BECOME_PASS = '--ask-become-pass'
 VERBOSE = '-vvv'
@@ -328,6 +335,132 @@ def lint(
     + ansible_lint_cmds(fix)
     + python_lint_cmds(fix)
     + docs_lint_cmds(),
+  )
+
+
+def doc_pages() -> list[str]:
+  """
+  List the pages the rendered site is built from.
+
+  `README.adoc` is the landing page and everything under `doc/` is a
+  chapter. `.claude/CLAUDE.adoc` is deliberately absent: it is
+  instructions for a tool rather than documentation of the host, and
+  publishing it would put it in front of readers it is not written
+  for.
+
+  `doc/.attributes-page.adoc` is excluded explicitly. It is a fragment
+  every page includes rather than a page of its own, and rendering it
+  publishes an empty document. Note it has to be named rather than
+  left to the glob: `Path.glob` matches a leading dot where a shell
+  glob does not, which is exactly the sort of difference that ships a
+  stray page.
+  """
+  return [README] + sorted(
+    str(path)
+    for path in Path(DOCS_DIR).glob(DOCS_GLOB)
+    if not path.name.startswith('.')
+  )
+
+
+def rewrite_doc_links(
+  root: Path,
+) -> int:
+  """
+  Point the generated pages at each other.
+
+  The sources link to `doc/TESTING.adoc` and friends, which is right
+  where the source is read - GitHub renders those, so the repository
+  browses correctly. It is wrong in the generated site, where the
+  file beside it is `TESTING.html`.
+
+  Rewriting the rendered HTML rather than the AsciiDoc is what keeps
+  both readers working: an `xref:` with `outfilesuffix` would fix the
+  site and break browsing the source. Only the `href` is touched, so
+  a page that merely mentions a filename in prose is left alone.
+  """
+  pattern = re_compile(r'(href="[^"]*?)\.adoc(?=["#])')
+  rewritten = 0
+  for page in root.rglob('*.html'):
+    before = page.read_text()
+    after = pattern.sub(r'\1.html', before)
+    if after != before:
+      page.write_text(after)
+      rewritten += 1
+
+  return rewritten
+
+
+@task
+def docs(
+  ctx: context,
+) -> None:
+  """
+  Render the AsciiDoc pages to a static site.
+
+  Output goes to `public/`, which is what the Pages workflow
+  publishes. Nothing here is committed - see `.gitignore`.
+  """
+  if which(ASCIIDOCTOR_BIN) is None:
+    raise Exit(
+      f'{ASCIIDOCTOR_BIN}: not found, rebuild the Dev Container',
+      code=1,
+    )
+
+  out = Path(DOCS_OUT_DIR)
+  rmtree(out, ignore_errors=True)
+  out.mkdir(parents=True)
+
+  for page in doc_pages():
+    # Each page keeps its path, so README's links to `doc/...` resolve
+    # against the same layout in the output as in the source.
+    destination = out / Path(page).with_suffix('.html')
+    if page == README:
+      destination = out / 'index.html'
+
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    cmd: list[str] = [
+      ASCIIDOCTOR_BIN,
+      # Warnings are errors here for the same reason `invoke lint-docs`
+      # makes them so: a page that renders with a dropped table cell is
+      # published looking finished.
+      '--failure-level=WARN',
+      # README includes LICENSE, and every page includes the shared
+      # attributes file. The CLI defaults to unsafe already; naming it
+      # keeps the build working if that ever changes.
+      '--safe-mode',
+      'unsafe',
+      # The next three make the published pages self-contained, which
+      # `:data-uri:` alone does not: it embeds images and leaves
+      # stylesheets alone, so a default render links out to Google
+      # Fonts and twice to cdnjs. That is three third parties between
+      # a reader and a page about this host, in a repository that
+      # stops Grafana phoning home on principle.
+      #
+      # rouge highlights server-side and embeds its CSS, where
+      # highlight.js fetches a stylesheet and a script at read time.
+      # It is the one addition that costs a package, and it is why
+      # `ruby-rouge` is in .devcontainer/Dockerfile.
+      '-a',
+      'source-highlighter=rouge',
+      '-a',
+      'webfonts!',
+      # No page here uses an admonition, so `:icons: font` in the
+      # shared attributes file buys nothing and costs a font-awesome
+      # stylesheet from cdnjs. Overridden at build time rather than
+      # removed from the source, so a NOTE added later still renders -
+      # as a text label rather than an icon.
+      '-a',
+      'icons!',
+      '--out-file',
+      str(destination),
+      page,
+    ]
+    ctx_run(ctx, cmd)
+
+  rewritten = rewrite_doc_links(out)
+  print(
+    f'{DOCS_OUT_DIR}/: {len(doc_pages())} pages, '
+    f'{rewritten} with rewritten links'
   )
 
 
