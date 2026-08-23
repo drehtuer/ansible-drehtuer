@@ -26,7 +26,7 @@
 __pycache__/
 
 # Ruff
-/ruff_cache/
+/.ruff_cache/
 
 # Rendered documentation, built by `invoke docs` and published by
 # .github/workflows/docs.yml. Generated on every build, so committing
