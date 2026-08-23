@@ -57,6 +57,49 @@ argument_specs:
                     type: list
                     elements: dict
                     description: Published UDP ports.
+          wireguard:
+            type: dict
+            required: true
+            description: VPN interaction.
+            options:
+              enabled:
+                type: bool
+                required: true
+                description:
+                  - Forward and masquerade tunnel traffic, and emit
+                    the nat table. Enable on the VPN gateway.
+              interface:
+                type: str
+                required: true
+                description: Tunnel interface name.
+              wan_interface:
+                type: str
+                required: true
+                description: Internet-facing interface.
+              network:
+                type: dict
+                required: true
+                description:
+                  - Peer ranges to masquerade, one per family.
+                options:
+                  ip4:
+                    type: str
+                    required: true
+                    description: Peer IPv4 range in CIDR form.
+                  ip6:
+                    type: str
+                    required: true
+                    description: Peer IPv6 range in CIDR form.
+              listen_port:
+                type: int
+                required: true
+                description: Port the tunnel listens on.
+              redirect_port:
+                type: int
+                required: true
+                description:
+                  - Port redirected to listen_port, for networks that
+                    permit only 443 outbound.
           rules:
             type: dict
             required: true

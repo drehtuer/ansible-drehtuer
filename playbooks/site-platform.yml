@@ -13,10 +13,21 @@
 #
 # `docker` before `site-web.yml` and `site-ops.yml`, which is where its
 # only consumers are.
+#
+# `wireguard` after `dns`, because peers are handed unbound as their
+# resolver and it may as well exist first. Neither ordering is load
+# bearing, which is worth writing down since both look as though they
+# should be: unbound binds the tunnel addresses with `ip-freebind`
+# before wg0 exists, and netfilter accepts a rule naming an interface
+# that is not there yet - so the firewall rules from `site-base.yml`
+# are already in place and simply start matching when the tunnel comes
+# up. Both checked on the host rather than assumed.
 - name: Recursive resolver
   ansible.builtin.import_playbook: dns.yml
 - name: Authoritative DNS
   ansible.builtin.import_playbook: nsd.yml
+- name: VPN gateway
+  ansible.builtin.import_playbook: wireguard.yml
 - name: Databases
   ansible.builtin.import_playbook: database.yml
 - name: Container engine

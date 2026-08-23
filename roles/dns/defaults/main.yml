@@ -1,0 +1,13 @@
+dns:  # noqa: var-naming[no-role-prefix] - see doc/STATUS.adoc
+  vpn:
+    # Off by default: unbound answers on loopback alone, which is what
+    # every host that is not a VPN gateway wants. Switched on, it also
+    # listens on the tunnel addresses below so peers resolve through
+    # it - see roles/wireguard.
+    enabled: false
+    server:
+      ip4: ""
+      ip6: ""
+    network:
+      ip4: ""
+      ip6: ""

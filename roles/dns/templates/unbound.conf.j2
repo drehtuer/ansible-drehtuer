@@ -1,8 +1,30 @@
+{{ ansible_managed | comment }}
 server:
   interface: 127.0.0.1
   interface: ::1
+{% if dns.vpn.enabled %}
+  # The tunnel's own addresses, so peers resolve through this
+  # validating recursor instead of whatever network they are sitting
+  # on. With a full tunnel that is the difference between the local
+  # network seeing every name looked up and seeing none of them.
+  interface: {{ dns.vpn.server.ip4 }}
+  interface: {{ dns.vpn.server.ip6 }}
+  # Bind an address that does not exist yet. unbound starts before
+  # wg-quick brings the interface up, and without this it fails at
+  # startup with "can't bind socket: Cannot assign requested address"
+  # - on every boot, not just the first.
+  ip-freebind: yes
+{% endif %}
   access-control: 127.0.0.0/8 allow
   access-control: ::1 allow
+{% if dns.vpn.enabled %}
+  # Only the tunnel ranges. The addresses above are reachable through
+  # wg0 alone, and the firewall does not permit 53 in from anywhere
+  # else, so this is the third of three independent reasons this is
+  # not an open resolver.
+  access-control: {{ dns.vpn.network.ip4 }} allow
+  access-control: {{ dns.vpn.network.ip6 }} allow
+{% endif %}
   access-control: 0.0.0.0/0 refuse
   access-control: ::0/0 refuse
 
@@ -42,6 +64,13 @@ server:
   private-address: 192.168.0.0/16
   private-address: 169.254.0.0/16
   private-address: fd00::/8
+{% if dns.vpn.enabled %}
+  # The tunnel ranges are inside the two entries above already
+  # (10.0.0.0/8 and fd00::/8). Left as they are on purpose: nothing
+  # here resolves to a tunnel address, so there is no answer to
+  # protect, and narrowing the guard to make room for one would weaken
+  # the rebinding protection for every other name.
+{% endif %}
   private-address: fe80::/10
   private-address: ::ffff:0:0/96
 

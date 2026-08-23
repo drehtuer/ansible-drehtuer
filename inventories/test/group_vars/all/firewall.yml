@@ -10,6 +10,16 @@ firewall:
     published:
       tcp: []
       udp: []
+  wireguard:
+    enabled: true
+    interface: wg0
+    # A literal, for the same reason as docker.wan_interface above.
+    wan_interface: eth0
+    network:
+      ip4: "{{ wireguard.network.ip4 }}"
+      ip6: "{{ wireguard.network.ip6 }}"
+    listen_port: "{{ wireguard.listen_port }}"
+    redirect_port: "{{ wireguard.redirect_port }}"
   rules:
     tcp:
       - port: 22
@@ -20,3 +30,5 @@ firewall:
     udp:
       - port: 53
         comment: "DNS"
+      - port: 51820
+        comment: "WireGuard (roles/wireguard)"

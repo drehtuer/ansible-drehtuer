@@ -1,0 +1,36 @@
+{{ ansible_managed | comment }}
+#
+# Peers are listed in the inventory; edit that, not this file.
+#
+# Note what is deliberately absent: the PostUp/PostDown iptables lines
+# that most WireGuard guides put here. Forwarding, masquerading and
+# the 443 redirect all belong to roles/firewall, which owns
+# /etc/iptables/rules.v{4,6} and restores them wholesale. Rules added
+# from here would be flushed by the next firewall run and reappear on
+# the next tunnel restart, which is the kind of drift that is only
+# ever noticed at the worst moment.
+[Interface]
+# One line per family. The prefix length is the *network's*, not a
+# host route, so wg-quick installs a route covering every peer - which
+# is what lets peers reach each other through this host.
+Address = {{ wireguard.server.ip4 }}/{{ wireguard.network.ip4.split('/')[1] }}
+Address = {{ wireguard.server.ip6 }}/{{ wireguard.network.ip6.split('/')[1] }}
+ListenPort = {{ wireguard.listen_port }}
+PrivateKey = {{ wireguard.server.private_key }}
+MTU = {{ wireguard.mtu }}
+{% for peer in wireguard.peers %}
+
+# {{ peer.name }}
+[Peer]
+PublicKey = {{ peer.public_key }}
+# Symmetric key mixed in on top of the keypair. Cheap, and it is what
+# protects traffic recorded today against a future attacker who can
+# break Curve25519.
+PresharedKey = {{ peer.preshared_key }}
+# Exactly the two addresses this peer owns, and nothing wider. On the
+# server side AllowedIPs is a routing *and* an authorisation
+# statement: a packet arriving from this peer with any other source
+# address is dropped, and traffic for these addresses is sent here.
+# One peer with 0.0.0.0/0 would claim every destination.
+AllowedIPs = {{ peer.ip4 }}/32, {{ peer.ip6 }}/128
+{% endfor %}

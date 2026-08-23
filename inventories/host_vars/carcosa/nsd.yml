@@ -85,7 +85,7 @@ nsd:
   zones:
     - name: "{{ domain }}"
       ttl: 3600
-      serial: 2026081701
+      serial: 2026082401
       # Shared secret authenticating the AXFR of this zone to Hetzner's
       # secondaries, so they can verify it came from here unaltered.
       # Each zone has its own key; see `drehtuer.de` below.
@@ -140,6 +140,16 @@ nsd:
         # in this domain and not in the alias domain.
         - {name: "{{ hostname }}", type: A, value: "{{ ip_v4 }}"}
         - {name: "{{ hostname }}", type: AAAA, value: "{{ ip_v6 }}"}
+        # The VPN endpoint, both families on purpose. A peer config
+        # naming a literal address works right up until the device is
+        # on an IPv6-only mobile network, which is most of them - so
+        # the Endpoint is this name and the client picks the family
+        # its network actually has.
+        #
+        # Only this zone carries it: one endpoint name is enough, and
+        # the alias domain's delegation is not live yet.
+        - {name: vpn, type: A, value: "{{ ip_v4 }}"}
+        - {name: vpn, type: AAAA, value: "{{ ip_v6 }}"}
         # mail is an A/AAAA rather than a CNAME on purpose: it is the
         # MX target, and a CNAME there is invalid.
         - {name: mail, type: A, value: "{{ ip_v4 }}"}

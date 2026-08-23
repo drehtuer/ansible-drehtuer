@@ -14,12 +14,19 @@
     cmd: sudo -u unbound unbound-anchor -a /var/lib/unbound/root.key
     creates: /var/lib/unbound/root.key
 - name: Configure dns
-  ansible.builtin.copy:
-    src: files/unbound.conf
+  # A template rather than a static file since the VPN gateway needs
+  # the tunnel addresses in it; `dns.vpn.enabled` is false everywhere
+  # else and the output is what the static file used to be.
+  ansible.builtin.template:
+    src: templates/unbound.conf.j2
     dest: /etc/unbound/unbound.conf
     owner: root
     group: root
     mode: "0644"
+    # unbound refuses to start on a bad configuration, and it is the
+    # host's only resolver - so a syntax error here takes name
+    # resolution with it. Checked before it is installed instead.
+    validate: unbound-checkconf %s
   notify:
     - Restart unbound
 - name: Mask unbound-resolvconf

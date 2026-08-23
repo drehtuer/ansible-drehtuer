@@ -11,6 +11,20 @@ firewall:
     published:
       tcp: []
       udp: []
+  wireguard:
+    # carcosa terminates the VPN, so wg0 traffic is forwarded and
+    # masqueraded and the nat table is emitted. Values come from the
+    # `wireguard` dict rather than being repeated, so the ranges the
+    # tunnel hands out and the ranges that get masqueraded cannot
+    # drift apart.
+    enabled: true
+    interface: "{{ wireguard.interface }}"
+    wan_interface: "{{ ansible_facts['default_ipv4'].interface }}"
+    network:
+      ip4: "{{ wireguard.network.ip4 }}"
+      ip6: "{{ wireguard.network.ip6 }}"
+    listen_port: "{{ wireguard.listen_port }}"
+    redirect_port: "{{ wireguard.redirect_port }}"
   rules:
     tcp:
       - port: 22
@@ -39,3 +53,9 @@ firewall:
         comment: "DNS"
       - port: 3478
         comment: "TURN for Nextcloud Talk (roles/talk) - the media path"
+      # The tunnel itself. udp/443 is not listed: it is redirected to
+      # this port in the nat table, and the redirect happens before
+      # the filter table sees the packet, so a rule for 443 would
+      # never match.
+      - port: 51820
+        comment: "WireGuard (roles/wireguard)"

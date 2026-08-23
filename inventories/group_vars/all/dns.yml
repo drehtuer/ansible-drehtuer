@@ -1,0 +1,14 @@
+# unbound also answers on the tunnel addresses, so a roaming peer
+# resolves through this host's validating recursor rather than through
+# whatever network it is attached to. With a full tunnel that is the
+# difference between the local network seeing every name looked up and
+# seeing none of them.
+dns:
+  vpn:
+    enabled: true
+    server:
+      ip4: "{{ wireguard.server.ip4 }}"
+      ip6: "{{ wireguard.server.ip6 }}"
+    network:
+      ip4: "{{ wireguard.network.ip4 }}"
+      ip6: "{{ wireguard.network.ip6 }}"
