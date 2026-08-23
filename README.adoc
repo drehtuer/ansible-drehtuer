@@ -68,22 +68,26 @@ Editor-side formatting is described in `.editorconfig`, which mirrors the same r
 == Documentation
 
 :url-pages: https://pages.github.com[GitHub Pages^]
+:url-skill-testlab: .claude/skills/testlab/SKILL.md[testlab^]
+:url-skill-run-ansible: .claude/skills/run-ansible/SKILL.md[run-ansible^]
 
-Every page under `doc/` is AsciiDoc and renders to a static site:
+:url-antora: https://antora.org[Antora^]
+
+Every page under `doc/` is AsciiDoc and renders to a static site with link:{url-antora}:
 
 [source, bash]
 ----
 invoke docs      # -> public/
 ----
 
-`README.adoc` becomes the landing page and each page under `doc/` a chapter, with the links between them rewritten from `.adoc` to `.html` so both readers work: the sources browse correctly on GitHub, and the rendered pages point at each other.
+Antora wants its pages under `modules/<name>/pages/`. Moving `doc/` there would invalidate the 179 references to `doc/*.adoc` spread across 86 files - role comments, playbooks, inventory, `tasks.py` - so the build assembles that layout under `build/` from the sources instead, and the repository keeps its own vocabulary. What it costs is Antora's *Edit this Page* link, which cannot be mapped back: `index.adoc` came from `README.adoc` and the skill pages from Markdown two directories away.
 
-The output references no third party. Asciidoctor's defaults link out to Google Fonts and twice to cdnjs, which `:data-uri:` does not prevent - it embeds images and leaves stylesheets alone - so the build highlights with `rouge` server-side and turns web fonts and icon fonts off.
+The two `.claude/skills/*/SKILL.md` files are converted by `kramdoc` on the way in, since Antora reads AsciiDoc and nothing else. They are included because the AsciiDoc pages lean on them - `doc/TESTING.adoc` alone points at `.claude/skills` ten times:
 
-The two `.claude/skills/*/SKILL.md` files are rendered too, via `kramdoc`, which converts them to AsciiDoc so they go through the same renderer as everything else rather than a second one. They are included because the pages that *are* AsciiDoc lean on them - `doc/TESTING.adoc` alone points at `.claude/skills` ten times - so a reader of the rendered Testing page would otherwise meet references with nowhere to follow them to:
+* link:{url-skill-testlab} - the disposable hosts a role is proven on before production sees it.
+* link:{url-skill-run-ansible} - how this repository is linted and tested.
 
-* link:skills/testlab.html[testlab^] - the disposable hosts a role is proven on before production sees it.
-* link:skills/run-ansible.html[run-ansible^] - how this repository is linted and tested.
+The published site references no third party: Antora copies its UI's CSS and JavaScript into the output. Fetching that UI bundle is the build's one network dependency.
 
 `.github/workflows/docs.yml` publishes it to link:{url-pages} on every push to `main`.
 

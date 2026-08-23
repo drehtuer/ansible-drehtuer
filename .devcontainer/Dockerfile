@@ -4,7 +4,7 @@ FROM  ubuntu:26.04
 
 LABEL name="Ansible controller" \
     description="Control node running Ubuntu 26.04" \
-    version="1.17"
+    version="1.18"
 
 ARG   DEBIAN_FRONTEND=noninteractive
 ARG   ARG_USER
@@ -60,6 +60,12 @@ RUN   \
     # Python /usr/bin/python3" - which names the interpreter, and is
     # the detail that says where to install it.
     python3-requests \
+    # Antora is a Node application and is what `invoke docs` builds
+    # the documentation site with. Ubuntu packages Node 22, which is
+    # comfortably above the 16 Antora asks for, so this needs no
+    # third-party apt repository.
+    nodejs \
+    npm \
     # User may become root
     sudo \
     # Editor
@@ -90,11 +96,6 @@ RUN   \
     # why .github/workflows/lint.yml installs a pinned gem rather than
     # the runner's apt package - see the comment there.
     asciidoctor \
-    # Rouge highlights source blocks server-side for `invoke docs`,
-    # where asciidoctor's default highlight.js fetches a stylesheet
-    # and a script from cdnjs at read time. It is what lets the
-    # published pages reference no third party at all.
-    ruby-rouge \
     # Network
     ca-certificates \
     curl \
@@ -225,21 +226,35 @@ RUN   \
     "ruff-$(uname -m)-unknown-linux-gnu/ruff"
 
 # Keep in sync with .github/workflows/docs.yml.
+#
 # kramdoc converts the Markdown skill definitions to
-# AsciiDoc so `invoke docs` can render them through
-# the same asciidoctor call as every other page,
-# rather than adding a second renderer. Ubuntu does
-# not package it, so it is a pinned gem - the same
-# treatment asciidoctor gets in CI, and for the same
-# reason: a build tool that moves under the repo is
-# how a rendered page changes without anyone editing
-# it.
+# AsciiDoc, which is what lets Antora render them -
+# it reads AsciiDoc and nothing else. Ubuntu does not
+# package it, so it is a pinned gem.
 ARG   KRAMDOC_VERSION=2.1.1
 
 RUN   gem install \
     --no-document \
     kramdown-asciidoc \
     --version "${KRAMDOC_VERSION}"
+
+# The documentation site generator. Pinned like
+# everything else here: Antora's output changes with
+# its version, and a site that reorganises itself
+# because a build tool moved is exactly the drift
+# this repository pins against elsewhere.
+#
+# The CLI and the site generator are separate
+# packages and must match; installing one alone gives
+# "generator not found".
+ARG   ANTORA_VERSION=3.1.15
+
+RUN   npm install \
+    --global \
+    --no-fund \
+    --no-audit \
+    "@antora/cli@${ANTORA_VERSION}" \
+    "@antora/site-generator@${ANTORA_VERSION}"
 
 # Keep in sync with the versions installed by
 # .github/workflows/test.yml, so CI and the Dev

@@ -41,31 +41,35 @@ jobs:
       - name: Check out the repository
         uses: actions/checkout@v5
 
-      # The same pinned gem as the AsciiDoc job in lint.yml, and for
-      # the same reason recorded there: 24.04's apt package is 2.0.20,
-      # which is silent on the incomplete-table error that once
-      # dropped 44 KB of doc/STATUS.adoc from its own render. A site
-      # built with it would publish that damage rather than fail.
-      #
-      # Keep in step with lint.yml and with the asciidoctor package in
-      # .devcontainer/Dockerfile.
-      - name: Install asciidoctor
-        run: |
-          sudo gem install --no-document asciidoctor -v 2.0.26
-          # Pinned for the same reason, and installed as a gem here
-          # while the Dev Container takes Ubuntu's ruby-rouge - the
-          # same split asciidoctor already has, for the same reason.
-          sudo gem install --no-document rouge -v 4.7.0
-          # Converts the Markdown skill definitions to AsciiDoc, so
-          # they render through the same asciidoctor call as the rest.
-          # Keep in step with KRAMDOC_VERSION in
-          # .devcontainer/Dockerfile.
-          sudo gem install --no-document kramdown-asciidoc -v 2.1.1
+      # Node for Antora. The runner ships one, but naming the
+      # version keeps this build and the Dev Container on the same
+      # major - Ubuntu 26.04 packages 22 there.
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
 
-      # invoke drives this rather than the workflow calling asciidoctor
-      # itself, so that `invoke docs` locally and the published site
-      # are built by one piece of code. The task also rewrites the
-      # inter-page links, which a bare asciidoctor call would not.
+      # Keep the version in step with ANTORA_VERSION in
+      # .devcontainer/Dockerfile. The CLI and the site generator are
+      # separate packages and must match, or the run fails with
+      # "generator not found".
+      - name: Install Antora
+        run: |
+          npm install --global --no-fund --no-audit \
+            @antora/cli@3.1.15 @antora/site-generator@3.1.15
+
+      # kramdoc converts the Markdown skill definitions to AsciiDoc,
+      # which is what lets Antora render them at all - it reads
+      # AsciiDoc and nothing else. Keep in step with KRAMDOC_VERSION
+      # in .devcontainer/Dockerfile.
+      - name: Install kramdoc
+        run: sudo gem install --no-document kramdown-asciidoc -v 2.1.1
+
+      # invoke drives the build rather than the workflow calling
+      # antora itself, so that `invoke docs` locally and the published
+      # site are produced by one piece of code. The task also
+      # assembles the Antora component from the sources, which a bare
+      # antora call has nothing to work from without.
       - name: Install invoke
         run: sudo apt-get install --no-install-recommends --yes python3-invoke
 

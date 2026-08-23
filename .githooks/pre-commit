@@ -46,9 +46,35 @@ run_linter() {
   "$@" || status=1
 }
 
+# ansible-lint honours `exclude_paths` from .ansible-lint when it walks
+# the repository itself, and ignores it entirely for a file named on the
+# command line - which is all this hook ever does. So the exclusions
+# have to be applied here as well, or the hook lints files the config
+# says are not Ansible content: .github/ workflows and antora-
+# playbook.yml among them, the latter reported as "A playbook must be a
+# list of plays".
+#
+# Read from .ansible-lint rather than repeated, so the two cannot
+# disagree.
+mapfile -t excluded < <(
+  sed -n '/^exclude_paths:/,/^[^ #-]/p' .ansible-lint | sed -n 's/^  - //p'
+)
+
+ansible_files=()
+for file in "${yaml_files[@]}"; do
+  skip=0
+  for prefix in "${excluded[@]}"; do
+    [[ ${file} == "${prefix}"* ]] && { skip=1; break; }
+  done
+  ((skip)) || ansible_files+=("${file}")
+done
+
 if ((${#yaml_files[@]})); then
   run_linter yamllint --strict "${yaml_files[@]}"
-  run_linter ansible-lint "${yaml_files[@]}"
+fi
+
+if ((${#ansible_files[@]})); then
+  run_linter ansible-lint "${ansible_files[@]}"
 fi
 
 if ((${#py_files[@]})); then

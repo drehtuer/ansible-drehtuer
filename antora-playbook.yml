@@ -1,0 +1,55 @@
+# Antora site definition. Built by `invoke docs`, published by
+# .github/workflows/docs.yml.
+#
+# The content source is a *generated* component under `build/antora`
+# rather than the documentation itself, and that is the one decision
+# worth understanding here. Antora requires pages to live in
+# `modules/<name>/pages/`; the pages in this repository live in `doc/`
+# and are referenced as `doc/STATUS.adoc` 179 times across 86 files -
+# role comments, playbooks, inventory, tasks.py, the skills. Moving
+# them to suit the tool would invalidate every one of those and make
+# each reference longer. `invoke docs` assembles the component from the
+# sources instead, so the repository keeps its own vocabulary.
+#
+# Antora requires the source to be a git repository, so `url` is this
+# repository and `start_path` points at the generated directory inside
+# its worktree. `branches: HEAD` is what makes Antora read the
+# worktree, which is the only place the generated files exist - they
+# are never committed.
+site:
+  title: drehtuer infrastructure
+  # Relative, so the site works under a project Pages path
+  # (/<repo>/) as well as at a domain root.
+  start_page: ansible::index.adoc
+
+content:
+  sources:
+    - url: .
+      start_path: build/antora
+      branches: HEAD
+      # No "Edit this Page" link, and this is the one feature the
+      # generated component costs. Antora derives that URL from the
+      # content source, which here is a directory that exists only
+      # during the build - so the default is a file:// path into
+      # somebody's working copy, which would be published as a dead
+      # link to a machine nobody else has.
+      #
+      # It cannot simply be pointed back at the real sources either:
+      # the mapping is not one to one. `STATUS.adoc` came from
+      # `doc/STATUS.adoc`, but `index.adoc` came from `README.adoc`
+      # and `skill-testlab.adoc` from a Markdown file two directories
+      # away, and Antora sets this per source rather than per page.
+      edit_url: false
+
+ui:
+  bundle:
+    # Antora's default UI. Fetched at build time, which is the one
+    # network dependency this build has - the *output* is unaffected
+    # and references no third party, since Antora copies the UI's CSS
+    # and JS into the site under `_/`.
+    url: >-
+      https://gitlab.com/antora/antora-ui-default/-/jobs/artifacts/HEAD/raw/build/ui-bundle.zip?job=bundle-stable
+    snapshot: true
+
+output:
+  dir: ./public
