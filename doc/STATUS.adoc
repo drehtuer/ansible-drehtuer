@@ -617,6 +617,8 @@ The pages render to a static site with `invoke docs`, built by **Antora**, and a
 
 **The two Markdown files are rendered too, through `kramdoc`.** `.claude/skills/*/SKILL.md` are the only Markdown in the repository, and Antora reads AsciiDoc and nothing else. They are published because the AsciiDoc pages lean on them - `doc/TESTING.adoc` alone points at `.claude/skills` ten times, so a reader of the rendered Testing page would otherwise meet references with nowhere to follow. kramdoc also handles the part a Markdown renderer gets wrong: asciidoctor reads a `.md` file happily and exits 0, but the front matter lands in the page as body text and the tables stay as literal pipes.
 
+**One file of the UI is overridden, and nothing else.** Antora's default bundle ships a demo navbar - Home, a Products dropdown, a Services dropdown, a Download button, every one of them `href="#"` - which is placeholder content for a project with something to sell. `docs-ui/partials/header-content.hbs` replaces it with the site title alone, supplied through the playbook's `ui.supplemental_files`. That is Antora's own mechanism for this: one file replaces one file and the rest of the UI keeps coming from upstream, where forking the bundle would freeze all of it. The burger button went with the menu it toggled, since with nothing to expand it is a control that does nothing.
+
 **The published site references no third party.** Antora copies its UI's CSS and JavaScript into the output under `_/`. Fetching that UI bundle is the build's one network dependency, and it affects the build rather than the reader.
 
 * `README.adoc` — top-level overview* `README.adoc` — top-level overview, license, environment setup pointer.

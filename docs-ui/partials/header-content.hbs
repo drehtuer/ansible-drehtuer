@@ -1,0 +1,23 @@
+{{!--
+  Overrides `partials/header-content.hbs` from Antora's default UI
+  bundle, which ships a demo navbar: Home, a Products dropdown with
+  Product A/B/C, a Services dropdown with Service A/B/C, and a Download
+  button. Every one of them is `href="#"` - placeholders for a project
+  that has products to sell, which this does not.
+
+  Supplied through `ui.supplemental_files` rather than by forking the
+  bundle or stripping the markup afterwards, which is the mechanism
+  Antora provides for exactly this: one file replaces one file, and the
+  rest of the UI keeps updating with the bundle.
+
+  What is left is the site title, linking home. The burger button goes
+  with the menu it toggled - with nothing to expand it is a control
+  that does nothing, and on a narrow screen it would still be drawn.
+--}}
+<header class="header">
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="{{{or site.url siteRootPath}}}">{{site.title}}</a>
+    </div>
+  </nav>
+</header>
