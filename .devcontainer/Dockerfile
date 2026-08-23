@@ -4,7 +4,7 @@ FROM  ubuntu:26.04
 
 LABEL name="Ansible controller" \
     description="Control node running Ubuntu 26.04" \
-    version="1.16"
+    version="1.17"
 
 ARG   DEBIAN_FRONTEND=noninteractive
 ARG   ARG_USER
@@ -223,6 +223,23 @@ RUN   \
     --directory=/usr/local/bin \
     --strip-components=1 \
     "ruff-$(uname -m)-unknown-linux-gnu/ruff"
+
+# Keep in sync with .github/workflows/docs.yml.
+# kramdoc converts the Markdown skill definitions to
+# AsciiDoc so `invoke docs` can render them through
+# the same asciidoctor call as every other page,
+# rather than adding a second renderer. Ubuntu does
+# not package it, so it is a pinned gem - the same
+# treatment asciidoctor gets in CI, and for the same
+# reason: a build tool that moves under the repo is
+# how a rendered page changes without anyone editing
+# it.
+ARG   KRAMDOC_VERSION=2.1.1
+
+RUN   gem install \
+    --no-document \
+    kramdown-asciidoc \
+    --version "${KRAMDOC_VERSION}"
 
 # Keep in sync with the versions installed by
 # .github/workflows/test.yml, so CI and the Dev

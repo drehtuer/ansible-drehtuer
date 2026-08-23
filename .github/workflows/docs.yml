@@ -56,6 +56,11 @@ jobs:
           # while the Dev Container takes Ubuntu's ruby-rouge - the
           # same split asciidoctor already has, for the same reason.
           sudo gem install --no-document rouge -v 4.7.0
+          # Converts the Markdown skill definitions to AsciiDoc, so
+          # they render through the same asciidoctor call as the rest.
+          # Keep in step with KRAMDOC_VERSION in
+          # .devcontainer/Dockerfile.
+          sudo gem install --no-document kramdown-asciidoc -v 2.1.1
 
       # invoke drives this rather than the workflow calling asciidoctor
       # itself, so that `invoke docs` locally and the published site

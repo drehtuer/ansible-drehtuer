@@ -80,6 +80,11 @@ invoke docs      # -> public/
 
 The output references no third party. Asciidoctor's defaults link out to Google Fonts and twice to cdnjs, which `:data-uri:` does not prevent - it embeds images and leaves stylesheets alone - so the build highlights with `rouge` server-side and turns web fonts and icon fonts off.
 
+The two `.claude/skills/*/SKILL.md` files are rendered too, via `kramdoc`, which converts them to AsciiDoc so they go through the same renderer as everything else rather than a second one. They are included because the pages that *are* AsciiDoc lean on them - `doc/TESTING.adoc` alone points at `.claude/skills` ten times - so a reader of the rendered Testing page would otherwise meet references with nowhere to follow them to:
+
+* link:skills/testlab.html[testlab^] - the disposable hosts a role is proven on before production sees it.
+* link:skills/run-ansible.html[run-ansible^] - how this repository is linted and tested.
+
 `.github/workflows/docs.yml` publishes it to link:{url-pages} on every push to `main`.
 
 == Testing

@@ -11,6 +11,7 @@ for complex parameters.
 from pathlib import Path
 from re import compile as re_compile
 from shutil import rmtree, which
+from tempfile import mkdtemp
 
 from invoke import Exit, context, task
 
@@ -20,6 +21,9 @@ ANSIBLE_LINT_BIN = 'ansible-lint'
 YAMLLINT_BIN = 'yamllint'
 RUFF_BIN = 'ruff'
 ASCIIDOCTOR_BIN = 'asciidoctor'
+# Converts Markdown to AsciiDoc, so the skill pages go through the
+# same renderer as everything else rather than a second one.
+KRAMDOC_BIN = 'kramdoc'
 MOLECULE_BIN = 'molecule'
 INVENTORY_DIR = 'inventories'
 INVENTORY = f'{INVENTORY_DIR}/machines.yml'
@@ -46,6 +50,9 @@ DOCS_GLOB = '*.adoc'
 DOCS_OUT_DIR = 'public'
 DOCS_DIR = 'doc'
 README = 'README.adoc'
+SKILLS_DIR = '.claude/skills'
+SKILLS_GLOB = '*/SKILL.md'
+ATTRIBUTES_PAGE = 'doc/.attributes-page.adoc'
 ASK_PASS = '--ask-pass'
 ASK_BECOME_PASS = '--ask-become-pass'
 VERBOSE = '-vvv'
@@ -390,6 +397,113 @@ def rewrite_doc_links(
   return rewritten
 
 
+def skill_pages() -> list[str]:
+  """
+  List the Markdown skill definitions that are published.
+
+  These are the only Markdown in the repository, and they are included
+  because the pages that *are* AsciiDoc lean on them - doc/TESTING.adoc
+  alone points at `.claude/skills` ten times, so a reader of the
+  rendered Testing page would otherwise meet references with nowhere
+  to follow them to.
+  """
+  return sorted(str(path) for path in Path(SKILLS_DIR).glob(SKILLS_GLOB))
+
+
+def render_skill(
+  ctx: context,
+  source: str,
+  out_dir: Path,
+) -> str:
+  """
+  Convert one Markdown skill to AsciiDoc and render it.
+
+  Two steps rather than a Markdown renderer, deliberately. kramdoc
+  produces AsciiDoc, which then goes through exactly the same
+  asciidoctor call as every other page - so the skill pages get the
+  same table of contents, the same highlighting and the same
+  self-contained output, and there is one rendering path to keep
+  correct rather than two.
+
+  It also handles the YAML front matter, which is the part a Markdown
+  renderer would get wrong: the keys become AsciiDoc attributes rather
+  than leaking into the page as body text.
+
+  What kramdoc does not produce is a document title, because the
+  sources have no heading - they open with front matter and then
+  prose. The title is synthesised from the skill's own name, and the
+  shared attributes file is included so these pages match the rest.
+  """
+  name = Path(source).parent.name
+  converted = Path(mkdtemp()) / f'{name}.adoc'
+  ctx_run(ctx, [KRAMDOC_BIN, '--output', str(converted), source])
+
+  # The include is written with an absolute path because this wrapper
+  # lives in a temporary directory, nowhere near the repository.
+  wrapped = converted.with_name(f'{name}-page.adoc')
+  wrapped.write_text(
+    f'= Skill: {name}\n'
+    f'include::{Path(ATTRIBUTES_PAGE).resolve()}[]\n'
+    f'{converted.read_text()}'
+  )
+
+  destination = out_dir / 'skills' / f'{name}.html'
+  destination.parent.mkdir(parents=True, exist_ok=True)
+  ctx_run(ctx, asciidoctor_cmd(str(wrapped), destination))
+  rmtree(converted.parent, ignore_errors=True)
+
+  return name
+
+
+def asciidoctor_cmd(
+  source: str,
+  destination: Path,
+) -> list[str]:
+  """
+  Build the asciidoctor invocation every page is rendered with.
+
+  One helper rather than a literal in each caller, so the AsciiDoc
+  pages and the converted Markdown ones cannot drift apart in how they
+  are rendered.
+  """
+  return [
+    ASCIIDOCTOR_BIN,
+    # Warnings are errors here for the same reason `invoke lint-docs`
+    # makes them so: a page that renders with a dropped table cell is
+    # published looking finished.
+    '--failure-level=WARN',
+    # README includes LICENSE, every page includes the shared
+    # attributes file, and the skill wrappers include it by absolute
+    # path. The CLI defaults to unsafe already; naming it keeps the
+    # build working if that ever changes.
+    '--safe-mode',
+    'unsafe',
+    # The next three make the published pages self-contained, which
+    # `:data-uri:` alone does not: it embeds images and leaves
+    # stylesheets alone, so a default render links out to Google Fonts
+    # and twice to cdnjs. That is three third parties between a reader
+    # and a page about this host, in a repository that stops Grafana
+    # phoning home on principle.
+    #
+    # rouge highlights server-side and embeds its CSS, where
+    # highlight.js fetches a stylesheet and a script at read time.
+    '-a',
+    'source-highlighter=rouge',
+    '-a',
+    'webfonts!',
+    # No page here uses an admonition, so `:icons: font` in the shared
+    # attributes file buys nothing and costs a font-awesome stylesheet
+    # from cdnjs. Overridden at build time rather than removed from the
+    # source, so a NOTE added later still renders - as a text label
+    # rather than an icon.
+    '-a',
+    'icons!',
+    '--out-file',
+    str(destination),
+    source,
+  ]
+
+
 @task
 def docs(
   ctx: context,
@@ -400,11 +514,12 @@ def docs(
   Output goes to `public/`, which is what the Pages workflow
   publishes. Nothing here is committed - see `.gitignore`.
   """
-  if which(ASCIIDOCTOR_BIN) is None:
-    raise Exit(
-      f'{ASCIIDOCTOR_BIN}: not found, rebuild the Dev Container',
-      code=1,
-    )
+  for binary in (ASCIIDOCTOR_BIN, KRAMDOC_BIN):
+    if which(binary) is None:
+      raise Exit(
+        f'{binary}: not found, rebuild the Dev Container',
+        code=1,
+      )
 
   out = Path(DOCS_OUT_DIR)
   rmtree(out, ignore_errors=True)
@@ -418,49 +533,13 @@ def docs(
       destination = out / 'index.html'
 
     destination.parent.mkdir(parents=True, exist_ok=True)
-    cmd: list[str] = [
-      ASCIIDOCTOR_BIN,
-      # Warnings are errors here for the same reason `invoke lint-docs`
-      # makes them so: a page that renders with a dropped table cell is
-      # published looking finished.
-      '--failure-level=WARN',
-      # README includes LICENSE, and every page includes the shared
-      # attributes file. The CLI defaults to unsafe already; naming it
-      # keeps the build working if that ever changes.
-      '--safe-mode',
-      'unsafe',
-      # The next three make the published pages self-contained, which
-      # `:data-uri:` alone does not: it embeds images and leaves
-      # stylesheets alone, so a default render links out to Google
-      # Fonts and twice to cdnjs. That is three third parties between
-      # a reader and a page about this host, in a repository that
-      # stops Grafana phoning home on principle.
-      #
-      # rouge highlights server-side and embeds its CSS, where
-      # highlight.js fetches a stylesheet and a script at read time.
-      # It is the one addition that costs a package, and it is why
-      # `ruby-rouge` is in .devcontainer/Dockerfile.
-      '-a',
-      'source-highlighter=rouge',
-      '-a',
-      'webfonts!',
-      # No page here uses an admonition, so `:icons: font` in the
-      # shared attributes file buys nothing and costs a font-awesome
-      # stylesheet from cdnjs. Overridden at build time rather than
-      # removed from the source, so a NOTE added later still renders -
-      # as a text label rather than an icon.
-      '-a',
-      'icons!',
-      '--out-file',
-      str(destination),
-      page,
-    ]
-    ctx_run(ctx, cmd)
+    ctx_run(ctx, asciidoctor_cmd(page, destination))
 
+  skills = [render_skill(ctx, page, out) for page in skill_pages()]
   rewritten = rewrite_doc_links(out)
   print(
     f'{DOCS_OUT_DIR}/: {len(doc_pages())} pages, '
-    f'{rewritten} with rewritten links'
+    f'{len(skills)} skills, {rewritten} with rewritten links'
   )
 
 
