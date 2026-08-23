@@ -8,8 +8,10 @@ correct parameters as well as shorthand
 for complex parameters.
 """
 
+import re
 from pathlib import Path
-from shutil import which
+from shutil import rmtree, which
+from tempfile import mkdtemp
 
 from invoke import Exit, context, task
 
@@ -19,6 +21,10 @@ ANSIBLE_LINT_BIN = 'ansible-lint'
 YAMLLINT_BIN = 'yamllint'
 RUFF_BIN = 'ruff'
 ASCIIDOCTOR_BIN = 'asciidoctor'
+ANTORA_BIN = 'antora'
+# Converts Markdown to AsciiDoc, so the skill pages go through the
+# same renderer as everything else rather than a second one.
+KRAMDOC_BIN = 'kramdoc'
 MOLECULE_BIN = 'molecule'
 INVENTORY_DIR = 'inventories'
 INVENTORY = f'{INVENTORY_DIR}/machines.yml'
@@ -39,6 +45,23 @@ HOOKS_DIR = '.githooks'
 # Every AsciiDoc page: doc/, README.adoc and
 # .claude/CLAUDE.adoc alike.
 DOCS_GLOB = '*.adoc'
+# Rendered documentation. Named for what it holds rather than for the
+# tool: `playbooks/site.yml` builds a *host*, and these two must not be
+# confused when someone greps for "site".
+DOCS_OUT_DIR = 'public'
+# Antora insists on `modules/<name>/pages/`, and moving doc/ into it
+# would invalidate 179 references to `doc/*.adoc` spread over 86 files
+# - role comments, playbooks, inventory, this file. The component is
+# therefore assembled here from the sources rather than the sources
+# being rearranged to suit the tool.
+ANTORA_BUILD_DIR = 'build/antora'
+ANTORA_PLAYBOOK = 'antora-playbook.yml'
+LICENSE = 'LICENSE'
+DOCS_DIR = 'doc'
+README = 'README.adoc'
+SKILLS_DIR = '.claude/skills'
+SKILLS_GLOB = '*/SKILL.md'
+ATTRIBUTES_PAGE = 'doc/.attributes-page.adoc'
 ASK_PASS = '--ask-pass'
 ASK_BECOME_PASS = '--ask-become-pass'
 VERBOSE = '-vvv'
@@ -198,12 +221,21 @@ def doc_files() -> list[str]:
 
   `doc/.attributes-page.adoc` is included rather
   than skipped for being a fragment: it parses
-  standalone, so there is nothing to leave out
-  and therefore no exclusion list to fall out of
-  date.
+  standalone.
+
+  The assembled Antora component and the rendered
+  site are excluded. Both are generated, and the
+  component deliberately contains AsciiDoc plain
+  asciidoctor cannot resolve - `include::partial$...`
+  is an Antora resource ID, and linting it reports a
+  missing file that is not missing.
   """
+  ignored = {'.git', Path(ANTORA_BUILD_DIR).parts[0], DOCS_OUT_DIR}
+
   return sorted(
-    str(path) for path in Path('.').rglob(DOCS_GLOB) if '.git' not in path.parts
+    str(path)
+    for path in Path('.').rglob(DOCS_GLOB)
+    if not ignored.intersection(path.parts)
   )
 
 
@@ -329,6 +361,222 @@ def lint(
     + python_lint_cmds(fix)
     + docs_lint_cmds(),
   )
+
+
+def doc_pages() -> list[str]:
+  """
+  List the pages the rendered site is built from.
+
+  `README.adoc` is the landing page and everything under `doc/` is a
+  chapter. `.claude/CLAUDE.adoc` is deliberately absent: it is
+  instructions for a tool rather than documentation of the host, and
+  publishing it would put it in front of readers it is not written
+  for.
+
+  `doc/.attributes-page.adoc` is excluded explicitly. It is a fragment
+  every page includes rather than a page of its own, and rendering it
+  publishes an empty document. Note it has to be named rather than
+  left to the glob: `Path.glob` matches a leading dot where a shell
+  glob does not, which is exactly the sort of difference that ships a
+  stray page.
+  """
+  return [README] + sorted(
+    str(path)
+    for path in Path(DOCS_DIR).glob(DOCS_GLOB)
+    if not path.name.startswith('.')
+  )
+
+
+def skill_pages() -> list[str]:
+  """
+  List the Markdown skill definitions that are published.
+
+  These are the only Markdown in the repository, and they are included
+  because the pages that *are* AsciiDoc lean on them - doc/TESTING.adoc
+  alone points at `.claude/skills` ten times, so a reader of the
+  rendered Testing page would otherwise meet references with nowhere
+  to follow them to.
+  """
+  return sorted(str(path) for path in Path(SKILLS_DIR).glob(SKILLS_GLOB))
+
+
+def antora_page(
+  source: str,
+) -> str:
+  """
+  Adapt one source page to what Antora expects.
+
+  Five rewrites, each covering something Antora resolves differently
+  from a bare asciidoctor run, and all of them done here rather than in
+  the sources - because the sources are also read on GitHub, where the
+  current form is the one that works.
+
+  The shared attributes file is dropped: Antora supplies attributes
+  through `antora.yml` and the playbook, and cannot resolve a bare
+  relative include from a page.
+
+  `include::LICENSE[]` becomes a partial reference, since LICENSE sits
+  at the repository root and Antora only reads what is inside the
+  component.
+
+  The rest turn `link:` into `xref:`. The links are written through
+  attributes - `:url-doc-status: doc/STATUS.adoc[Status]` and then
+  `link:{url-doc-status}` - so the path has to be stripped in the
+  attribute *definition* while the macro is switched at the point of
+  use. A regex over the macro alone would never see the path.
+  """
+  text = Path(source).read_text()
+  rules = [
+    (r'^include::\.attributes-page\.adoc\[\]\n', ''),
+    (r'^include::doc/\.attributes-page\.adoc\[\]\n', ''),
+    (r'include::LICENSE\[\]', f'include::partial${LICENSE}.adoc[]'),
+    # `:url-doc-testing: doc/TESTING.adoc[Testing]` -> the bare page.
+    (r'(^:url-doc-[a-z-]+:\s*)doc/', r'\1'),
+    # `.claude/skills/testlab/SKILL.md[..]` -> the converted page.
+    (
+      r'(^:url-skill-[a-z-]+:\s*)\.claude/skills/([a-z-]+)/SKILL\.md',
+      r'\1skill-\2.adoc',
+    ),
+    # The trailing hyphen matters: without it this also matches
+    # `link:{url-docker}`, which is an external URL, and Antora then
+    # reports "target of xref not found: https://www.docker.com".
+    (r'link:\{url-(doc|skill)-', r'xref:{url-\1-'),
+  ]
+  for pattern, replacement in rules:
+    text = re.sub(pattern, replacement, text, flags=re.M)
+
+  return text
+
+
+def antora_component(
+  ctx: context,
+) -> list[str]:
+  """
+  Assemble the Antora component and return its page names.
+
+  README becomes `index.adoc`, each page under doc/ keeps its name, and
+  each Markdown skill is converted by kramdoc into `skill-<name>.adoc`.
+  """
+  root = Path(ANTORA_BUILD_DIR)
+  rmtree(root, ignore_errors=True)
+  pages = root / 'modules' / 'ROOT' / 'pages'
+  partials = root / 'modules' / 'ROOT' / 'partials'
+  pages.mkdir(parents=True)
+  partials.mkdir(parents=True)
+
+  # LICENSE has no extension, and Antora resolves a partial by file
+  # name, so it is copied under one.
+  (partials / f'{LICENSE}.adoc').write_text(Path(LICENSE).read_text())
+
+  (root / 'antora.yml').write_text(
+    'name: ansible\n'
+    'title: drehtuer infrastructure\n'
+    # A versionless component: this documents one host as it is now,
+    # not a product with releases to keep separate.
+    'version: ~\n'
+    'nav:\n'
+    '  - modules/ROOT/nav.adoc\n'
+  )
+
+  written = []
+  for source in doc_pages():
+    name = 'index.adoc' if source == README else Path(source).name
+    (pages / name).write_text(antora_page(source))
+    written.append(name)
+
+  for source in skill_pages():
+    skill = Path(source).parent.name
+    converted = Path(mkdtemp()) / 'skill.adoc'
+    ctx_run(ctx, [KRAMDOC_BIN, '--output', str(converted), source])
+    # kramdoc emits no document title, because the sources have none -
+    # they open with front matter and then prose.
+    name = f'skill-{skill}.adoc'
+    (pages / name).write_text(f'= Skill: {skill}\n{converted.read_text()}')
+    rmtree(converted.parent, ignore_errors=True)
+    written.append(name)
+
+  return written
+
+
+def antora_nav(
+  pages: list[str],
+) -> str:
+  """
+  Build the navigation Antora renders down the side.
+
+  Ordered deliberately rather than alphabetically: the overview first,
+  then what the host *is*, then how it is worked on, then the skills.
+  A page that appears here and nowhere else is still reachable, which
+  is what stops a new page becoming an orphan by omission.
+  """
+  order = [
+    'index.adoc',
+    'STATUS.adoc',
+    'BACKUP.adoc',
+    'TESTING.adoc',
+    'TODO.adoc',
+    'environment-setup.adoc',
+  ]
+  known = [name for name in order if name in pages]
+  rest = sorted(set(pages) - set(known))
+
+  return ''.join(f'* xref:{name}[]\n' for name in known + rest)
+
+
+def strip_local_edit_links(
+  root: Path,
+) -> int:
+  """
+  Remove Antora's "Edit this Page" link from the generated site.
+
+  It is not the `edit_url` the playbook already disables. Antora also
+  sets a `fileUri` for a worktree source so that a local preview can
+  open the file it came from, and the default UI falls back to that -
+  so every page carries `file:///.../build/antora/...`, a path on the
+  machine that built it.
+
+  Harmless locally and wrong once published: on a runner it names the
+  runner's checkout, and the directory it points at exists only during
+  the build. Stripped here rather than by carrying a forked UI bundle
+  for one element.
+  """
+  block = re.compile(r'<div class="edit-this-page">.*?</div>\n?', re.S)
+  stripped = 0
+  for page in root.rglob('*.html'):
+    before = page.read_text()
+    after = block.sub('', before)
+    if after != before:
+      page.write_text(after)
+      stripped += 1
+
+  return stripped
+
+
+@task
+def docs(
+  ctx: context,
+) -> None:
+  """
+  Render the documentation to a static site with Antora.
+
+  Output goes to `public/`, which is what the Pages workflow
+  publishes. Neither that nor the assembled component under `build/`
+  is committed - see `.gitignore`.
+  """
+  for binary in (ANTORA_BIN, KRAMDOC_BIN):
+    if which(binary) is None:
+      raise Exit(
+        f'{binary}: not found, rebuild the Dev Container',
+        code=1,
+      )
+
+  pages = antora_component(ctx)
+  nav = Path(ANTORA_BUILD_DIR) / 'modules' / 'ROOT' / 'nav.adoc'
+  nav.write_text(antora_nav(pages))
+
+  ctx_run(ctx, [ANTORA_BIN, '--fetch', ANTORA_PLAYBOOK])
+  stripped = strip_local_edit_links(Path(DOCS_OUT_DIR))
+  print(f'{DOCS_OUT_DIR}/: {len(pages)} pages, {stripped} cleaned')
 
 
 @task

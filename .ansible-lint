@@ -13,6 +13,14 @@ exclude_paths:
   - .github/
   # Runtime output and secrets, both gitignored.
   - log/
+  # Antora's site definition. A top-level YAML file that is not a
+  # playbook, which ansible-lint otherwise reports as "A playbook must
+  # be a list of plays".
+  - antora-playbook.yml
+  # Generated documentation: the assembled Antora component and the
+  # rendered site. Both gitignored, and neither is Ansible content.
+  - build/
+  - public/
   - vault/
 
 # YAML style rules come from .yamllint in the repo root so that

@@ -65,6 +65,32 @@ Use `git commit --no-verify` to bypass it for a single commit.
 
 Editor-side formatting is described in `.editorconfig`, which mirrors the same rules (two spaces, 80 columns, final newline, no trailing whitespace). VS Code needs the EditorConfig extension for it to take effect; it is installed by the Dev Container.
 
+== Documentation
+
+:url-pages: https://pages.github.com[GitHub Pages^]
+:url-skill-testlab: .claude/skills/testlab/SKILL.md[testlab^]
+:url-skill-run-ansible: .claude/skills/run-ansible/SKILL.md[run-ansible^]
+
+:url-antora: https://antora.org[Antora^]
+
+Every page under `doc/` is AsciiDoc and renders to a static site with link:{url-antora}:
+
+[source, bash]
+----
+invoke docs      # -> public/
+----
+
+Antora wants its pages under `modules/<name>/pages/`. Moving `doc/` there would invalidate the 179 references to `doc/*.adoc` spread across 86 files - role comments, playbooks, inventory, `tasks.py` - so the build assembles that layout under `build/` from the sources instead, and the repository keeps its own vocabulary. What it costs is Antora's *Edit this Page* link, which cannot be mapped back: `index.adoc` came from `README.adoc` and the skill pages from Markdown two directories away.
+
+The two `.claude/skills/*/SKILL.md` files are converted by `kramdoc` on the way in, since Antora reads AsciiDoc and nothing else. They are included because the AsciiDoc pages lean on them - `doc/TESTING.adoc` alone points at `.claude/skills` ten times:
+
+* link:{url-skill-testlab} - the disposable hosts a role is proven on before production sees it.
+* link:{url-skill-run-ansible} - how this repository is linted and tested.
+
+The published site references no third party: Antora copies its UI's CSS and JavaScript into the output. Fetching that UI bundle is the build's one network dependency.
+
+`.github/workflows/docs.yml` publishes it to link:{url-pages} on every push to `main`.
+
 == Testing
 
 :url-doc-testing: doc/TESTING.adoc[Testing]
@@ -85,6 +111,22 @@ invoke check-drift
 ----
 
 See link:{url-doc-testing} for what each layer catches, what it does not, and how to add a scenario for another role.
+
+== Backup
+
+:url-doc-backup: doc/BACKUP.adoc[Backup]
+
+`roles/backup` takes a nightly `restic` snapshot of the state a playbook run cannot produce - the database dumps, the home directories and mail, the secrets generated on the host that this repository does not hold - and verifies the repository weekly. It reports its own outcome to Prometheus, so a backup that stops running is visible rather than merely absent.
+
+[source, bash]
+----
+# Deploy it
+invoke run-playbook --playbook=playbooks/backup.yml --hosts=production
+# Run one now, rather than waiting for the timer
+ssh <host> sudo systemctl start backup.service
+----
+
+See link:{url-doc-backup} for what is backed up, what deliberately is not and why, and - the part most likely to cost time under pressure - the order a restore has to happen in.
 
 == License
 

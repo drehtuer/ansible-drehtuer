@@ -27,3 +27,12 @@ __pycache__/
 
 # Ruff
 /ruff_cache/
+
+# Rendered documentation, built by `invoke docs` and published by
+# .github/workflows/docs.yml. Generated on every build, so committing
+# it would only ever produce diffs nobody reads.
+/public/
+# The Antora component, assembled from doc/ by `invoke docs`. Antora
+# needs its own layout; this is where that layout is built rather than
+# imposed on the sources.
+/build/
