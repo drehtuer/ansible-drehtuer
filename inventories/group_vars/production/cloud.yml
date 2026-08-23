@@ -53,6 +53,18 @@ cloud:
         3633313834643937310a313236376338666265613039356463663533636632613063643435356232
         30626438636263313532356634393261363234353565303838636662393832353966643666646231
         6661376131613030363639666132643432666238353830613237
+    # Nextcloud's own updater copies the whole installation to
+    # data/updater-<instanceid>/backups/ before an upgrade and never
+    # removes one: three had built up here at 1.7 GB each, the oldest
+    # for an upgrade completed 2026-06-04. Zero keeps none - the
+    # release is pinned and re-extractable, `upgrade.dump_dir` below
+    # holds the pre-upgrade dump, and the backup role snapshots the
+    # host nightly.
+    #
+    # Overriding `cloud` replaces the role default wholesale, so this
+    # key has to be repeated here too.
+    updater:
+      keep_backups: 0
     upgrade:
       dump_dir: /var/backups/nextcloud
       repair_commands:

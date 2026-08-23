@@ -487,6 +487,105 @@
     cron_file: nextcloud_iccp_cleanup
     state: absent
 
+# The two tasks below carry no `cron_file`, and that omission is the
+# whole point of them.
+#
+# `ansible.builtin.cron` identifies an entry by (user, name,
+# cron_file). Naming a cron_file therefore scopes the module to
+# /etc/cron.d/<file> and to nothing else - so the removal above, and
+# the "Nextcloud cron job" task before it, have only ever been able to
+# see the copies there.
+#
+# Both jobs predate this role using cron_file at all. When it was
+# added, Ansible wrote fresh entries under /etc/cron.d and silently
+# stopped managing the originals in www-data's own crontab, which have
+# sat in /var/spool/cron/crontabs/www-data ever since (installed
+# 2026-08-15 20:29, by the last run that wrote them).
+#
+# What that cost, found on 2026-08-23 from a weekly mogrify error mail
+# that should have stopped a week earlier:
+#
+#   * The PNG job removed on 2026-08-16 never stopped running. Only
+#     the /etc/cron.d copy went; the crontab one kept firing every
+#     Sunday at 03:00.
+#   * The background job runs twice, on two schedules - */5 from
+#     /etc/cron.d/nextcloud_cron and */15 from the crontab.
+- name: Remove the iCCP PNG rewriting job from www-data's own crontab
+  ansible.builtin.cron:
+    name: "Remove iCCP profiles from PNG files"
+    user: www-data
+    state: absent
+
+- name: Remove the duplicate background job from www-data's own crontab
+  # The managed copy stays: it lives in /etc/cron.d/nextcloud_cron and
+  # is written by the "Nextcloud cron job" task above, which names a
+  # cron_file and so is untouched by this.
+  ansible.builtin.cron:
+    name: "Nextcloud cron job"
+    user: www-data
+    state: absent
+
+# Nextcloud's *updater* - the web and CLI one, not this role, which
+# extracts a tarball over the top - copies the entire installation to
+# data/updater-<instanceid>/backups/nextcloud-<version>-<epoch>/ before
+# it upgrades, and never removes one afterwards. Three had accumulated
+# on carcosa at 1.7 GB each, the oldest from 2026-06-04, all of them
+# rollback points for upgrades that completed months ago.
+#
+# They are also where the PNG damage survives: the copies were taken
+# while the mogrify job was still running, so files it had zeroed or
+# truncated are frozen there - which is what the weekly error mail was
+# mostly reporting.
+- name: Read the Nextcloud instance id
+  # Names the updater directory. Read rather than derived, so the path
+  # below is the one this instance actually uses.
+  ansible.builtin.command:
+    cmd: sudo -u www-data php occ config:system:get instanceid
+    chdir: "{{ cloud.nextcloud.path }}"
+  changed_when: false
+  check_mode: false
+  register: cloud_instanceid
+
+- name: Find the updater's leftover backups
+  # Scoped to one directory, matching one pattern, non-recursively.
+  # That is deliberate given what the job removed above did with a
+  # broad scope: this can only ever see `backups/nextcloud-*`, and a
+  # path outside it cannot be reached from here even if the instance
+  # id read above were wrong.
+  ansible.builtin.find:
+    paths: >-
+      {{ cloud.nextcloud.data_dir }}/updater-{{
+         cloud_instanceid.stdout | trim }}/backups
+    patterns: nextcloud-*
+    file_type: directory
+    recurse: false
+  # Runs under --check too, so `invoke check-drift` reports the
+  # backups that would actually go rather than an empty list.
+  check_mode: false
+  register: cloud_updater_backups
+
+- name: Choose which updater backups to remove
+  # Newest first, then drop the ones being kept. `keep_backups: 0`
+  # removes all of them, which is the default: this role installs a
+  # pinned release it can re-extract, takes its own database dump
+  # before `occ upgrade` - the half a file copy cannot undo - and the
+  # backup role snapshots the host nightly.
+  ansible.builtin.set_fact:
+    cloud_updater_stale: >-
+      {{ (cloud_updater_backups.files | sort(attribute='mtime', reverse=true))[
+           cloud.nextcloud.updater.keep_backups | int:] }}
+
+- name: Remove the updater's leftover backups
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ cloud_updater_stale }}"
+  loop_control:
+    # `find` returns the whole stat dict per entry, and a failure here
+    # would print all of it per item. The directory name is the only
+    # part worth reading.
+    label: "{{ item.path | basename }}"
+
 - name: Validate nginx configuration
   ansible.builtin.command:
     cmd: nginx -t
