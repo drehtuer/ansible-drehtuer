@@ -38,6 +38,10 @@ cloud:
         3435633831616163350a396262656530643134336665316231323030383939386130306139643235
         30613035396362613563363563376335646262353336323636626430313461333965363834386330
         6466363839616539343534653532323330633030323461643064
+    # Overriding `cloud` replaces the role default wholesale, so
+    # this key has to be repeated here too.
+    updater:
+      keep_backups: 0
     upgrade:
       dump_dir: /var/backups/nextcloud
       repair_commands:
