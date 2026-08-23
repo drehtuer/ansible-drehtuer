@@ -50,6 +50,14 @@ ui:
     url: >-
       https://gitlab.com/antora/antora-ui-default/-/jobs/artifacts/HEAD/raw/build/ui-bundle.zip?job=bundle-stable
     snapshot: true
+  # One file replaces one file in the bundle above. Antora's default UI
+  # ships a demo navbar - Home, Products, Services, Download, all of
+  # them `href="#"` - which is placeholder content for a project with
+  # something to sell. The override drops it and keeps the site title.
+  #
+  # Supplemental files rather than a forked bundle, so everything else
+  # in the UI still comes from upstream and keeps updating with it.
+  supplemental_files: ./docs-ui
 
 output:
   dir: ./public

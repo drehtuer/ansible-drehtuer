@@ -87,7 +87,7 @@ The two `.claude/skills/*/SKILL.md` files are converted by `kramdoc` on the way 
 * link:{url-skill-testlab} - the disposable hosts a role is proven on before production sees it.
 * link:{url-skill-run-ansible} - how this repository is linted and tested.
 
-The published site references no third party: Antora copies its UI's CSS and JavaScript into the output. Fetching that UI bundle is the build's one network dependency.
+One file of Antora's default UI is overridden in `docs-ui/`, dropping the demo navbar it ships - Products, Services and a Download button, all placeholders. The published site references no third party: Antora copies its UI's CSS and JavaScript into the output. Fetching that UI bundle is the build's one network dependency.
 
 `.github/workflows/docs.yml` publishes it to link:{url-pages} on every push to `main`.
 
