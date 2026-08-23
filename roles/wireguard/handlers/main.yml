@@ -1,0 +1,13 @@
+- name: Restart wireguard
+  # A restart drops every peer for the moment the interface is down.
+  # That is acceptable here and not worth the alternative: applying
+  # changes in place needs `wg syncconf` fed by `wg-quick strip`,
+  # which does not reapply Address, MTU or routes - so a change to any
+  # of those would appear to succeed and quietly not take effect.
+  #
+  # Nothing administrative depends on the tunnel: this host is
+  # reached over SSH on its public address, so a tunnel that fails to
+  # come back does not lock anyone out.
+  ansible.builtin.systemd_service:
+    name: "wg-quick@{{ wireguard.interface }}"
+    state: restarted

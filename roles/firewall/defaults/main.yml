@@ -20,6 +20,24 @@ firewall:  # noqa: var-naming[no-role-prefix] - see doc/STATUS.adoc
     published:
       tcp: []
       udp: []
+  wireguard:
+    # A host terminating the tunnel forwards and masquerades peer
+    # traffic, and gains a nat table it otherwise has no use for.
+    # Turned off, nothing about the VPN is written to the rules file
+    # and the nat table is not emitted at all.
+    enabled: false
+    interface: wg0
+    # Same reasoning as docker.wan_interface above, and the same
+    # deliberate absence of a fallback.
+    wan_interface: "{{ ansible_facts['default_ipv4'].interface }}"
+    # Peer ranges, masqueraded on the way out. Set from the matching
+    # `wireguard` values in the inventory rather than repeated by
+    # hand, so the two cannot drift.
+    network:
+      ip4: ""
+      ip6: ""
+    listen_port: 51820
+    redirect_port: 443
   rules:
     tcp:
       - port: 22

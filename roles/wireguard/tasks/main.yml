@@ -1,0 +1,94 @@
+- name: Refuse to configure a tunnel without a server key
+  # Same reasoning as the cloud role's empty admin password: a default
+  # that is empty is safer than one that is guessable, and the run
+  # should stop here rather than write a config that cannot work.
+  # Generate one with roles/wireguard/scripts/generate_keys.sh and
+  # store it vaulted in the inventory.
+  ansible.builtin.assert:
+    that:
+      - wireguard.server.private_key | length > 0
+    fail_msg: >-
+      wireguard.server.private_key is empty. Generate a key with
+      roles/wireguard/scripts/generate_keys.sh and add it to the
+      inventory as a vaulted value.
+    quiet: true
+
+- name: Refuse to configure two peers with the same address
+  # A duplicate is not rejected by wg(8) in any useful way - the second
+  # peer simply never receives traffic, because AllowedIPs is a routing
+  # table and the last match wins. That failure looks like one device
+  # being mysteriously unreachable, which is a bad afternoon.
+  ansible.builtin.assert:
+    that:
+      - addresses | length == addresses | unique | length
+    fail_msg: >-
+      Two peers share an address in wireguard.peers.
+    quiet: true
+  vars:
+    addresses: >-
+      {{ (wireguard.peers | map(attribute='ip4') | list)
+         + (wireguard.peers | map(attribute='ip6') | list) }}
+
+- name: Install WireGuard
+  # The kernel module is in-tree since 5.6, so only the userspace tools
+  # are needed - no DKMS build to break on a kernel upgrade.
+  ansible.builtin.apt:
+    install_recommends: false
+    name:
+      - wireguard-tools
+
+- name: Forward IPv4 between interfaces
+  # Docker already sets this at runtime, which is exactly why it is
+  # declared here: the tunnel would then work until the day Docker is
+  # removed or fails to start, and the cause would not be obvious.
+  ansible.posix.sysctl:
+    name: net.ipv4.ip_forward
+    value: "1"
+    sysctl_file: /etc/sysctl.d/99-wireguard.conf
+    sysctl_set: true
+    state: present
+    reload: true
+
+- name: Forward IPv6 between interfaces
+  # Off by default, and the usual way to lose a Hetzner host remotely:
+  # enabling forwarding makes the kernel ignore router advertisements,
+  # so a box whose default route came from an RA loses it on the next
+  # renewal. Safe here, and checked rather than assumed - netplan
+  # configures the address and `default via fe80::1` statically, and
+  # accept_ra is already 0 on both `all` and the WAN interface.
+  ansible.posix.sysctl:
+    name: net.ipv6.conf.all.forwarding
+    value: "1"
+    sysctl_file: /etc/sysctl.d/99-wireguard.conf
+    sysctl_set: true
+    state: present
+    reload: true
+
+- name: WireGuard configuration directory
+  ansible.builtin.file:
+    path: /etc/wireguard
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+
+- name: WireGuard interface configuration
+  # No `validate`: wg-quick has no syntax check that can be pointed at
+  # an arbitrary path the way `nginx -t` or `php -l` can. A bad file
+  # fails the interface start below instead, which is louder but does
+  # at least fail.
+  ansible.builtin.template:
+    src: templates/wg0.conf.j2
+    dest: "/etc/wireguard/{{ wireguard.interface }}.conf"
+    owner: root
+    group: root
+    # Contains the server's private key and every peer's preshared
+    # key. wg-quick reads it as root.
+    mode: "0600"
+  notify: Restart wireguard
+
+- name: Enable and start the tunnel
+  ansible.builtin.systemd_service:
+    name: "wg-quick@{{ wireguard.interface }}"
+    enabled: true
+    state: started

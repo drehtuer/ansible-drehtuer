@@ -1,0 +1,32 @@
+# Tunnel shape, shared by every host that terminates one.
+#
+# The two values that differ per environment - the server's private
+# key and the peer list - are referenced as scalars defined in
+# `group_vars/<group>/wireguard.yml` rather than overridden here.
+# Overriding `wireguard` in a group would replace this whole dict
+# instead of merging into it, and forgetting one key then breaks the
+# role at run time; the same trap `data_dir` in the cloud inventory
+# carries a comment about.
+wireguard:
+  interface: wg0
+  listen_port: 51820
+  # Redirected to listen_port by the firewall role, for networks that
+  # permit nothing but 443 outbound.
+  redirect_port: 443
+  mtu: 1420
+  network:
+    ip4: 10.7.0.0/24
+    # A ULA, because the host's global /64 is on-link at Hetzner and
+    # cannot be handed to the tunnel without proxying NDP for it.
+    # Peers are masqueraded out instead. Global ID is random per
+    # RFC 4193.
+    ip6: fd9c:a40e:a2a8::/64
+  server:
+    ip4: 10.7.0.1
+    ip6: fd9c:a40e:a2a8::1
+    private_key: "{{ wireguard_server_private_key }}"
+  # unbound on this host, reachable through the tunnel only.
+  dns:
+    - 10.7.0.1
+    - fd9c:a40e:a2a8::1
+  peers: "{{ wireguard_peers }}"

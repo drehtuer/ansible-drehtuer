@@ -80,6 +80,23 @@
 {% for udp in firewall.rules.udp | default([]) %}
 -A UDP -p udp --dport {{ udp.port }} -m conntrack --ctstate NEW -m comment --comment "{{ udp.comment }}" -j ACCEPT
 {% endfor %}
+{% if firewall.wireguard.enabled %}
+
+# VPN traffic
+#
+# The FORWARD policy is DROP, so a packet that is routed rather than
+# delivered locally needs an explicit accept. Two directions matter:
+#
+#   * out of the tunnel - to the internet, and to another peer. One
+#     rule covers both, because "came in on wg0" is the whole
+#     condition; where it is going is decided by AllowedIPs in the
+#     tunnel configuration, which is the authorisation check that
+#     matters and has already happened by this point.
+#   * back in, which is conntrack's job alone. Nothing from the
+#     internet may open a connection to a peer.
+-A FORWARD -i {{ firewall.wireguard.interface }} -m comment --comment "VPN peers out, and to each other" -j ACCEPT
+-A FORWARD -o {{ firewall.wireguard.interface }} -m conntrack --ctstate RELATED,ESTABLISHED -m comment --comment "VPN return traffic" -j ACCEPT
+{% endif %}
 {% if firewall.docker.enabled %}
 
 # Container traffic
@@ -99,3 +116,38 @@
 {% endif %}
 
 COMMIT
+{% if firewall.wireguard.enabled %}
+
+# The nat table exists for the VPN alone.
+#
+# Worth knowing: restoring this file now flushes nat as well as
+# filter, which takes Docker's DOCKER and DOCKER-POSTROUTING chains
+# with it. That is why the role notifies a Docker restart - the same
+# reason it already did for the filter table, now with a second table
+# behind it.
+*nat
+:PREROUTING ACCEPT [0:0]
+:INPUT ACCEPT [0:0]
+:OUTPUT ACCEPT [0:0]
+:POSTROUTING ACCEPT [0:0]
+
+# Networks that permit nothing but 443 outbound. The tunnel listens
+# once, on its own port, and this puts a second door on it rather than
+# a second interface.
+#
+# It defeats a port filter and not a protocol one: anything inspecting
+# the payload still sees WireGuard, which is not trying to look like
+# TLS. Reserving udp/443 also means HTTP/3 cannot have it later.
+-A PREROUTING -i {{ firewall.wireguard.wan_interface }} -p udp --dport {{ firewall.wireguard.redirect_port }} -m comment --comment "VPN fallback port" -j REDIRECT --to-ports {{ firewall.wireguard.listen_port }}
+
+# Peers leave under this host's own address.
+#
+# For IPv6 this is NAT66, which is a deliberate choice rather than an
+# oversight: the host's global /64 is on-link at Hetzner, so an
+# address from it handed to a peer is not reachable unless this host
+# answers NDP for it. Peers use a ULA and are masqueraded instead.
+# The cost is that nothing can open a connection *to* a peer from
+# outside, which for personal devices is closer to a feature.
+-A POSTROUTING -s {{ firewall.wireguard.network['ip6' if v6 else 'ip4'] }} -o {{ firewall.wireguard.wan_interface }} -m comment --comment "VPN egress" -j MASQUERADE
+COMMIT
+{% endif %}

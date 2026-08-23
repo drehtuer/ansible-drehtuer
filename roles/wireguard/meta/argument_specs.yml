@@ -1,0 +1,112 @@
+argument_specs:
+  main:
+    short_description: WireGuard VPN gateway
+    description:
+      - Terminates a full-tunnel WireGuard VPN for a small, fixed set
+        of personal devices, dual stack, with peers able to reach each
+        other through this host.
+      - Owns the interface configuration only. Forwarding rules,
+        masquerading and the udp/443 redirect belong to the firewall
+        role, and the resolver peers are pointed at belongs to the dns
+        role.
+    options:
+      wireguard:
+        type: dict
+        required: true
+        description: Tunnel settings.
+        options:
+          interface:
+            type: str
+            required: true
+            description:
+              - Interface name, which is also the configuration file
+                name and the systemd unit instance.
+          listen_port:
+            type: int
+            required: true
+            description: UDP port the tunnel listens on.
+          redirect_port:
+            type: int
+            required: true
+            description:
+              - Second UDP port redirected to listen_port by the
+                firewall role, for networks that permit only 443
+                outbound. Nothing listens on it directly.
+          mtu:
+            type: int
+            required: true
+            description:
+              - Tunnel MTU. 1420 suits a 1500-byte path over an IPv6
+                outer header; 1280 is the safe floor on a mobile
+                network with a smaller path MTU.
+          network:
+            type: dict
+            required: true
+            description: Address ranges inside the tunnel.
+            options:
+              ip4:
+                type: str
+                required: true
+                description: Peer IPv4 range in CIDR form.
+              ip6:
+                type: str
+                required: true
+                description:
+                  - Peer IPv6 range in CIDR form. A ULA, masqueraded
+                    on the way out, because the host's global /64 is
+                    on-link and cannot be handed to the tunnel.
+          server:
+            type: dict
+            required: true
+            description: This host's own tunnel identity.
+            options:
+              ip4:
+                type: str
+                required: true
+                description: Its address in network.ip4.
+              ip6:
+                type: str
+                required: true
+                description: Its address in network.ip6.
+              private_key:
+                type: str
+                required: true
+                description:
+                  - The tunnel's private key. The role refuses to
+                    configure anything with an empty one.
+          dns:
+            type: list
+            elements: str
+            required: true
+            description:
+              - Resolvers handed to peers. Reachable through the
+                tunnel only.
+          peers:
+            type: list
+            elements: dict
+            required: true
+            description:
+              - One entry per device. Private keys are generated on
+                the device and never appear here.
+            options:
+              name:
+                type: str
+                required: true
+                description: Label, written as a comment.
+              public_key:
+                type: str
+                required: true
+                description: The device's public key.
+              preshared_key:
+                type: str
+                required: true
+                description:
+                  - Symmetric key mixed in on top of the keypair.
+              ip4:
+                type: str
+                required: true
+                description: Its address in network.ip4.
+              ip6:
+                type: str
+                required: true
+                description: Its address in network.ip6.

@@ -1,0 +1,37 @@
+# The "keys" here are deliberately not keys: they are labels, not
+# valid base64, and nothing could load them. The static tests render
+# templates and verify nothing, so a real key would buy nothing and
+# would have to be vaulted - which this inventory cannot be, because
+# `invoke test-static` is the layer that runs in CI without the vault
+# password.
+#
+# The real keys, for the lab and for carcosa, are vaulted in
+# inventories/group_vars/{testlab,production}/wireguard.yml.
+wireguard:
+  interface: wg0
+  listen_port: 51820
+  redirect_port: 443
+  mtu: 1420
+  network:
+    ip4: 10.7.0.0/24
+    ip6: fd9c:a40e:a2a8::/64
+  server:
+    ip4: 10.7.0.1
+    ip6: fd9c:a40e:a2a8::1
+    private_key: test-server-private-key
+  dns:
+    - 10.7.0.1
+    - fd9c:a40e:a2a8::1
+  # Two peers rather than one: a template that quietly assumed a
+  # single peer renders identically for one and wrongly for two.
+  peers:
+    - name: test-laptop
+      public_key: test-laptop-public-key
+      preshared_key: test-laptop-preshared-key
+      ip4: 10.7.0.2
+      ip6: fd9c:a40e:a2a8::2
+    - name: test-phone
+      public_key: test-phone-public-key
+      preshared_key: test-phone-preshared-key
+      ip4: 10.7.0.3
+      ip6: fd9c:a40e:a2a8::3

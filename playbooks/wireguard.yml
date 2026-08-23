@@ -1,0 +1,26 @@
+# Depends on roles/firewall for the forwarding, masquerading and
+# udp/443 redirect this role deliberately does not install itself, and
+# on roles/dns for the resolver peers are pointed at.
+#
+# Order between this and the firewall playbook does not matter, which
+# is worth stating because it looks as though it should: netfilter
+# accepts a rule naming an interface that does not exist yet and
+# simply never matches until it does. Checked on the host rather than
+# assumed.
+#
+# See doc/STATUS.adoc.
+- name: WireGuard role
+  hosts: all
+  gather_facts: false
+  roles:
+    - role: wireguard
+      tags:
+        - wireguard
+    # Runs after the role above, so a component that failed to
+    # deploy is never recorded as deployed. Carries the same tag,
+    # so `--tags wireguard` stamps what it deployed.
+    - role: deploy_stamp
+      vars:
+        deploy_stamp_component: wireguard
+      tags:
+        - wireguard

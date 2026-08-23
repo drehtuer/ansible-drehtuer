@@ -1,0 +1,24 @@
+# The tunnel's server key.
+#
+# Generated on the controller rather than on the host, which is the
+# same stance roles/sshd/scripts/generate_keys.sh takes: a rebuilt
+# carcosa keeps its tunnel identity, so no peer has to be
+# reconfigured afterwards.
+#
+# Replace it by re-running roles/wireguard/scripts/generate_keys.sh
+# and pasting the block it prints. Nothing else changes while there
+# are no peers; once there are, each peer config names the matching
+# public key and would need updating with it.
+wireguard_server_private_key: !vault |
+  $ANSIBLE_VAULT;1.1;AES256
+  37306337303538366163643030393661333564313562616363353739366135613639353138373732
+  3036373261353466643266373462646639376564303638380a343233626134653739356634656437
+  66303437653738633939356565323630336139353737333564333536393131666133303166356432
+  3338626232626662650a383433383633343237663737653862663537303434376235326163366332
+  36336133383464646138616133616563636365336239383132326433386265663832653161363664
+  6634303065646335383532333338393264353039353165656264
+
+# One entry per device, from roles/wireguard/scripts/new-peer.sh,
+# which is run on the device so its private key never reaches this
+# repository. `preshared_key` belongs in a !vault block.
+wireguard_peers: []

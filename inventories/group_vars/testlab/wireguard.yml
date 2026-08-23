@@ -1,0 +1,19 @@
+# The testlab hosts are disposable, but the key is vaulted anyway:
+# "no unencrypted private data in a tracked file" is a rule worth
+# having no exceptions to, because every exception has to be
+# remembered by whoever reads the file next - and nothing in the file
+# tells a reader that this particular key is the harmless one.
+#
+# Generated with roles/wireguard/scripts/generate_keys.sh.
+wireguard_server_private_key: !vault |
+  $ANSIBLE_VAULT;1.1;AES256
+  39313166326231613864363731613864653965663466356636323266333862326232626461393033
+  3731323633626635383839646365336133613532343639660a393338666230303837313264333765
+  37366238616531363031656431623363303866343035663530633935393438663465323266333261
+  3932383763356131370a326637616134383935383030353534333837316336376535386333613231
+  32623730646465396432336535356439363434616637343061373034373230656565326133666631
+  6630653163363036303763653464663939636438663936333335
+
+# No peers on the lab. Adding one uses the same new-peer.sh as
+# production, and its preshared_key belongs in a !vault block too.
+wireguard_peers: []
