@@ -1,0 +1,66 @@
+- name: Refuse to stamp without knowing what was deployed
+  ansible.builtin.assert:
+    that:
+      - deploy_stamp_component is defined
+      - deploy_stamp_component | length > 0
+    fail_msg: >-
+      deploy_stamp_component must name the component being stamped.
+      Pass it from the playbook, e.g.
+      `- role: deploy_stamp` with `deploy_stamp_component: backup`.
+    quiet: true
+
+- name: Read the commit being deployed  # noqa: command-instead-of-module
+  # The noqa is deliberate. `ansible.builtin.git` clones and checks
+  # out a repository; it cannot report what the working copy is
+  # currently on, which is the only thing wanted here. This reads
+  # and changes nothing, hence `changed_when: false`.
+  # From the controller, because that is where the repository is - the
+  # target has no copy of it and never will.
+  #
+  # `--dirty` is the load-bearing flag. A hash that does not reproduce
+  # what was deployed is worse than no hash, because it invites
+  # confidence that has not been earned, so a working tree with
+  # modifications records `<sha>-dirty` rather than pretending. Note
+  # the limit: `--dirty` sees modifications to tracked files and not
+  # untracked ones, so a wholly new file that a role reads is invisible
+  # to it.
+  #
+  # `--abbrev=40` pins the full hash. The default abbreviation is
+  # whatever git thinks is unambiguous today, which grows with the
+  # repository and would rewrite this file for no reason.
+  ansible.builtin.command:
+    cmd: git describe --always --dirty --abbrev=40
+    chdir: "{{ playbook_dir | dirname }}"
+  delegate_to: localhost
+  become: false
+  run_once: true
+  changed_when: false
+  # So `invoke check-drift` compares against the real commit rather
+  # than skipping the read and reporting a change it cannot know about.
+  check_mode: false
+  register: deploy_stamp_describe
+
+- name: Create the stamp directory
+  ansible.builtin.file:
+    path: "{{ deploy_stamp.dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Record which commit produced this component
+  # The file holds the hash and nothing else - deliberately no
+  # timestamp inside it. A timestamp would differ on every run, so
+  # `invoke check-drift` would report a change forever and the one
+  # signal this repository relies on would become noise.
+  #
+  # The mtime carries the time instead, and means something slightly
+  # more useful than "last deployed": `copy` rewrites the file only
+  # when the hash changes, so the mtime is when this host first
+  # received *this* commit for *this* component.
+  ansible.builtin.copy:
+    content: "{{ deploy_stamp_describe.stdout }}\n"
+    dest: "{{ deploy_stamp.dir }}/{{ deploy_stamp_component }}.commit"
+    owner: root
+    group: root
+    mode: "0644"

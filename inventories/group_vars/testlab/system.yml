@@ -1,0 +1,23 @@
+# Mirrors roles/system/defaults/main.yml, because an inventory dict
+# REPLACES the role default rather than merging into it. See
+# doc/STATUS.adoc.
+system:
+  locales:
+    locale: en_US.UTF-8
+    locale_time: en_GB.UTF-8
+    locale_gen:
+      - en_US.UTF-8
+      - en_GB.UTF-8
+  # The lab's domains resolve nowhere, so the guest cannot look up the
+  # names it serves itself. Nextcloud's `occ notify_push:setup` fetches
+  # https://cloud.<domain>/push/test/cookie from the host and fails the
+  # whole of playbooks/cloud.yml when that does not resolve - which is
+  # what stopped playbooks/site.yml completing on a lab guest.
+  #
+  # Derived from the same two facts http.domains is built from, so a
+  # domain or subdomain added there is picked up here without a second
+  # edit.
+  extra_names: >-
+    {{ (http.letsencrypt.subdomains | product([domain] + domain_aliases)
+        | map('join', '.') | list)
+       + [domain] + domain_aliases }}

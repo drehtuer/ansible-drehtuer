@@ -7,7 +7,7 @@ What is backed up, what deliberately is not, and why — plus the restore order,
 
 The off-site tier and <<deploy-stamp,the deploy stamp>> remain design only. Everything that exists today is one repository on `carcosa`'s own disk.
 
-Two parts of this page are still design only, and are marked where they appear: <<deploy-stamp,the deploy stamp>>, and any off-site copy at all. What exists today is one repository on `carcosa`'s own disk.
+One part of this page is still design only: any off-site copy at all. What exists today is one repository on `carcosa`'s own disk. <<deploy-stamp,The deploy stamp>> is built.
 
 == The framing: this repo is already half the backup
 
@@ -173,7 +173,7 @@ The host should move forward to current versions rather than being restored to w
 [#deploy-stamp]
 == The deploy stamp
 
-**Not implemented.** The rest of this section is the design.
+**Implemented as of 2026-08-23** in `roles/deploy_stamp`, which every playbook runs after the role it deploys. What follows is the design it was built to; `doc/STATUS.adoc` records what the lab run proved about it.
 
 **Record on the host which state of this repository was deployed to it.** Re-running that commit reproduces the setup the backup was taken from; re-running `main` might not.
 

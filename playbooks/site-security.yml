@@ -1,0 +1,27 @@
+# Intrusion banning, deliberately after both the web and the mail
+# stacks.
+#
+# **fail2ban refuses to start when any jail's log file is missing** -
+# not the jail, the whole service: "Failed during configuration: Have
+# not found any log file for nginx-http-auth jail", then
+# status=255/EXCEPTION. Three of the six jails watch files rather than
+# the journal, and those files are created by two different roles:
+#
+#   nginx-http-auth  /var/log/nginx/error.log    roles/http
+#   nginx-404        /var/log/nginx/access.log   roles/http
+#   dovecot          /var/log/dovecot.log        roles/imap
+#
+# `doc/STATUS.adoc` has recorded the nginx half of that for some time.
+# The Dovecot half is the same constraint and was not written down: it
+# exists because `roles/imap` sets `log_path` in dovecot.conf, which is
+# what moves Dovecot off syslog and into a file of its own. So fail2ban
+# has to follow `site-mail.yml` as well as `site-web.yml`, and that is
+# why it is not in either.
+#
+# `fail2ban_ui` last, needing the engine from `site-platform.yml`, the
+# control socket from the role above it, and nginx plus a certificate
+# covering its subdomain from `site-web.yml`.
+- name: Intrusion banning
+  ansible.builtin.import_playbook: fail2ban.yml
+- name: Fail2ban web interface
+  ansible.builtin.import_playbook: fail2ban_ui.yml

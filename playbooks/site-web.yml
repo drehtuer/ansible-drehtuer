@@ -1,0 +1,21 @@
+# The web stack, in the one order that works on a host with nothing on
+# it yet.
+#
+# `http` first, and not only because the others are served through it:
+# its certificate bootstrap serves the ACME challenge from the port-80
+# vhost before the TLS vhosts are written, so nginx can start without
+# a certificate that cannot be issued without nginx.
+#
+# `cloud` before `talk`, because the Talk backend registers itself with
+# Nextcloud through `occ` and there has to be a Nextcloud to register
+# with.
+#
+# Note what is *not* here: `fail2ban` and `fail2ban_ui`. Both are in
+# `site-security.yml`, which runs after the mail stack as well - see
+# the reason there.
+- name: Web server
+  ansible.builtin.import_playbook: http.yml
+- name: Nextcloud
+  ansible.builtin.import_playbook: cloud.yml
+- name: Talk backend
+  ansible.builtin.import_playbook: talk.yml

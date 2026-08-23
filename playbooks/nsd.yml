@@ -7,3 +7,11 @@
     - role: nsd
       tags:
         - nsd
+    # Runs after the role above, so a component that failed to
+    # deploy is never recorded as deployed. Carries the same tag,
+    # so `--tags nsd` stamps what it deployed.
+    - role: deploy_stamp
+      vars:
+        deploy_stamp_component: nsd
+      tags:
+        - nsd

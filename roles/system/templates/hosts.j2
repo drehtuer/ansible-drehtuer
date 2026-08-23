@@ -17,12 +17,12 @@
 
 127.0.0.1	localhost.localdomain localhost
 {% if ip_v4 in ansible_facts['all_ipv4_addresses'] %}
-{{ ip_v4 }}	{{ hostname_fqdn }} {{ hostname }}
+{{ ip_v4 }}	{{ hostname_fqdn }} {{ hostname }}{% for name in system.extra_names %} {{ name }}{% endfor %}
 {% endif %}
 
 ::1	ip6-localhost ip6-loopback
 {% if ip_v6 in ansible_facts['all_ipv6_addresses'] %}
-{{ ip_v6 }}	{{ hostname_fqdn }} {{ hostname }}
+{{ ip_v6 }}	{{ hostname_fqdn }} {{ hostname }}{% for name in system.extra_names %} {{ name }}{% endfor %}
 {% endif %}
 fe00::0	ip6-localnet
 ff00::0	ip6-mcastprefix

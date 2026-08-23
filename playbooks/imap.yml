@@ -7,3 +7,11 @@
     - role: imap
       tags:
         - imap
+    # Runs after the role above, so a component that failed to
+    # deploy is never recorded as deployed. Carries the same tag,
+    # so `--tags imap` stamps what it deployed.
+    - role: deploy_stamp
+      vars:
+        deploy_stamp_component: imap
+      tags:
+        - imap

@@ -1,4 +1,8 @@
 system:
+  # Empty here: every served name is in public DNS, so this host has
+  # no need to resolve them from its own hosts file. See the role
+  # defaults for what this is for.
+  extra_names: []
   locales:
     locale: en_US.UTF-8
     locale_time: en_GB.UTF-8

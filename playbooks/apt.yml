@@ -5,3 +5,11 @@
     - role: apt
       tags:
         - apt
+    # Runs after the role above, so a component that failed to
+    # deploy is never recorded as deployed. Carries the same tag,
+    # so `--tags apt` stamps what it deployed.
+    - role: deploy_stamp
+      vars:
+        deploy_stamp_component: apt
+      tags:
+        - apt

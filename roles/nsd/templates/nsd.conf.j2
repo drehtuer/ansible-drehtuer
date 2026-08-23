@@ -34,8 +34,20 @@ server:
 {% for addr in nsd.listen %}
   ip-address: {{ addr }}
 {% endfor %}
-  do-ip4: yes
-  do-ip6: yes
+  # Each family is enabled only when an address of that family is
+  # actually listed above, and hardcoding both was a real fault rather
+  # than an untidiness. `do-ip6: yes` with no IPv6 address in the list
+  # does not disable IPv6 - it makes NSD bind the IPv6 *wildcard*,
+  # which is the one thing the comment above says must never happen.
+  # On a host that lists only IPv4 that means `::@53`, which collides
+  # with the resolver's `::1` and leaves nsd refusing to start:
+  # "can't bind udp socket ::@53: Address already in use".
+  #
+  # Invisible on `carcosa`, which lists both families, and found the
+  # first time `playbooks/site.yml` provisioned nsd on a lab guest -
+  # which lists only IPv4 because it has no real IPv6 address.
+  do-ip4: {{ 'yes' if nsd.listen | reject('search', ':') | list else 'no' }}
+  do-ip6: {{ 'yes' if nsd.listen | select('search', ':') | list else 'no' }}
 
   hide-version: yes
   identity: ""
