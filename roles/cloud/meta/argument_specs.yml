@@ -114,6 +114,21 @@ argument_specs:
                       - Its password. The role refuses to install with
                         an empty one rather than creating an
                         administrator anybody could log in as.
+              updater:
+                type: dict
+                required: true
+                description:
+                  - Housekeeping for Nextcloud's own updater, which is
+                    not what this role uses to upgrade.
+                options:
+                  keep_backups:
+                    type: int
+                    required: true
+                    description:
+                      - How many of the updater's installation backups
+                        under data/updater-<instanceid>/backups/ to
+                        keep, newest first. The updater never removes
+                        one itself. Zero keeps none.
               upgrade:
                 type: dict
                 required: true

@@ -41,6 +41,20 @@ cloud:  # noqa: var-naming[no-role-prefix] - see doc/STATUS.adoc
     admin:
       user: admin
       password: ""
+    updater:
+      # How many of Nextcloud's *own* updater backups to keep. The
+      # updater copies the whole installation to
+      # data/updater-<instanceid>/backups/ before each upgrade and
+      # never prunes them: three had built up on carcosa at 1.7 GB
+      # each, the oldest for an upgrade completed months earlier.
+      #
+      # Zero, because every reason to keep one is already covered
+      # better elsewhere. The release is pinned and re-extractable,
+      # `upgrade.dump_dir` below holds the pre-upgrade database dump -
+      # the only part re-extracting files cannot undo - and the backup
+      # role snapshots the host nightly. What the updater's copy adds
+      # is 1.7 GB per upgrade of a tree nothing reads.
+      keep_backups: 0
     upgrade:
       # `occ upgrade` migrates the database schema, and that - not the
       # files - is the part of an upgrade that cannot be undone by
