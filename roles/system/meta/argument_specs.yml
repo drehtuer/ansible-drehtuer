@@ -35,6 +35,15 @@ argument_specs:
         required: true
         description: System settings.
         options:
+          extra_names:
+            type: list
+            elements: str
+            required: true
+            description:
+              - Extra names for this host's own addresses, written
+                beside the hostname. Empty on a host whose served names
+                are in public DNS; populated on one where they are not,
+                so that the host can resolve the vhosts it serves.
           locales:
             type: dict
             required: true

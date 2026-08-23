@@ -1,0 +1,51 @@
+# Every role this host needs, in an order that works on a machine with
+# nothing on it yet.
+#
+# This is the umbrella `doc/TODO.adoc` has wanted for a long time. What
+# it replaces is not "running the playbooks by hand" but the ordering
+# living in someone's memory and in a shell array inside a Claude
+# skill: six constraints are recorded in `doc/STATUS.adoc` and each has
+# bitten a from-scratch provision or would.
+#
+# The order below is that array's, with two changes, and both are
+# corrections rather than preferences:
+#
+#   * **fail2ban moved to the end**, after the mail stack as well as
+#     the web one. It refuses to *start* when any jail's log file is
+#     missing, and three of its six jails watch files created by
+#     `roles/http` and `roles/imap`. Running it eighth, as the tested
+#     array did, reliably left the service dead on a fresh host -
+#     which is exactly what happened on the lab on 2026-08-22.
+#   * **nsd, fail2ban_ui and talk are included.** The array omitted all
+#     three, so "every playbook, in order" meant seventeen of the
+#     twenty roles a rebuild needs.
+#
+# `upgrade` is deliberately absent: it performs an Ubuntu release
+# upgrade and reboots, its tasks are tagged `never`, and it is not part
+# of building a host.
+#
+# Each stage is a playbook of its own, so a stage can be re-run alone
+# when only that part of the host has changed:
+#
+#     invoke run-playbook --playbook=playbooks/site.yml --hosts=carcosa
+#     invoke run-playbook --playbook=playbooks/site-web.yml --hosts=carcosa
+#
+# Tags pass straight through, since every role carries its own name as
+# a tag, so `--tags nginx,cloud` selects across the whole run.
+#
+# Certificates are the one thing this cannot bootstrap on a host the
+# internet cannot reach: certbot validates over HTTP-01, so a lab guest
+# needs `lab.sh seed-certs` before `site-web.yml` or the `http` role
+# tries to reach Let's Encrypt for a name that resolves nowhere.
+- name: Base system
+  ansible.builtin.import_playbook: site-base.yml
+- name: Shared platform services
+  ansible.builtin.import_playbook: site-platform.yml
+- name: Web stack
+  ansible.builtin.import_playbook: site-web.yml
+- name: Mail stack
+  ansible.builtin.import_playbook: site-mail.yml
+- name: Intrusion banning
+  ansible.builtin.import_playbook: site-security.yml
+- name: Monitoring and backups
+  ansible.builtin.import_playbook: site-ops.yml

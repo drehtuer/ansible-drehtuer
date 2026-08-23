@@ -1,0 +1,23 @@
+# Shared services the application roles build on, and nothing that
+# serves a user directly.
+#
+# `dns` before anything that resolves names for a living: RSpamd's
+# resolver is pointed at 127.0.0.1, so without unbound every DNS-based
+# check it makes - SPF, DKIM, DMARC, RBLs - silently returns nothing
+# and no error is logged. That is why `site-mail.yml` runs after this.
+#
+# `database` before `site-web.yml`, because Nextcloud's file locking
+# points at this Redis and an unreachable one makes it return errors
+# rather than degrade - and before `site-ops.yml`, because the backup
+# dumps what MariaDB holds.
+#
+# `docker` before `site-web.yml` and `site-ops.yml`, which is where its
+# only consumers are.
+- name: Recursive resolver
+  ansible.builtin.import_playbook: dns.yml
+- name: Authoritative DNS
+  ansible.builtin.import_playbook: nsd.yml
+- name: Databases
+  ansible.builtin.import_playbook: database.yml
+- name: Container engine
+  ansible.builtin.import_playbook: docker.yml

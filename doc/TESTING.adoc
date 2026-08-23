@@ -176,6 +176,17 @@ Deployed to `carcosa` on 2026-08-22 with the fix, where the first backup read 20
 
 == Deployment test
 
+**`playbooks/site.yml` is the order now, not `lab.sh`'s `PLAYBOOKS` array.** That array was the tested order and is what `site.yml` was built from, but it lived in a skill script rather than the repository, and it omitted `nsd`, `fail2ban_ui` and `talk` - so "every playbook, in order" meant seventeen of the twenty roles a rebuild needs. It also ran `fail2ban` eighth, before the roles that create two of the logs its jails watch, which left the service dead on every lab deploy it ever performed.
+
+Deploying a whole guest is one command now:
+
+[source, bash]
+----
+.claude/skills/testlab/vm.sh reset
+.claude/skills/testlab/lab.sh seed-certs
+invoke run-playbook --playbook=playbooks/site.yml --hosts=yuggoth
+----
+
 `nyarlathotep` is a LAN-only physical machine in the inventory's `testlab` group. It is what molecule and the static tests cannot be: real hardware, real systemd, real services talking to each other, with every role applied in order rather than one at a time. It is disposable — nothing on it is backed up, and it is rolled back between runs.
 
 Everything runs through `.claude/skills/testlab/lab.sh`; see that skill's `SKILL.md` for the full workflow, the lockout hazards and the reinstall path.

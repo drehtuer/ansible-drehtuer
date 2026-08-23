@@ -1,0 +1,5 @@
+# Mirrors roles/deploy_stamp/defaults/main.yml, because an
+# inventory dict REPLACES the role default rather than merging
+# into it. See doc/STATUS.adoc.
+deploy_stamp:
+  dir: /var/lib/ansible/deployed

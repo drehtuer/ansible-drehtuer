@@ -1,0 +1,10 @@
+deploy_stamp:  # noqa: var-naming[no-role-prefix] - see doc/STATUS.adoc
+  # One file per component, named for the playbook that wrote it, each
+  # holding the commit that produced it and nothing else.
+  #
+  # Per component rather than one file for the host, because that is
+  # the only honest granularity: playbooks can be run individually, so
+  # "this host runs commit X" is a claim about the parts that were
+  # actually deployed. `site.yml` writes every one of them in a single
+  # run, which is when the whole set genuinely agrees.
+  dir: /var/lib/ansible/deployed

@@ -11,3 +11,11 @@
     - role: fail2ban_ui
       tags:
         - fail2ban_ui
+    # Runs after the role above, so a component that failed to
+    # deploy is never recorded as deployed. Carries the same tag,
+    # so `--tags fail2ban_ui` stamps what it deployed.
+    - role: deploy_stamp
+      vars:
+        deploy_stamp_component: fail2ban_ui
+      tags:
+        - fail2ban_ui

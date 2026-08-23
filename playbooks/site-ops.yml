@@ -1,0 +1,18 @@
+# What watches the host and what protects it, both of which need most
+# of the rest to exist first.
+#
+# `monitoring` needs Docker and nginx for its Grafana half, and Postfix
+# for the half that matters more: Alertmanager delivers through
+# 127.0.0.1:25, so on a host where the mail stack has not run the
+# alerts are generated, queued, retried and never sent - and the only
+# symptom is a Watchdog mail that does not arrive.
+#
+# `backup` needs MariaDB to dump and, where Nextcloud is present, an
+# `occ` to hold maintenance mode with. It also writes into
+# node_exporter's textfile directory, which `monitoring` owns - the
+# scripts skip writing when it is absent rather than failing, but
+# running monitoring first means the first backup is visible.
+- name: Monitoring
+  ansible.builtin.import_playbook: monitoring.yml
+- name: Backups
+  ansible.builtin.import_playbook: backup.yml

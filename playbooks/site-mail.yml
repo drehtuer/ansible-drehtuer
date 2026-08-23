@@ -1,0 +1,11 @@
+# The mail stack. Needs `site-platform.yml` to have run, for unbound.
+#
+# `mail` before `imap`, since Postfix hands delivery to Dovecot over
+# LMTP; `spam` last, because RSpamd is wired in as a milter that both
+# of the others are already configured to talk to.
+- name: Postfix
+  ansible.builtin.import_playbook: mail.yml
+- name: Dovecot
+  ansible.builtin.import_playbook: imap.yml
+- name: RSpamd
+  ansible.builtin.import_playbook: spam.yml

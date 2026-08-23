@@ -1,6 +1,18 @@
 # `hostname_fqdn` has no default on purpose - it is host specific and
 # comes from the inventory. See meta/argument_specs.yml.
 system:  # noqa: var-naming[no-role-prefix] - see doc/STATUS.adoc
+  # Extra names for this host's *own* addresses, added beside the
+  # hostname on each line that is written.
+  #
+  # Empty by default and empty on `carcosa`, where public DNS already
+  # resolves every served name. It exists for a host the world's DNS
+  # knows nothing about: the lab serves `cloud.lab.lan` and the rest of
+  # the vhosts on a domain that resolves nowhere, so anything on the
+  # host that calls its own public name fails to resolve it. Nextcloud
+  # does exactly that - `occ notify_push:setup` fetches
+  # https://cloud.<domain>/push/test/cookie from the host itself - and
+  # it is fatal to `playbooks/cloud.yml` when the name does not resolve.
+  extra_names: []
   locales:
     # Normalised to the UTF-8 spelling so these match the names in
     # locale_gen below.

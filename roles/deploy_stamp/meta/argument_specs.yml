@@ -1,0 +1,41 @@
+argument_specs:
+  main:
+    short_description: Record which commit produced each deployed component
+    description:
+      - Writes the commit the controller is on into a file per
+        component on the target, so that a restore can tell whether
+        the backup it holds and the repository it is being restored
+        against actually fit each other.
+      - Deliberately holds no timestamp. The file would then differ on
+        every run and `invoke check-drift` would report a change
+        forever; the mtime carries the time instead.
+      - Runs after the role it stamps, so a component that failed to
+        deploy is not recorded as deployed.
+    options:
+      deploy_stamp:
+        type: dict
+        required: true
+        description: Where the stamps are written.
+        options:
+          dir:
+            type: str
+            required: true
+            description:
+              - Directory holding one `<component>.commit` file per
+                playbook that has run against this host.
+      deploy_stamp_component:
+        type: str
+        required: false
+        description:
+          - Name of the component being stamped, normally the role the
+            playbook deploys. Passed by the playbook rather than
+            derived, so it is greppable from both ends.
+          - Not `required` here even though it has no useful default,
+            and that is deliberate. The static tests validate every
+            spec against `inventories/test` alone, which is what makes
+            them catch a role and its inventory drifting apart - and
+            this value never comes from inventory, so requiring it here
+            would fail that test for a variable no inventory should
+            ever set. The role's first task asserts it instead, which
+            also fails at the call site with a message naming the
+            playbook to fix.

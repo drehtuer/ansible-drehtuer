@@ -1,0 +1,28 @@
+# The machine itself: everything that must exist before any service is
+# worth deploying.
+#
+# `apt` comes second and its position is load-bearing: it is the only
+# role that refreshes the package cache, and thirteen of the other
+# package-installing roles assume the cache is already fresh. Running
+# any of them first fails with "No package matching ... is available".
+# `system` precedes it only because a host should know its own name
+# before anything else is written about it.
+#
+# `firewall` closes the machine before the services that open ports are
+# installed, rather than after. It restarts Docker and fail2ban when
+# either is present, so running it here - before either exists - is
+# fine, and `site-platform.yml` brings Docker up behind it.
+- name: Base system
+  ansible.builtin.import_playbook: system.yml
+- name: Packages
+  ansible.builtin.import_playbook: apt.yml
+- name: Accounts
+  ansible.builtin.import_playbook: users.yml
+- name: SSH
+  ansible.builtin.import_playbook: sshd.yml
+- name: Time
+  ansible.builtin.import_playbook: time.yml
+- name: Cron
+  ansible.builtin.import_playbook: cron.yml
+- name: Packet filter
+  ansible.builtin.import_playbook: firewall.yml
