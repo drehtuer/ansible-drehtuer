@@ -6,9 +6,10 @@
 # reconfigured afterwards.
 #
 # Replace it by re-running roles/wireguard/scripts/generate_keys.sh
-# and pasting the block it prints. Nothing else changes while there
-# are no peers; once there are, each peer config names the matching
-# public key and would need updating with it.
+# and pasting the block it prints - but note that this is no longer a
+# self-contained change: every device's configuration names this key's
+# public half, so rotating it means editing that line on each of them,
+# and there is no copy here to edit it in.
 wireguard_server_private_key: !vault |
   $ANSIBLE_VAULT;1.1;AES256
   37306337303538366163643030393661333564313562616363353739366135613639353138373732
@@ -18,7 +19,59 @@ wireguard_server_private_key: !vault |
   36336133383464646138616133616563636365336239383132326433386265663832653161363664
   6634303065646335383532333338393264353039353165656264
 
-# One entry per device, from roles/wireguard/scripts/new-peer.sh,
-# which is run on the device so its private key never reaches this
-# repository. `preshared_key` belongs in a !vault block.
-wireguard_peers: []
+# One entry per device. This is the whole of what the repository knows
+# about a peer: a public key and a preshared key, neither of which
+# decrypts anything on its own. The private half lives on the device
+# and nowhere else.
+#
+# These three were written by roles/wireguard/scripts/new-peer-local.sh
+# because neither a Windows machine nor a phone can run new-peer.sh on
+# itself; it generates the configuration on the controller, leaves it
+# in the gitignored roles/wireguard/keys/, and prints the entry below.
+# A device that can run new-peer.sh should still use it.
+#
+# Addresses are handed out in order; .1/::1 is the server itself. Two
+# peers sharing one is refused by the role rather than by wg(8), which
+# would simply stop delivering traffic to the second.
+wireguard_peers:
+  # Windows host.
+  - name: Chtugha
+    public_key: sFCBwUNNhmnap4gsqJ+dh8GAc4rbbiOfRQQPTimZlQ4=
+    ip4: 10.7.0.2
+    ip6: fd9c:a40e:a2a8::2
+    preshared_key: !vault |
+      $ANSIBLE_VAULT;1.1;AES256
+      65393137323961643663363832383630303838306430633732386532353436663830346666353437
+      6138323737313334616635326635653764663938313061620a643335313033666233366362353965
+      36386432313664343236303266383665383165393832666466396334643439376639303134613733
+      3332306333393232660a373832396538616635613765313431613634333033636233623532343931
+      33356464373034346361366432326466323161326335313266313363313164376234663461613163
+      3237386337393063303639343265376337346565376239366631
+  # Windows host. Shares a name with the testlab guest in
+  # inventories/machines.yml and has nothing to do with it: this is a
+  # label in wg0.conf, not an inventory host.
+  - name: Hastur
+    public_key: e0Xend520b1CNxG1ysT87WH4JqpVf0QCef21uNXvfG8=
+    ip4: 10.7.0.3
+    ip6: fd9c:a40e:a2a8::3
+    preshared_key: !vault |
+      $ANSIBLE_VAULT;1.1;AES256
+      35303037663335386437316466303437343162346532343165386263343231633764633166396263
+      6639316562373438666262393338343937626338383866630a633239373030333033386532626534
+      61373664396233613736366264326362663832363962353136653463366564393233363130616563
+      6365323033383965630a353962383265323366396335633962376466636331346263663865643031
+      35633565663666336638363132633930346334643836313263616132343764313834383737663931
+      3538646136306333373837633137643332356534663765333835
+  # Android phone.
+  - name: Sho-Gath
+    public_key: W4dj9or0P93xSFjYt6fqxcPar81JfUC1NtCPFhDDQTo=
+    ip4: 10.7.0.4
+    ip6: fd9c:a40e:a2a8::4
+    preshared_key: !vault |
+      $ANSIBLE_VAULT;1.1;AES256
+      38656430373664646462316539353164633133633439656161623565616434313165303839623038
+      3861623037376465356161363766343238323932626330610a656666363266323137383065313666
+      38363931303134656331326466313432323632373431303263346433323366363565643035653636
+      6539343565663833330a663634376561623561396134303838653235373332346438323966396365
+      38323233393039646135336637333130663137366662616332613137303265653836643334396235
+      3465336566616636633138356338333161656632316633613339

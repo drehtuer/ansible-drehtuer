@@ -87,7 +87,8 @@ argument_specs:
             required: true
             description:
               - One entry per device. Private keys are generated on
-                the device and never appear here.
+                the device, or for a device that cannot generate its
+                own on the controller, and never appear here.
             options:
               name:
                 type: str

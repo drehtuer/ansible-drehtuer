@@ -45,5 +45,8 @@ wireguard:  # noqa: var-naming[no-role-prefix] - see doc/STATUS.adoc
     - fd9c:a40e:a2a8::1
   # One entry per device. `public_key` and `preshared_key` come from
   # roles/wireguard/scripts/new-peer.sh, which is run on the device so
-  # its private key never reaches this repository or the server.
+  # its private key never reaches this repository or the server - or,
+  # for a device that cannot run it (a Windows box, a phone), from
+  # new-peer-local.sh, which generates the configuration on the
+  # controller and leaves it in the gitignored roles/wireguard/keys/.
   peers: []
