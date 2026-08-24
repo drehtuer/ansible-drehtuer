@@ -170,6 +170,23 @@ argument_specs:
                       - How often it runs. Coarser than the others,
                         because this is the one collector that queries
                         off-host.
+              wireguard:
+                type: dict
+                required: true
+                description:
+                  - Whether the tunnel interface is up, and when each
+                    peer last completed a handshake. The wg-quick unit
+                    reports success for a tunnel no peer can use, so a
+                    unit state does not answer this.
+                options:
+                  enabled:
+                    type: bool
+                    required: true
+                    description: Whether to run it.
+                  interval:
+                    type: str
+                    required: true
+                    description: systemd timer interval.
           exporters:
             type: dict
             required: true
@@ -424,6 +441,26 @@ argument_specs:
                             nsd.zones rather than repeated. One probe
                             module per zone, since the queried name is a
                             module setting.
+                      records:
+                        type: list
+                        elements: dict
+                        required: false
+                        default: []
+                        description:
+                          - Individual names that must exist, as
+                            opposed to zones that must answer. A zone
+                            answers its SOA correctly with a record
+                            missing from it, so the zone probes cannot
+                            see that class of failure at all.
+                        options:
+                          name:
+                            type: str
+                            required: true
+                            description: Fully qualified name to ask for.
+                          type:
+                            type: str
+                            required: true
+                            description: Record type, e.g. A or AAAA.
                   recursive:
                     type: dict
                     required: true

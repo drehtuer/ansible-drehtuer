@@ -61,6 +61,9 @@
 {% if monitoring.exporters.postfix.enabled %}
 {%   set _ = self_report.append(('postfix_up', 'Postfix')) %}
 {% endif %}
+{% if monitoring.textfile.wireguard.enabled %}
+{%   set _ = self_report.append(('wireguard_up', 'WireGuard')) %}
+{% endif %}
 {#
   Up/down is the same field configuration wherever it is drawn: a
   colour from the value itself, and the value rendered as a word. Kept
@@ -209,7 +212,7 @@
       "id": 4,
       "type": "state-timeline",
       "title": "What each service says about itself",
-      "description": "The exporter reached the service and got an answer - a stronger statement than the scrape above, and the series NginxDown, MysqlDown, RedisDown and PostfixDown alert on. Dovecot and RSpamd are absent on purpose: they export their own metrics, so for those two the scrape is already this question.",
+      "description": "The exporter reached the service and got an answer - a stronger statement than the scrape above, and the series NginxDown, MysqlDown, RedisDown, PostfixDown and WireGuardDown alert on. Dovecot and RSpamd are absent on purpose: they export their own metrics, so for those two the scrape is already this question. WireGuard is here rather than among the probes because nothing can probe it from outside: a tunnel that answers an unauthenticated packet is a tunnel with a fault.",
       "datasource": {{ ds }},
       "gridPos": {"h": 8, "w": 24, "x": 0, "y": 13},
       "options": {
@@ -229,7 +232,14 @@
       "targets": [
 {% for expr, label in self_report %}
         {
-          "refId": "{{ 'ABCD'[loop.index0] }}",
+          {#
+            One letter per target, Grafana's own convention. The
+            alphabet is written out rather than sliced to the number
+            of entries that happened to exist: it was 'ABCD' for the
+            four exporters, and adding a fifth row failed the render
+            with "object of type 'str' has no attribute 4".
+          #}
+          "refId": "{{ 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[loop.index0] }}",
           "datasource": {{ ds }},
           "expr": "{{ expr }}",
           "legendFormat": "{{ label }}"
@@ -313,6 +323,51 @@
           "datasource": {{ ds }},
           "expr": "probe_duration_seconds",
           "legendFormat": "{% raw %}{{job}} {{instance}}{% endraw %}"
+        }
+      ]
+    }{% endif %}{% if monitoring.textfile.wireguard.enabled %},
+    {
+      "id": 8,
+      "type": "state-timeline",
+      "title": "VPN devices",
+      "description": "Which devices have completed a handshake recently enough to be present. Read gaps as ordinary: a phone is asleep most of the day and a desktop is off at night, which is why nothing here alerts. A device that has never connected at all reads Down for the whole range - the same shape as one that is merely off, so check wireguard_peer_latest_handshake_seconds, which is 0 only for the first case. This is the one state panel here that does not use the shared red/green Up/Down mapping, on purpose: red for a phone that is asleep would be crying wolf every night.",
+      "datasource": {{ ds }},
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": {{ 51 if monitoring.blackbox.enabled else 21 }}},
+      "options": {
+        "mergeValues": true,
+        "showValue": "never",
+        "alignValue": "center",
+        "rowHeight": 0.9,
+        "legend": {"displayMode": "list", "placement": "bottom", "showLegend": true}
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {"text": "Away", "color": "text", "index": 0},
+                "1": {"text": "Connected", "color": "green", "index": 1}
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "text", "value": null},
+              {"color": "green", "value": 1}
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {{ ds }},
+          "expr": "wireguard_peer_connected",
+          "legendFormat": "{% raw %}{{name}}{% endraw %}"
         }
       ]
     }{% endif %}

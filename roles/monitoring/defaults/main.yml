@@ -203,6 +203,12 @@ monitoring:  # noqa: var-naming[no-role-prefix] - see doc/STATUS.adoc
         # the same stance the mysqld and rspamd exporters take with
         # credentials that belong to another role.
         zones: []
+        # Individual names that must exist, as opposed to zones that
+        # must answer. A zone answers its SOA perfectly well with a
+        # record missing from it, so the zone checks above cannot see
+        # this class of failure at all. Empty by default: which names
+        # matter is a property of the host, not of the role.
+        records: []
       recursive:
         # unbound on loopback. Answering the control socket proves the
         # process is alive, not that recursion works - and roles/spam
