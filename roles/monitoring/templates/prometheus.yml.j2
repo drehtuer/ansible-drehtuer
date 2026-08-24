@@ -233,6 +233,20 @@ scrape_configs:
           - {{ b.dns.authoritative.server }}
 {{ probe_relabel() }}
 {% endfor %}
+{% for record in b.dns.authoritative.records %}
+
+  # {{ record.name }} {{ record.type }} existing at all. Same server as the zone
+  # jobs above and a different question: that the record is in the
+  # zone being served, not merely that the zone is.
+  - job_name: probe_dns_{{ record.name | replace('.', '_') | replace('-', '_') }}_{{ record.type | lower }}
+    metrics_path: /probe
+    params:
+      module: [dns_record_{{ record.name | replace('.', '_') | replace('-', '_') }}_{{ record.type | lower }}]
+    static_configs:
+      - targets:
+          - {{ b.dns.authoritative.server }}
+{{ probe_relabel() }}
+{% endfor %}
 {% endif %}
 {% if b.dns.recursive.enabled %}
 

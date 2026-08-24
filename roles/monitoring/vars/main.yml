@@ -63,3 +63,6 @@ monitoring_collectors:
   - name: nsd
     enabled: "{{ monitoring.textfile.nsd.enabled }}"
     interval: "{{ monitoring.textfile.nsd.interval }}"
+  - name: wireguard
+    enabled: "{{ monitoring.textfile.wireguard.enabled }}"
+    interval: "{{ monitoring.textfile.wireguard.interval }}"

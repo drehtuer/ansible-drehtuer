@@ -37,6 +37,13 @@ monitoring:
     nsd:
       enabled: true
       interval: 15min
+    # The tunnel: whether the interface is up, and when each device
+    # last completed a handshake. Nothing else on this host measures
+    # either - wg-quick's unit being active says the interface was
+    # created, not that a peer can reach it.
+    wireguard:
+      enabled: true
+      interval: 1min
   # Per-service exporters, all on loopback. Ports are the exporters'
   # own defaults; what is wired here is which ones this host runs and
   # the two secrets that come from elsewhere rather than being
@@ -114,6 +121,15 @@ monitoring:
         # Taken from the nsd role's own zone list rather than a second
         # copy, the same wiring the mysqld and rspamd exporters use.
         zones: "{{ nsd.zones | map(attribute='name') | list }}"
+        # The VPN endpoint, both families. Every peer configuration
+        # names it rather than an address, so the record missing is
+        # the tunnel unreachable - and no zone check sees that: the
+        # zone kept answering its SOA correctly throughout, which is
+        # exactly how these records were absent from the deployed
+        # zone from 2026-08-23 until they were noticed on 2026-08-24.
+        records:
+          - {name: "vpn.{{ domain }}", type: A}
+          - {name: "vpn.{{ domain }}", type: AAAA}
       recursive:
         enabled: true
         server: 127.0.0.1:53

@@ -120,6 +120,34 @@ modules:
         fail_if_not_matches_regexp:
           - "{{ zone }}\\.\\s+\\d+\\s+IN\\s+SOA\\s+"
 {% endfor %}
+{% for record in b.dns.authoritative.records %}
+
+  # {{ record.name }}, {{ record.type }}. One module per record, for the same
+  # reason as one per zone above: query_name cannot be varied per
+  # target.
+  #
+  # This asks a question the zone modules cannot. NOERROR with an
+  # empty answer section - NODATA - is what a zone returns for a name
+  # it holds without the record asked for, and it is indistinguishable
+  # from a healthy answer by rcode alone. So the answer section is
+  # matched, and matched on the type as well as the name: an A that
+  # exists while the AAAA is missing is a working tunnel for half the
+  # peers and a broken one for the rest.
+  dns_record_{{ record.name | replace('.', '_') | replace('-', '_') }}_{{ record.type | lower }}:
+    prober: dns
+    timeout: {{ b.timeout }}
+    dns:
+      preferred_ip_protocol: ip4
+      ip_protocol_fallback: false
+      query_name: {{ record.name }}
+      query_type: {{ record.type }}
+      recursion_desired: false
+      valid_rcodes:
+        - NOERROR
+      validate_answer_rrs:
+        fail_if_not_matches_regexp:
+          - "{{ record.name }}\\.\\s+\\d+\\s+IN\\s+{{ record.type }}\\s+"
+{% endfor %}
 {% endif %}
 {% if b.dns.recursive.enabled %}
 

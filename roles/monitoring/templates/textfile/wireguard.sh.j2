@@ -1,0 +1,102 @@
+#!/usr/bin/env bash
+{{ ansible_managed | comment }}
+#
+# What `systemctl is-active wg-quick@{{ wireguard.interface }}` cannot tell you.
+# That unit reports success once the interface has been created, which
+# it does even with a configuration no peer can use - a wrong key, a
+# port nothing forwards, a firewall that never opened. This reads the
+# interface itself instead: the handshake is the only evidence that a
+# device and this host actually reached each other.
+#
+# Deliberately no per-peer alert. A phone is asleep most of the day
+# and a desktop is off at night, so a stale handshake is the normal
+# state of a personal VPN rather than a fault; the peers are drawn on
+# the dashboard and left there. `wireguard_up` is the one that alerts,
+# because an interface that is gone is never correct.
+#
+# `wg show <interface> <field>` rather than `wg show all dump`: the
+# dump's first line carries the *private* key, and this file is
+# world-readable by design - node_exporter reads it as an
+# unprivileged user.
+set -euo pipefail
+
+OUT="{{ monitoring.node_exporter.textfile_dir }}/wireguard.prom"
+TMP="$(mktemp "${OUT}.XXXXXX")"
+trap 'rm -f "$TMP"' EXIT
+
+IFACE={{ wireguard.interface | quote }}
+# WireGuard rekeys about every two minutes while traffic flows, so a
+# handshake older than three means the device is not there now. This
+# is a display threshold, not an alert one - see the note above.
+STALE_AFTER=180
+
+emit() { printf '%s\n' "$*" >> "$TMP"; }
+
+finish() {
+  chmod 0644 "$TMP"
+  mv "$TMP" "$OUT"
+  trap - EXIT
+  exit 0
+}
+
+# The inventory's name for a public key. `wg` knows only the key, and
+# a dashboard row reading "Sho-Gath" is worth more than one reading
+# "W4dj9or0...". A key that is not in the inventory is reported as
+# unknown rather than dropped: it is on the interface, so it is real,
+# and a peer nobody can name is worth seeing.
+name_of() {
+  case "$1" in
+{% for peer in wireguard.peers %}
+    {{ peer.public_key | quote }}) printf '%s' {{ peer.name | quote }} ;;
+{% endfor %}
+    *) printf '%s' unknown ;;
+  esac
+}
+
+emit "# HELP wireguard_up Whether the tunnel interface exists and can be read."
+emit "# TYPE wireguard_up gauge"
+
+if ! command -v wg >/dev/null 2>&1 || ! wg show "${IFACE}" >/dev/null 2>&1; then
+  emit "wireguard_up{interface=\"${IFACE}\"} 0"
+  finish
+fi
+emit "wireguard_up{interface=\"${IFACE}\"} 1"
+
+emit "# HELP wireguard_peer_latest_handshake_seconds Unix time of the last completed handshake, 0 if never."
+emit "# TYPE wireguard_peer_latest_handshake_seconds gauge"
+emit "# HELP wireguard_peer_connected Whether that handshake is recent enough for the peer to be present now."
+emit "# TYPE wireguard_peer_connected gauge"
+emit "# HELP wireguard_peer_received_bytes_total Bytes received from this peer."
+emit "# TYPE wireguard_peer_received_bytes_total counter"
+emit "# HELP wireguard_peer_sent_bytes_total Bytes sent to this peer."
+emit "# TYPE wireguard_peer_sent_bytes_total counter"
+
+now="$(date +%s)"
+
+# Transfer counters first, keyed by public key, so the handshake loop
+# below can emit everything about a peer together.
+declare -A rx tx
+while read -r key received sent; do
+  [ -n "${key}" ] || continue
+  rx["${key}"]="${received}"
+  tx["${key}"]="${sent}"
+done < <(wg show "${IFACE}" transfer)
+
+while read -r key handshake; do
+  [ -n "${key}" ] || continue
+  name="$(name_of "${key}")"
+  labels="interface=\"${IFACE}\",peer=\"${key}\",name=\"${name}\""
+
+  emit "wireguard_peer_latest_handshake_seconds{${labels}} ${handshake}"
+
+  if [ "${handshake}" -gt 0 ] && [ "$((now - handshake))" -le "${STALE_AFTER}" ]; then
+    emit "wireguard_peer_connected{${labels}} 1"
+  else
+    emit "wireguard_peer_connected{${labels}} 0"
+  fi
+
+  emit "wireguard_peer_received_bytes_total{${labels}} ${rx[${key}]:-0}"
+  emit "wireguard_peer_sent_bytes_total{${labels}} ${tx[${key}]:-0}"
+done < <(wg show "${IFACE}" latest-handshakes)
+
+finish

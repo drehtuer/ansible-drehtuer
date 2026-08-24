@@ -94,6 +94,30 @@ groups:
       # has met it: the packaged config lost its `dir` setting, every
       # write was answered MISCONF, and PING kept saying PONG. Bayes
       # learning and Nextcloud's locking broke silently for weeks.
+{% if monitoring.textfile.wireguard.enabled %}
+      - alert: WireGuardDown
+        # From the textfile collector, not from a unit state:
+        # wg-quick@ reports success for a tunnel no peer can use, and
+        # the collector reads the interface itself.
+        #
+        # There is deliberately no companion rule on peers. A phone is
+        # asleep most of the day, so a stale handshake is the ordinary
+        # state of a personal VPN - alerting on it would teach whoever
+        # reads these to ignore them.
+        expr: wireguard_up == 0
+        for: 5m
+        labels:
+          severity: critical
+{% raw %}        annotations:
+          summary: The WireGuard tunnel interface is gone
+          description: >-
+            The interface cannot be read, so no device can reach this
+            host through the VPN. Nothing else on this host is
+            affected: the tunnel carries no service, it only reaches
+            them.
+{% endraw %}
+
+{% endif %}
       - alert: RedisPersistenceFailing
         expr: redis_rdb_last_bgsave_status == 0
         for: 15m
