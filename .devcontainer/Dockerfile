@@ -124,6 +124,16 @@ RUN   \
     # Attaches a terminal to the guest's serial console, which is the
     # way back in when SSH is broken.
     socat \
+    # `wg genkey`/`wg pubkey`/`wg genpsk`, for the key material
+    # roles/wireguard/scripts/ generates on the controller rather than
+    # on the target - the server's own key and the configuration of
+    # any peer that cannot generate its own (a Windows box, a phone).
+    # The tunnel is never brought up here; only the tools are needed.
+    wireguard-tools \
+    # Renders a peer configuration as a QR code
+    # (roles/wireguard/scripts/show-peer.sh --qr), which is how a
+    # phone gets one without anybody typing 44 base64 characters.
+    qrencode \
     # GitHub CLI apt repo, added below,
     # needs its keyring dir to exist first
     && install -d -m 755 /etc/apt/keyrings \

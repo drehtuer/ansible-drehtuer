@@ -5,6 +5,13 @@
 # Plaintext DNSSEC keys. Only the vault-encrypted copies in
 # roles/nsd/files/dnssec/ belong in git.
 /roles/nsd/keys/
+# Peer configurations, each holding that device's private key. These
+# are generated on the controller for devices that cannot run
+# roles/wireguard/scripts/new-peer.sh themselves, and they stay here:
+# nothing under roles/wireguard/keys/ belongs in git, encrypted or
+# not. What the repository keeps is the public half and the preshared
+# key, in inventories/group_vars/*/wireguard.yml.
+/roles/wireguard/keys/
 # Console/rescue credentials for the testlab hosts, kept out of the
 # repo for the same reason as /vault/. Only the password *hashes*
 # belong in git (vaulted, in inventories/group_vars/testlab/users.yml
