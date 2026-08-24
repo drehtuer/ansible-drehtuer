@@ -246,6 +246,19 @@ scrape_configs:
       - targets:
           - {{ b.dns.authoritative.server }}
 {{ probe_relabel() }}
+      # One more step than the other probes, because `instance` is the
+      # probed *target* - and for a DNS probe that is the server, not
+      # the name asked for. Every record probe would otherwise be
+      # labelled with the same address, the name legible only inside
+      # the mangled job name; on a dashboard row beside
+      # `https://cloud.example.com/` that reads as though the record
+      # were not being watched at all.
+      #
+      # The zone probes above are left alone deliberately: their job
+      # name already carries the zone, and rewriting `instance` there
+      # would break the continuity of series that have history.
+      - target_label: instance
+        replacement: {{ record.name }}/{{ record.type }} @{{ b.dns.authoritative.server }}
 {% endfor %}
 {% endif %}
 {% if b.dns.recursive.enabled %}
