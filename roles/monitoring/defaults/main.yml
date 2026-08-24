@@ -84,6 +84,16 @@ monitoring:  # noqa: var-naming[no-role-prefix] - see doc/STATUS.adoc
     nsd:
       enabled: false
       interval: 15min
+    # The tunnel: whether the interface is up, and when each peer last
+    # completed a handshake. `wg-quick@<interface>` reports success
+    # once the interface has been created, which it does for a
+    # configuration no peer can use, so the unit state is not this.
+    #
+    # Off here like the rest: a host that terminates no tunnel would
+    # otherwise run a collector whose only output is wireguard_up 0.
+    wireguard:
+      enabled: false
+      interval: 1min
   # Per-service exporters. Everything here binds loopback, is scraped
   # over loopback, and is opened in no firewall - the same stance as
   # the servers above.

@@ -63,6 +63,8 @@ That is what lets the tests run in CI, which has no access to `vault/secret.txt`
 
 The molecule scenarios carry their own small set of values inline in `converge.yml`, so that `molecule test` works on its own from a role directory. That is a little duplication, accepted in exchange for each scenario being self-contained.
 
+The two layers therefore read a role's inputs from opposite ends, and that is worth knowing before a failure looks mysterious. The static tests validate the argument spec against `inventories/test/`, which supplies every key; some molecule scenarios — `monitoring` is one — pass almost nothing and run the role on **its own defaults**. So a new required option in `meta/argument_specs.yml` that is added to the inventories but not to `defaults/main.yml` passes `invoke test-static` and fails `molecule converge` with *"missing required arguments"*. Adding an option means touching both.
+
 == Static tests
 
 [source, bash]
