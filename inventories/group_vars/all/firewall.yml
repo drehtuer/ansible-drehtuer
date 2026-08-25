@@ -6,11 +6,20 @@ firewall:
     # carcosa runs Docker, so the DOCKER-USER chain is managed.
     enabled: true
     wan_interface: "{{ ansible_facts['default_ipv4'].interface }}"
-    # No containers publish ports yet. Anything forwarded in from the
-    # internet is dropped until a port is listed here.
+    # Anything forwarded in from the internet is dropped until a port
+    # is listed here. The Satisfactory server publishes its ports
+    # rather than using host networking, so its traffic is DNATed and
+    # is disposed of in this chain - the matching `rules` entries
+    # below never see it, and these are what actually let it in.
     published:
-      tcp: []
-      udp: []
+      tcp:
+        - port: 7777
+          comment: "Satisfactory game server"
+        - port: 8888
+          comment: "Satisfactory game server"
+      udp:
+        - port: 7777
+          comment: "Satisfactory game server"
   wireguard:
     # carcosa terminates the VPN, so wg0 traffic is forwarded and
     # masqueraded and the nat table is emitted. Values come from the
@@ -48,6 +57,10 @@ firewall:
       # too large for UDP is retried over TCP.
       - port: 53
         comment: "DNS (TCP - AXFR and large answers)"
+      - port: 7777
+        comment: "Satisfactory game server"
+      - port: 8888
+        comment: "Satisfactory game server"
     udp:
       - port: 53
         comment: "DNS"
@@ -59,3 +72,7 @@ firewall:
       # never match.
       - port: 51820
         comment: "WireGuard (roles/wireguard)"
+      # The game's own traffic. 8888 is TCP-only, so it has no
+      # counterpart here.
+      - port: 7777
+        comment: "Satisfactory game server"
