@@ -5,3 +5,5 @@ spam:
     bits: 2048
   milter_port: 11332
   http_port: 11334
+  fuzzy_port: 11335
+  fuzzy_flag: 11
