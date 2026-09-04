@@ -1,0 +1,15 @@
+# Sender local parts, matched against the From header's local part by
+# the local_sender_localpart rule in multimap.conf. Regular
+# expressions, one per line.
+#
+# The campaign generates its addresses from a small vocabulary and a
+# random number - kontakt62685@, info75620@, suite97212@, top2566246476@
+# - which covers 118 of the 139 messages filed into TrainSpam in the
+# month to 2026-09-04, and 1 of the 11932 messages in every folder this
+# account keeps (the same INBOX message the domain map catches).
+#
+# The four-digit minimum is what makes this safe. `info@` and
+# `support@` are the most ordinary addresses there are; `info64628@`
+# is not one, and nothing in the archive uses a numbered variant of
+# any of these words.
+/^(?:kontakt|info|suite|top|support|service|market)\d{4,}$/i

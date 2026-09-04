@@ -121,15 +121,73 @@
 #     mode: "0644"
 #   notify:
 #     - Reload rspamd
-# - name: Configure rspamd (groups.conf)
-#   ansible.builtin.copy:
-#     src: files/rspamd/groups.conf
-#     dest: /etc/rspamd/local.d/groups.conf
-#     owner: root
-#     group: root
-#     mode: "0644"
-#   notify:
-#     - Reload rspamd
+- name: Configure rspamd (groups.conf)
+  # Symbol weights, where the packaged defaults do not suit the mail
+  # this host receives. Read the file: the Bayes entry is the one that
+  # decides whether a confident classifier verdict can flag a message
+  # at all, and it carries the measurements it was chosen from.
+  ansible.builtin.copy:
+    src: files/rspamd/groups.conf
+    dest: /etc/rspamd/local.d/groups.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify:
+    - Reload rspamd
+- name: Configure rspamd (multimap.conf)
+  ansible.builtin.copy:
+    src: files/rspamd/multimap.conf
+    dest: /etc/rspamd/local.d/multimap.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify:
+    - Reload rspamd
+- name: Create rspamd map directory
+  # Under local.d because these maps belong to this repo, and RSpamd
+  # only reads what a module names by absolute path - a subdirectory
+  # here is never parsed as configuration. /etc/rspamd/maps.d/ is where
+  # the package puts its own, and is not ours to add to.
+  ansible.builtin.file:
+    path: /etc/rspamd/local.d/maps.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+- name: Configure rspamd (sender maps)
+  # No handler. RSpamd watches every map it has loaded and re-reads a
+  # changed one by itself, which is the whole point of a map being a
+  # map rather than a config file - and a reload here would be a
+  # restart of the scanning workers for nothing.
+  ansible.builtin.copy:
+    src: "files/rspamd/maps/{{ item }}"
+    dest: "/etc/rspamd/local.d/maps.d/{{ item }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - sender_domain_suspect.map
+    - sender_localpart_suspect.map
+- name: Configure rspamd (fuzzy_check.conf)
+  ansible.builtin.template:
+    src: templates/rspamd/fuzzy_check.conf.j2
+    dest: /etc/rspamd/local.d/fuzzy_check.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify:
+    - Reload rspamd
+- name: Configure rspamd (worker-fuzzy.inc)
+  # Restart rather than reload: this turns a worker on, and a reload
+  # re-reads configuration for the workers that are already running.
+  ansible.builtin.template:
+    src: templates/rspamd/worker-fuzzy.inc.j2
+    dest: /etc/rspamd/local.d/worker-fuzzy.inc
+    owner: root
+    group: root
+    mode: "0644"
+  notify:
+    - Restart rspamd
 - name: Configure rspamd (dkim_signing.conf)
   ansible.builtin.template:
     src: templates/rspamd/dkim_signing.conf.j2

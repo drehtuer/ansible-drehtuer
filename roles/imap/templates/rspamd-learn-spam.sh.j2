@@ -2,18 +2,45 @@
 {{ ansible_managed | comment }}
 #
 # Piped a message by the imapsieve rules in dovecot.conf when the user
-# moves mail into or out of the training folder.
+# moves mail into the training folder.
+#
+# Two things are taught, not one:
+#
+#   /learnspam   the Bayes classifier, as before.
+#   /fuzzyadd    a hash of the body, into this host's own fuzzy
+#                storage (see roles/spam). Bayes generalises over
+#                words; a fuzzy hash generalises over the message, so
+#                it still matches when the same body arrives tomorrow
+#                from a domain registered this morning - which is what
+#                the spam that gets through here actually does.
 #
 # The Password header is required: RSpamd's controller no longer
 # trusts requests merely for arriving from 127.0.0.1, so without it
 # every training request is refused - silently, because sieve pipes
 # discard the response.
-#
-# --fail so a rejected request is a non-zero exit rather than a
-# success with an error body nobody reads.
 set -euo pipefail
 
-curl -s --fail \
-  -H "Password: {{ spam.controller_password }}" \
-  -X POST --data-binary @- \
-  "http://127.0.0.1:{{ spam.http_port }}/learnspam"
+# Both requests need the whole message and stdin can only be read once,
+# so it is buffered. mktemp creates it 0600, which matters: this is the
+# user's mail sitting in a world-readable directory otherwise.
+message="$(mktemp)"
+trap 'rm -f "${message}"' EXIT
+cat >"${message}"
+
+learn() {
+  curl -s --fail \
+    -H "Password: {{ spam.controller_password }}" \
+    -X POST --data-binary "@${message}" \
+    "http://127.0.0.1:{{ spam.http_port }}/${1}"
+}
+
+# Deliberately not `&&`, and deliberately not left to `set -e`. The two
+# are independent lessons, and RSpamd refuses to learn a message it has
+# already learned - so letting the first failure end the script would
+# mean a message re-filed by hand never reaches the fuzzy storage at
+# all. Both are attempted; a failure of either is still a failure of
+# the script, which is what Dovecot logs.
+status=0
+learn "learnspam" || status=1
+learn "fuzzyadd?flag={{ spam.fuzzy_flag }}&weight=10" || status=1
+exit "${status}"

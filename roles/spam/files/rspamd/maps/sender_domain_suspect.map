@@ -1,0 +1,13 @@
+# Sender domains, matched against the From header's domain by the
+# local_sender_domain rule in multimap.conf. Regular expressions, one
+# per line.
+#
+# .shop accounts for 119 of the 139 messages filed into TrainSpam in
+# the month to 2026-09-04, one throwaway subdomain per message
+# (home.ceramichesicilianeruggeri.shop, zen.catreport.shop, ...), and
+# for 1 of the 11932 messages in every folder this account keeps - a
+# message from that same campaign, sitting in the INBOX unread.
+#
+# This is a statement about this mailbox, not about the TLD: nobody
+# here corresponds with a shop. Delete the line the day somebody does.
+/\.shop$/i
