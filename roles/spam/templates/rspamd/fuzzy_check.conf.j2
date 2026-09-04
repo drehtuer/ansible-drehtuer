@@ -1,0 +1,46 @@
+{{ ansible_managed | comment }}
+# A second fuzzy rule, pointing at this host's own storage.
+#
+# Merged alongside the packaged "rspamd.com" rule rather than replacing
+# it - both are queried, and this one is the only writable of the two.
+# See templates/rspamd/worker-fuzzy.inc.j2 for why a local storage is
+# worth running at all, and roles/imap's rspamd-learn-spam.sh for what
+# fills it.
+rule "local" {
+  # 127.0.0.1 and not localhost, so this cannot resolve to ::1 while
+  # the worker listens on IPv4.
+  #
+  # spam.fuzzy_port has to agree with the `bind_socket` in RSpamd's own
+  # `worker "fuzzy"` block, which worker-fuzzy.inc.j2 deliberately does
+  # not override - see the note there.
+  servers = "127.0.0.1:{{ spam.fuzzy_port }}";
+
+  # Must match what the storage was written with, so it is stated here
+  # rather than left to the default: a mismatch produces no error, just
+  # a rule that never matches anything.
+  algorithm = "mumhash";
+
+  # The point of the whole exercise. The packaged rule is read_only,
+  # which is why learning has nowhere to go today.
+  read_only = no;
+
+  # Same shape as the packaged rule: fall back to a direct hash for
+  # bodies too short to shingle, and stay quiet about hashes carrying a
+  # flag this rule does not know.
+  short_text_direct_hash = true;
+  min_length = 64;
+  skip_unknown = yes;
+  symbol = "LOCAL_FUZZY_UNKNOWN";
+
+  # The flag is arbitrary but load-bearing: it has to match the one
+  # roles/imap's learn scripts post to /fuzzyadd and /fuzzydel, or
+  # hashes are stored under a flag nothing ever looks up and the whole
+  # arrangement fails silently. That is why it is a variable shared
+  # between the two roles rather than a number written twice.
+  fuzzy_map = {
+    LOCAL_FUZZY_DENIED {
+      max_score = 20.0;
+      flag = {{ spam.fuzzy_flag }};
+    }
+  }
+}

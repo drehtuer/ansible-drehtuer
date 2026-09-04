@@ -1,0 +1,33 @@
+{{ ansible_managed | comment }}
+#
+# The fuzzy storage worker: this host's own body-hash database, fed by
+# the TrainSpam folder through the learn script in roles/imap.
+#
+# Why a local storage when fuzzy_check already queries rspamd.com's:
+# that one is read-only and only carries what its own reporters have
+# seen. The spam that gets through here is a snowshoe campaign that
+# reuses one body across a hundred throwaway domains, so a body hash
+# generalises across exactly the thing that defeats every other check.
+# Nothing else in this pipeline learns anything that survives the
+# sender changing domain.
+#
+# `count` is the switch. RSpamd ships this worker with `count = -1` in
+# rspamd.conf, which is how a worker is disabled; local.d is included
+# at priority 1 against that line's priority 0, so setting it here is
+# what turns the worker on.
+count = 1;
+
+# `bind_socket` is deliberately absent. RSpamd already sets it to
+# localhost:11335 in rspamd.conf, and this file is included with
+# duplicate=merge, so naming it again would add a second listener
+# rather than replace the first. spam.fuzzy_port therefore describes
+# that default to fuzzy_check.conf.j2 rather than setting it; the two
+# have to be changed together, and changing the port at all means
+# moving to override.d.
+
+# Redis rather than the sqlite default, so the hashes live beside the
+# Bayes tokens in the instance roles/database already runs and are
+# covered by the same backup. The packaged worker-fuzzy.inc selects
+# `backend = "redis"` but names no server; without this line the worker
+# starts and then fails every lookup.
+servers = "{{ database.redis.ip4 }}:{{ database.redis.port }}";

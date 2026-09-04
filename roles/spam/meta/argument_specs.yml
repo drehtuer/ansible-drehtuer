@@ -62,6 +62,23 @@ argument_specs:
             description:
               - Port RSpamd's controller worker listens on. Read by
                 the imap role's ham/spam learning scripts.
+          fuzzy_port:
+            type: int
+            required: true
+            description:
+              - Port this host's own fuzzy storage worker listens on,
+                for the writable fuzzy_check rule that queries it. Must
+                match RSpamd's own `worker "fuzzy"` bind_socket, which
+                the role deliberately leaves alone.
+          fuzzy_flag:
+            type: int
+            required: true
+            description:
+              - Fuzzy flag the hashes learned from the TrainSpam folder
+                are stored under. Read by the imap role's learning
+                scripts too, which post it to /fuzzyadd and /fuzzydel;
+                a value disagreeing with the fuzzy_check rule stores
+                hashes nothing looks up, without any error.
       database:
         type: dict
         required: true

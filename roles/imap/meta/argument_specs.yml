@@ -114,8 +114,12 @@ argument_specs:
         type: dict
         required: true
         description:
-          - Shared with the spam role, only spam.http_port is read
-            here (RSpamd's controller, used to submit learn-ham/
-            learn-spam calls). Deliberately declared without
-            suboptions - listing them would make validation reject
-            every other key the spam role itself requires.
+          - Shared with the spam role. Three keys are read here -
+            spam.http_port (RSpamd's controller, used to submit
+            learn-ham/learn-spam calls), spam.controller_password, and
+            spam.fuzzy_flag, the flag those same calls file body hashes
+            under, which has to match the fuzzy_check rule the spam
+            role writes.
+            Deliberately declared without suboptions - listing them
+            would make validation reject every other key the spam role
+            itself requires.

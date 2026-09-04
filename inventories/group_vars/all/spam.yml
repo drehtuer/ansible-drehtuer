@@ -37,3 +37,16 @@ spam:
     bits: 2048
   milter_port: 11332
   http_port: 11334
+  # The local fuzzy storage worker. The port is RSpamd's own default
+  # for `worker "fuzzy"`, repeated here because the fuzzy_check rule
+  # that queries it has to name the same one - see
+  # roles/spam/templates/rspamd/worker-fuzzy.inc.j2 for why the bind
+  # side is left to RSpamd.
+  fuzzy_port: 11335
+  # Which fuzzy flag this host's own hashes are stored under. Read by
+  # roles/imap too: its learn scripts post this flag to /fuzzyadd and
+  # /fuzzydel, and a value that disagrees with the fuzzy_check rule
+  # stores hashes nothing ever looks up, silently. Numbered away from
+  # the 1/2/3 the public rspamd.com rule uses so the two are never
+  # confused in a log line.
+  fuzzy_flag: 11
