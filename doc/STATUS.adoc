@@ -376,7 +376,13 @@ So Bayes was the only thing that saw them, and it was right — `BAYES_SPAM` fir
 
 Both scripts had to be rewritten rather than extended, because each now makes two requests and stdin can only be read once: the message is buffered to a `mktemp` file first, and both requests are attempted whatever the other does. Letting the first failure end the script would mean a message RSpamd refuses to learn twice — which is what it does with anything already learned — never reaching the fuzzy storage at all.
 
-**All four mechanisms were verified on the lab VM rather than reasoned about**, since three of them fail silently when wrong; see `doc/TESTING.adoc`. What has *not* happened is a measurement on `carcosa` after deployment: the 73% above is a replay of past scores, not an observation of future mail.
+**All four mechanisms were verified on the lab VM rather than reasoned about**, since three of them fail silently when wrong; see `doc/TESTING.adoc`.
+
+**Deployed on `carcosa` on 2026-09-04**, and the corpus was then replayed through the running filter. Of the 140 messages filed by hand into `TrainSpam` in the month before it, **137 (98%) now score at or above the threshold**; of the 233 messages received in 2026 and kept, **none** does, and neither new symbol fires on a single one of them. The highest-scoring legitimate message is still the 4.75 Kickstarter update it was before. RSpamd restarted once, the fuzzy worker is listening on `127.0.0.1:11335`, and the classifier was deliberately left alone - `learns_spam` 20180 and `learns_ham` 11778 either side of the deploy.
+
+That 98% is higher than the 73% predicted for the Bayes change alone because the two sender maps add on top of it, firing on 120 and 119 of the 140. Read the two figures differently, though: a replay is optimistic about Bayes, which has already learned these messages as spam, and honest about the maps, which do not depend on the classifier at all. The 98% is not a forecast.
+
+**What the replay cannot show is the fuzzy storage, because it starts empty.** Its hashes come from what the user files *after* the deploy, so on `carcosa` it currently contributes nothing and will not until the same bodies come round again - the lab is where that mechanism was proven. See `doc/TODO.adoc` for seeding it from the corpus already sitting in `TrainSpam`.
 
 **Bulk training.** `rspamd-train-bulk <spam\|ham> <path>...` is deployed to `/usr/local/bin` for seeding the classifier from mail exported from elsewhere. It takes a directory (searched recursively, Dovecot index files ignored), an mbox (split into individual messages first), or a single file, and batches them through `rspamc`. Messages below 256 bytes are skipped, because RSpamd refuses anything with too few tokens to be worth learning. The role never invokes it - it is a tool, run by hand with a corpus.
 
