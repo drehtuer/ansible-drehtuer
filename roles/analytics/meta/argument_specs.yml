@@ -92,13 +92,52 @@ argument_specs:
             description:
               - Addresses whose requests are dropped before counting.
                 May be empty.
-          geoip_database:
-            type: str
+          geoip:
+            type: dict
             required: true
             description:
-              - Path to a MaxMind GeoIP2 database, or empty for no
-                geolocation. A path that does not exist is skipped
-                with a warning rather than failing the run.
+              - Geolocation through MaxMind's GeoLite2 data, which is
+                what turns "where from" into countries rather than
+                referrers.
+            options:
+              enabled:
+                type: bool
+                required: true
+                description:
+                  - Install geoipupdate, write its credentials, enable
+                    its timer and let the report read the database.
+                    Everything here is inert when false.
+              account_id:
+                type: str
+                required: true
+                description:
+                  - MaxMind account id. Belongs in an inventory as a
+                    vault value; may be empty when disabled.
+              license_key:
+                type: str
+                required: true
+                description:
+                  - MaxMind licence key. Belongs in an inventory as a
+                    vault value; may be empty when disabled.
+              editions:
+                type: list
+                elements: str
+                required: true
+                description:
+                  - Database editions geoipupdate downloads, e.g.
+                    GeoLite2-Country. Must contain report_edition.
+              database_dir:
+                type: str
+                required: true
+                description:
+                  - Where the databases are written. Must match the
+                    packaged unit's ReadWritePaths, /var/lib/GeoIP.
+              report_edition:
+                type: str
+                required: true
+                description:
+                  - Edition the report reads, by name rather than
+                    path. Empty leaves the Geo Location panel out.
           schedule:
             type: dict
             required: true

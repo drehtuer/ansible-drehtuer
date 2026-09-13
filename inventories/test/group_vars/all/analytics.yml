@@ -18,7 +18,17 @@ analytics:
   exclude_ips:
     - "{{ ip_v4 }}"
     - "{{ ip_v6 }}"
-  geoip_database: /var/lib/GeoIP/GeoLite2-Country.mmdb
+  # Enabled here so the static render exercises the branch that emits
+  # the geoip flag. The credentials are obvious fakes: this fixture is
+  # committed unencrypted and read by CI, which has no vault password.
+  geoip:
+    enabled: true
+    account_id: "000000"
+    license_key: notarealkey
+    editions:
+      - GeoLite2-Country
+    database_dir: /var/lib/GeoIP
+    report_edition: GeoLite2-Country
   schedule:
     on_calendar: "*:20"
     randomized_delay: 1m

@@ -20,10 +20,37 @@ analytics:
   exclude_ips:
     - "{{ ip_v4 }}"
     - "{{ ip_v6 }}"
-  # No GeoIP database on this host. The data needs a MaxMind account
-  # and is not packaged; the referrer panels answer "where from" in
-  # the sense that usually matters without it. See doc/TODO.adoc.
-  geoip_database: ""
+  # Geolocation is on here: this host has a MaxMind account, and the
+  # credentials below are the whole of what it needs.
+  geoip:
+    enabled: true
+    account_id: !vault |
+      $ANSIBLE_VAULT;1.1;AES256
+      37626431386363346637383061333138393730393538643065366634306361353634656238393732
+      6566323763323235303535323265613831663032653432330a303666313462323866613639313838
+      62383734356661326132663266346166346235323436363265383362333932663132356636346139
+      6535633930623638610a323635623533613964373962306461643132626138326335643761393036
+      3136
+    license_key: !vault |
+      $ANSIBLE_VAULT;1.1;AES256
+      61386138316130633533643135393633346463666166393238626563396565303932616661396339
+      3966643736396238396433646234376239633635356539390a633461626461333530316563323663
+      33326564646232653939656235643731363864613136393334303265383763656637336136323330
+      6330663461346164350a623738326238343530626136346131613932653736343630383936356138
+      38626233396334313533613832303161323536303362303038363230613062616239326161366263
+      3764633262306134636630633761623461363237316533306338
+    # All three editions the account is entitled to, as MaxMind's own
+    # GeoIP.conf listed them. Only GeoLite2-Country is read by the
+    # report; the other two cost a download each Wednesday and
+    # Saturday and are there to be used without a second sign-up -
+    # GeoLite2-City is much the largest of them. Trim this list if
+    # that trade stops being worth it.
+    editions:
+      - GeoLite2-ASN
+      - GeoLite2-City
+      - GeoLite2-Country
+    database_dir: /var/lib/GeoIP
+    report_edition: GeoLite2-Country
   schedule:
     on_calendar: "*:20"
     randomized_delay: 1m
