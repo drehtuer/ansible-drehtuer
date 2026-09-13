@@ -1,0 +1,95 @@
+# One pass of the upgrade leftover cleanup, included in a loop by
+# main.yml - see the comment on that include for why more than one
+# pass is needed.
+#
+# Every task here stops once a pass has come back empty, so the passes
+# after the last productive one cost a condition each rather than an
+# `occ` call.
+- name: One cleanup pass
+  # The whole pass is conditional, not each task in it: with the
+  # condition on the tasks alone, a skipped read left the previous
+  # pass's list in place and the removal below reported it again,
+  # once per pass.
+  #
+  # A pass runs while the one before it found something. Under
+  # --check only the first runs, because nothing is actually deleted
+  # there, so every later pass would read the same list back and
+  # report the same files over again - 60 of them for 5 real ones,
+  # which is how this condition came to be written.
+  when: >-
+    cloud_integrity_pass == 0
+    or (cloud_stale_files | length > 0 and not ansible_check_mode)
+  block:
+    - name: Read the core integrity result
+      # The upgrade extracts over the top and deletes nothing, for the
+      # reason its own comment gives: the data directory lives *inside*
+      # the installation directory here, so "delete whatever the tarball
+      # does not contain" would delete every user's files. What that
+      # leaves behind is the previous release's build output - 183 files
+      # under `dist/` after 34.0.3 to 34.0.4 - and Nextcloud draws those
+      # as a code-integrity failure in the admin overview.
+      #
+      # They are inert. The warning is not: this host has had a *genuine*
+      # integrity failure before, from the PNG cleanup cron job that
+      # truncated 1.7 GB of the installation, and a standing warning is
+      # exactly what would hide the next one.
+      #
+      # Asking Nextcloud which files are stale, rather than working it out
+      # here, is the whole safety of this: the list comes from comparing
+      # the installation against the release's own signed manifest.
+      ansible.builtin.command:
+        cmd: sudo -u www-data php occ integrity:check-core --output=json
+        chdir: "{{ cloud.nextcloud.path }}"
+      register: cloud_integrity
+      changed_when: false
+      # `integrity:check-core` exits 1 exactly when it has something to
+      # report, which is the case this task exists for - so a non-zero
+      # return code here is the normal path, not a failure. The JSON is on
+      # stdout either way. Anything other than 0 or 1 is a real failure
+      # (no occ, no PHP, a broken installation) and still stops the run,
+      # as does stdout that does not parse.
+      failed_when: cloud_integrity.rc not in [0, 1]
+      # Read-only, and the removal below needs its answer under
+      # `invoke check-drift` too.
+      check_mode: false
+
+    - name: Note which stale files may be removed
+      # Two filters, and the second is the one that matters. `EXTRA_FILE`
+      # means "present and not in the manifest", which is also true of
+      # anything an administrator legitimately added - a custom theme
+      # under `themes/`, a file left in `config/`. Only the directories
+      # that hold code this role itself unpacked are eligible, so a file
+      # nobody here created is reported by Nextcloud and left alone,
+      # which is the correct outcome for something this role does not own.
+      #
+      # `..` and absolute paths are refused outright. Nextcloud has no
+      # reason to emit either, and `state: absent` on one would delete
+      # outside the installation.
+      ansible.builtin.set_fact:
+        cloud_integrity_removed: >-
+          {{ cloud_integrity_removed | default(false)
+             or cloud_stale_files_this_pass | length > 0 }}
+        cloud_stale_files: "{{ cloud_stale_files_this_pass }}"
+      vars:
+        cloud_stale_files_this_pass: >-
+          {{ cloud_integrity_extra
+             | reject('search', '\.\.')
+             | reject('match', '/')
+             | select('match', cloud_integrity_prefixes)
+             | list }}
+        cloud_integrity_parsed: >-
+          {{ ((cloud_integrity.stdout | default('')) | trim or '{}')
+             | from_json }}
+        cloud_integrity_extra: >-
+          {{ (cloud_integrity_parsed.EXTRA_FILE | default({}) | list)
+             if cloud_integrity_parsed is mapping else [] }}
+        cloud_integrity_prefixes: >-
+          ^({{ cloud.nextcloud.integrity.cleanup_prefixes | join('|') }})/
+
+    - name: Remove the stale files the previous release left
+      ansible.builtin.file:
+        path: "{{ cloud.nextcloud.path }}/{{ item }}"
+        state: absent
+      loop: "{{ cloud_stale_files | default([]) }}"
+      loop_control:
+        label: "{{ item }}"

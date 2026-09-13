@@ -137,6 +137,14 @@ argument_specs:
                     upgrade leaves in place because it extracts over
                     the top and deletes nothing.
                 options:
+                  max_passes:
+                    type: int
+                    required: true
+                    description:
+                      - Ceiling on read-delete-read passes.
+                        `integrity:check-core` reports a partial set,
+                        so one pass does not finish the job; passes
+                        after the last productive one do no work.
                   cleanup_prefixes:
                     type: list
                     elements: str
