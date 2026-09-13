@@ -136,6 +136,17 @@ nsd-checkzone "${ZONE}" "${TMP}" > /dev/null
 chown root:nsd "${TMP}"
 chmod 0640 "${TMP}"
 mv "${TMP}" "${OUT}"
+
+# Both temporaries have to be gone before the trap is disarmed, and
+# only one of them is: `mv` consumed TMP, SRC is still here. Disarming
+# without this line leaked one copy of the unsigned zone per zone per
+# signing - so twice a week from the re-signing timer, plus one per
+# deploy of this role. 28 of them, 89 KB, had accumulated in
+# /etc/nsd/zones before it was noticed, and nothing was ever going to
+# notice: they are not served, nsd loads only the files named in its
+# configuration, and no check here looks at what else is in that
+# directory. The role removes the ones already there.
+rm -f "${SRC}"
 trap - EXIT
 
 # Reload just this zone. nsd re-reads it from disk and notifies the

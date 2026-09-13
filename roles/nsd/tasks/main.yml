@@ -184,6 +184,43 @@
     - nsd_zone_files.results[idx].changed
       or not nsd_signed.results[idx].stat.exists
 
+- name: Find the signing temporaries older runs left behind
+  # Until 2026-09-13 nsd-sign-zone disarmed its cleanup trap while one
+  # of its two temporaries still existed, so every signing left a copy
+  # of the unsigned zone in this directory - twice a week from the
+  # timer, plus one per run of this role. The script no longer does it;
+  # this removes what accumulated, on this host and on any other built
+  # from an older commit.
+  #
+  # **The exclusion is the whole safety of this task.** `mktemp`'s
+  # XXXXXX suffix is six characters from [A-Za-z0-9], and `signed` is
+  # six characters from [A-Za-z0-9] - so `<zone>.zone.??????` matches
+  # `<zone>.zone.signed`, which is the file nsd actually serves. A
+  # hand-written `rm /etc/nsd/zones/*.zone.??????` would take both
+  # domains off the internet, and would look entirely reasonable while
+  # being typed. Patterns are built per zone rather than globbed
+  # loosely for the same reason.
+  ansible.builtin.find:
+    # Hard-coded as everywhere else in this role and in the signing
+    # script, which sets the same path as ZONE_DIR.
+    paths: /etc/nsd/zones
+    file_type: file
+    patterns: >-
+      {{ nsd.zones | map(attribute='name')
+         | map('regex_replace', '$', '.zone.??????') | list }}
+    excludes: >-
+      {{ nsd.zones | map(attribute='name')
+         | map('regex_replace', '$', '.zone.signed') | list }}
+  register: nsd_signing_leftovers
+
+- name: Remove the signing temporaries older runs left behind
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ nsd_signing_leftovers.files | map(attribute='path') | list }}"
+  loop_control:
+    label: "{{ item | basename }}"
+
 - name: Remove the re-signing cron job
   # Superseded by the timer below. Left behind it would sign a second
   # time each week - harmless in itself, but it also means the cron
