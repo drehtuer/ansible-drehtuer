@@ -66,6 +66,7 @@ cloud:
     updater:
       keep_backups: 0
     integrity:
+      max_passes: 12
       cleanup_prefixes:
         - 3rdparty
         - core

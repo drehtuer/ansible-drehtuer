@@ -70,6 +70,14 @@ cloud:  # noqa: var-naming[no-role-prefix] - see doc/STATUS.adoc
     # `apps` or `themes` would let a core check delete what it does not
     # own.
     integrity:
+      # How many times to ask, delete, and ask again.
+      # `integrity:check-core` answers with a *partial* set - five
+      # files at a time on this host, where comparing
+      # core/signature.json against the filesystem directly showed 47
+      # - so one pass cannot finish. Passes after the last productive
+      # one cost a condition each, so this is a ceiling rather than a
+      # count: reaching it ends the run instead of spinning.
+      max_passes: 12
       cleanup_prefixes:
         - 3rdparty
         - core
