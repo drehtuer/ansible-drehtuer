@@ -317,6 +317,8 @@ Worth being explicit, so the green ticks are not read as more than they are.
 
 *Anything requiring a real certificate.* Certbot cannot work against a container. A VM-based layer would need a test subdomain pointed at it and Let's Encrypt staging, or a local ACME server such as Pebble.
 
+*Anything a browser has to execute.* Nothing here, and nothing in any deploy verification so far, loads a page. That is not a small gap: it is where the `monitoring` and `analytics` vhosts have each shipped a bug that every other check passed. Grafana drew nothing; the GoAccess report drew a spinner that never stopped. In both cases the response was a valid 200 with a complete document, and the failure was a `Content-Security-Policy` the page's own JavaScript could not live under — Grafana needing `'unsafe-eval'` and `blob:`, GoAccess needing `'unsafe-eval'` for the Hogan templates it compiles with `new Function()`. **No number of `curl` checks tests this.** Any role adding a vhost that runs JavaScript should be opened in a browser once, with the console visible, before it is called deployed; a headless browser asserting that a known element becomes visible would turn that into something repeatable, and does not exist here.
+
 *Whether the services actually work.* Molecule proves a role converges and is idempotent. It does not prove nginx serves the right vhost, that mail is delivered, or that a fail2ban jail matches anything. A `fail2ban-client status <jail>` assertion after a real run is worth more than any of the above for that particular class of problem.
 
 == Running everything
