@@ -173,22 +173,29 @@ argument_specs:
                 description:
                   - Loopback port the daemon listens on; nginx proxies
                     /push/ to it.
+          apps:
+            type: list
+            elements: str
+            required: true
+            description:
+              - App ids this instance should have installed and
+                enabled, as `occ` names them and as the directory
+                under `apps/` is called - not display names. Bundled
+                apps may be listed too, in which case the entry
+                asserts they stay switched on rather than installing
+                anything. Removing an id does not uninstall the app;
+                an installed app holds data, so removal is a
+                deliberate act rather than an edit here.
           mail:
             type: dict
             required: true
             description:
-              - The Nextcloud Mail app, which is where a user edits
-                their own Sieve filters - it is a ManageSieve client,
-                talking to the listener roles/imap opens.
+              - Settings for the Nextcloud Mail app, which is where a
+                user edits their own Sieve filters - it is a
+                ManageSieve client, talking to the listener
+                roles/imap opens. Installing it is `apps` above's
+                job; this is the one setting of its own the role owns.
             options:
-              enabled:
-                type: bool
-                required: true
-                description:
-                  - Whether to install and enable the app. False means
-                    do not install it, not remove it - an installed
-                    app holds accounts and cached messages, so removal
-                    is a deliberate act rather than a flag.
               classify_importance:
                 type: bool
                 required: true

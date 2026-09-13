@@ -610,39 +610,37 @@
   register: cloud_push_setup
   changed_when: false
 
-- name: Install the Mail app
-  # The sieve filter editor for this host: Mail is a ManageSieve
-  # client, and roles/imap opens the listener it talks to. That pairing
-  # is the whole reason this is installed rather than left to whoever
-  # is administering Nextcloud - on Android there is no alternative,
-  # since no mail client for it speaks the protocol.
+- name: Install the apps this instance should have
+  # `cloud.apps` is the answer to "what is a working installation
+  # here", which the tarball alone does not settle: the release ships
+  # the bundled apps and nothing else, so every calendar, contact and
+  # task on a rebuilt host depends on someone remembering the list.
+  # That is exactly the memory this repository exists to replace.
   #
-  # `creates` rather than a read-before-write: `app:install` fails on
-  # an app that is already there, and the appinfo file is what "already
-  # there" means. Note the consequence - an app present but *disabled*
-  # is not reinstalled here; the enable task below is what covers that.
+  # Both kinds of app go through the same loop. A bundled one
+  # (files_sharing, files_pdfviewer) is already unpacked, so `creates`
+  # skips the install and only the enable below can act on it; an app
+  # store one is fetched. `creates` rather than a read-before-write,
+  # because `app:install` fails on an app that is already there and
+  # the appinfo file is what "already there" means.
+  #
+  # An id the app store does not know, or one with no release
+  # compatible with the pinned Nextcloud, fails the run. That is the
+  # wanted behaviour: silently skipping it would leave a host missing
+  # an app this list says it has.
   ansible.builtin.command:
-    cmd: sudo -u www-data php occ app:install mail
+    cmd: sudo -u www-data php occ app:install {{ item }}
     chdir: "{{ cloud.nextcloud.path }}"
-    creates: "{{ cloud.nextcloud.path }}/apps/mail/appinfo/info.xml"
-  when: cloud.mail.enabled
-
-- name: Note whether the Mail app is installed
-  # Everything below is conditional on the app being present, which
-  # `cloud.mail.enabled: false` leaves it not being. `config:app:set`
-  # would happily write a key for an app that is not there, which is
-  # worse than useless: it would read as a managed setting doing
-  # nothing.
-  ansible.builtin.stat:
-    path: "{{ cloud.nextcloud.path }}/apps/mail/appinfo/info.xml"
-  register: cloud_mail_app
+    creates: "{{ cloud.nextcloud.path }}/apps/{{ item }}/appinfo/info.xml"
+  loop: "{{ cloud.apps }}"
 
 - name: Read which apps Nextcloud has enabled
-  # Installed and enabled are two different states, and the task above
+  # Installed and enabled are two different states, and the loop above
   # only establishes the first: an app disabled in the web UI keeps its
-  # appinfo file, so `creates` would skip forever and leave Mail
-  # present and off. `app:list` is asked rather than
-  # `config:app:get mail enabled`, because the JSON output states the
+  # appinfo file, so `creates` would skip forever and leave it present
+  # and off - which is also the only state a bundled app can be
+  # corrected from. `app:list` is asked rather than
+  # `config:app:get <app> enabled`, because the JSON output states the
   # answer outright instead of relying on how that key is spelled.
   ansible.builtin.command:
     cmd: sudo -u www-data php occ app:list --output=json
@@ -650,23 +648,35 @@
   register: cloud_app_list
   changed_when: false
   # Read-only, and running it under --check is the point: it is what
-  # makes `invoke check-drift` able to report a disabled Mail app.
+  # makes `invoke check-drift` able to report a disabled app.
   check_mode: false
-  when: cloud_mail_app.stat.exists
 
-- name: Enable the Mail app
+- name: Enable the apps this instance should have
   ansible.builtin.command:
-    cmd: sudo -u www-data php occ app:enable mail
+    cmd: sudo -u www-data php occ app:enable {{ item }}
     chdir: "{{ cloud.nextcloud.path }}"
   # The guard is the comparison, so reaching this task means the app
-  # is installed and not enabled.
+  # is installed and not enabled. The read above is ordered after the
+  # installs for that reason: `app:install` enables what it installs,
+  # so a list taken before them would report a freshly installed app
+  # as disabled and this task would re-enable it, reporting a change
+  # that did nothing. Taken after, the only apps left here are the
+  # ones somebody switched off.
   changed_when: true
-  when:
-    - cloud.mail.enabled
-    - cloud_mail_app.stat.exists
-    - >-
-      'mail' not in (cloud_app_list.stdout | default('{}')
-                     | from_json).enabled | default({})
+  loop: "{{ cloud.apps }}"
+  when: >-
+    item not in (cloud_app_list.stdout | default('{}')
+                 | from_json).enabled | default({})
+
+- name: Note whether the Mail app is installed
+  # The Mail settings below are conditional on the app being present,
+  # which a `cloud.apps` without it leaves it not being.
+  # `config:app:set` would happily write a key for an app that is not
+  # there, which is worse than useless: it would read as a managed
+  # setting doing nothing.
+  ansible.builtin.stat:
+    path: "{{ cloud.nextcloud.path }}/apps/mail/appinfo/info.xml"
+  register: cloud_mail_app
 
 - name: Read the Mail app's importance-classification default
   # Read before write, so a converged host reports no change and
