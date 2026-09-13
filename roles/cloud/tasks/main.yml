@@ -610,14 +610,63 @@
   register: cloud_push_setup
   changed_when: false
 
+- name: Install the Mail app
+  # The sieve filter editor for this host: Mail is a ManageSieve
+  # client, and roles/imap opens the listener it talks to. That pairing
+  # is the whole reason this is installed rather than left to whoever
+  # is administering Nextcloud - on Android there is no alternative,
+  # since no mail client for it speaks the protocol.
+  #
+  # `creates` rather than a read-before-write: `app:install` fails on
+  # an app that is already there, and the appinfo file is what "already
+  # there" means. Note the consequence - an app present but *disabled*
+  # is not reinstalled here; the enable task below is what covers that.
+  ansible.builtin.command:
+    cmd: sudo -u www-data php occ app:install mail
+    chdir: "{{ cloud.nextcloud.path }}"
+    creates: "{{ cloud.nextcloud.path }}/apps/mail/appinfo/info.xml"
+  when: cloud.mail.enabled
+
 - name: Note whether the Mail app is installed
-  # This role does not install it, so everything below is conditional
-  # on someone having added it. `config:app:set` would happily write
-  # the key for an app that is not there, which is worse than useless:
-  # it would read as a managed setting doing nothing.
+  # Everything below is conditional on the app being present, which
+  # `cloud.mail.enabled: false` leaves it not being. `config:app:set`
+  # would happily write a key for an app that is not there, which is
+  # worse than useless: it would read as a managed setting doing
+  # nothing.
   ansible.builtin.stat:
     path: "{{ cloud.nextcloud.path }}/apps/mail/appinfo/info.xml"
   register: cloud_mail_app
+
+- name: Read which apps Nextcloud has enabled
+  # Installed and enabled are two different states, and the task above
+  # only establishes the first: an app disabled in the web UI keeps its
+  # appinfo file, so `creates` would skip forever and leave Mail
+  # present and off. `app:list` is asked rather than
+  # `config:app:get mail enabled`, because the JSON output states the
+  # answer outright instead of relying on how that key is spelled.
+  ansible.builtin.command:
+    cmd: sudo -u www-data php occ app:list --output=json
+    chdir: "{{ cloud.nextcloud.path }}"
+  register: cloud_app_list
+  changed_when: false
+  # Read-only, and running it under --check is the point: it is what
+  # makes `invoke check-drift` able to report a disabled Mail app.
+  check_mode: false
+  when: cloud_mail_app.stat.exists
+
+- name: Enable the Mail app
+  ansible.builtin.command:
+    cmd: sudo -u www-data php occ app:enable mail
+    chdir: "{{ cloud.nextcloud.path }}"
+  # The guard is the comparison, so reaching this task means the app
+  # is installed and not enabled.
+  changed_when: true
+  when:
+    - cloud.mail.enabled
+    - cloud_mail_app.stat.exists
+    - >-
+      'mail' not in (cloud_app_list.stdout | default('{}')
+                     | from_json).enabled | default({})
 
 - name: Read the Mail app's importance-classification default
   # Read before write, so a converged host reports no change and

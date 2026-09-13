@@ -29,6 +29,7 @@ cloud:
   push:
     port: 7867
   mail:
+    enabled: true
     classify_importance: false
   ocr:
     languages:

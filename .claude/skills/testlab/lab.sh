@@ -65,7 +65,10 @@ PLAYBOOKS=(
 VERIFY_UNITS=(ssh cron ntpsec fail2ban nginx mariadb redis-server unbound docker postfix dovecot rspamd
               prometheus prometheus-alertmanager prometheus-node-exporter)
 # "port:address-fragment" - loopback-only services must NOT be on 0.0.0.0.
-VERIFY_LISTEN=(22 25 80 443 587 993)
+# 4190 is ManageSieve, which is public in the same sense as 993: the
+# listener inherits dovecot's global `listen`, and roles/firewall is
+# what decides who reaches it - it opens 993 and not this.
+VERIFY_LISTEN=(22 25 80 443 587 993 4190)
 # 9090/9093/9100 are roles/monitoring, 3000 is its Grafana container -
 # on host networking, so it binds the host's own loopback and `ss` sees
 # it like any other local service. Note what is deliberately absent:

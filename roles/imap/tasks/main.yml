@@ -6,6 +6,12 @@
       - dovecot-imapd
       - dovecot-lmtpd
       - dovecot-sieve
+      # ManageSieve. Installed unconditionally even though
+      # `imap.managesieve.enabled` can switch the protocol off: the
+      # package only adds a binary Dovecot starts when `protocols`
+      # names sieve, so a disabled host carries the package and
+      # listens on nothing.
+      - dovecot-managesieved
       - curl
       # Required by the maildir-import tool below. Present on the
       # current host anyway, but nothing declared it, so a from-scratch

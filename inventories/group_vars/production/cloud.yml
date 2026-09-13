@@ -78,6 +78,7 @@ cloud:
   # inbound mail with the IMAP keyword `$label1` - which Thunderbird
   # renders as its own "Important" tag. See doc/STATUS.adoc.
   mail:
+    enabled: true
     classify_importance: false
   ocr:
     # Tesseract training data for OCRmyPDF, one package per language.
