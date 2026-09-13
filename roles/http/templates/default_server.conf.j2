@@ -1,0 +1,59 @@
+{{ ansible_managed | comment }}
+#
+# The catch-all for names this host does not serve.
+#
+# Until this file existed there was no `default_server` anywhere, so
+# nginx fell back to the first server block for the address - and
+# `include sites-enabled/*.conf` loads alphabetically, which made the
+# catch-all whichever vhost happened to sort first. That was
+# `cloud.conf` for a long time, so **Nextcloud's login page was served
+# for every unknown Host header**, and then briefly `analytics.conf`
+# once that role added a vhost sorting ahead of it.
+#
+# It was not theoretical. In the fortnight to 2026-09-13 this host
+# answered for `cloud0.methodigy.com` and two of its subdomains
+# (101 MB), `drtradingacademy.com`, `news.zerkalo.io`, `azenv.net` and
+# `uachanger.com` (open-proxy checkers), `speed.cloudflare.com`
+# (someone else's bandwidth test) and `169.254.169.254` (cloud
+# metadata probing) - 546 MB in total, 79% of every byte this host
+# sent to anyone other than itself. See doc/STATUS.adoc.
+server {
+    listen {{ http.port_http }} default_server;
+    listen [::]:{{ http.port_http }} default_server;
+    server_name _;
+
+    # ACME stays open to every name, and has to. certbot validates
+    # over HTTP-01 against a name that by definition has no
+    # certificate yet, and on a fresh host has no vhost either - the
+    # deadlock the redirect vhost beside this one is written to avoid.
+    # Serving a challenge token to a stranger costs nothing: it is a
+    # random string that proves control of a name we already control.
+    location ^~ /.well-known/acme-challenge/ {
+        root {{ http.letsencrypt.webroot_path }};
+        default_type "text/plain";
+    }
+
+    # 444 is nginx's own: close the connection with no response at
+    # all. A 403 or a 404 would still be an answer, and answering is
+    # the thing being stopped.
+    location / {
+        return 444;
+    }
+}
+
+server {
+    listen {{ http.port_https }} ssl http2 default_server;
+    listen [::]:{{ http.port_https }} ssl http2 default_server;
+
+    # Rejects the TLS handshake itself, before any request exists, so
+    # there is no 444 to return and - the point - no certificate to
+    # present for a name this host does not serve.
+    #
+    # This is also why it is `ssl_reject_handshake` rather than a
+    # server block with a certificate and `return 444`: that variant
+    # needs a certificate to complete the handshake first, which on a
+    # fresh host does not exist yet and would stop nginx from starting
+    # at all. Nothing here depends on certbot having run. Requires
+    # nginx >= 1.19.4; noble ships 1.24.
+    ssl_reject_handshake on;
+}

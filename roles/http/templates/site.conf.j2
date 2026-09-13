@@ -27,9 +27,20 @@ server {
     include locations-enabled/*.conf;
 {% endif %}
 
-    # index.html fallback
+    # A missing file is a 404, and that is not only tidiness. With the
+    # old `/index.html` fallback every unknown path answered 200 with
+    # the site's placeholder - so a scanner asking for
+    # `/wp-config.php.bak` or `/actuator/env` was told it exists, and
+    # `roles/fail2ban`'s `nginx-404` jail could never fire on this
+    # vhost because this vhost never produced a 404. Measured on
+    # `carcosa`: 59113 probes across 8593 sensitive paths in a
+    # fortnight, and not one of them counted towards a ban.
+    #
+    # `spa_fallback` restores the old behaviour for a site that needs
+    # it - a single-page app routing in the browser is the case that
+    # genuinely does.
     location / {
-        try_files $uri $uri/ /index.html;
+        try_files $uri $uri/ {{ '/index.html' if site.spa_fallback | default(false) else '=404' }};
     }
 
     # handle .php

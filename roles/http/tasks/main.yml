@@ -126,6 +126,28 @@
     state: link
   notify:
     - Reload nginx
+- name: Catch-all for names this host does not serve
+  # Deployed here, beside the redirect vhost and before the first
+  # `nginx -t`, because the two are one decision: this file takes
+  # `server_name _` over from that one. Neither half depends on a
+  # certificate existing - the 443 block rejects the handshake rather
+  # than presenting one - so this is safe on a host certbot has never
+  # run on.
+  ansible.builtin.template:
+    src: templates/default_server.conf.j2
+    dest: /etc/nginx/sites-available/default_server.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify:
+    - Reload nginx
+- name: Enable the catch-all
+  ansible.builtin.file:
+    src: /etc/nginx/sites-available/default_server.conf
+    dest: /etc/nginx/sites-enabled/default_server.conf
+    state: link
+  notify:
+    - Reload nginx
 - name: Validate nginx configuration before serving the ACME challenge
   ansible.builtin.command:
     cmd: nginx -t
