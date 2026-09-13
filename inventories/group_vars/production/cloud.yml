@@ -36,8 +36,8 @@ cloud:
     # same version and the checksum can be verified. Bumping this does
     # not upgrade an existing installation - that needs `occ upgrade`,
     # which is not automated yet (doc/TODO.adoc).
-    version: "34.0.3"
-    checksum: "d7ed36ac0e14a2d9bbd167d6f6d4fc498f0f39fcccdf304e67e35bfc42e4506d"
+    version: "34.0.4"
+    checksum: "00f226e6364f96e0918ab06157158f66601b8cedc25af777f5ee5a3056f42b83"
     path: /var/www/nextcloud
     cron_minute: "*/5"
     # Overriding `cloud` replaces the role default wholesale, so

@@ -713,8 +713,21 @@
   vars:
     cloud_mail_wanted: >-
       {{ 'yes' if cloud.mail.classify_importance else 'no' }}
+    cloud_mail_stored: >-
+      {{ cloud_mail_classification.stdout | default('') | trim }}
   # The guard below is the comparison, so reaching this task at all
   # means the stored value differs from the wanted one.
+  #
+  # It compares *meanings* rather than spellings, and it has to.
+  # Nextcloud's app config is typed since 30: this key is registered
+  # as a boolean, so `--value=no` is stored as false and read back by
+  # `config:app:get` as `0`, never as the `no` that was written.
+  # Comparing those two strings always differed, so the task rewrote
+  # the same value on every run - found on 2026-09-13 after the
+  # 34.0.4 upgrade, by running the playbook twice and watching it
+  # report `changed` both times. An empty read stays a reason to
+  # write: a key that is absent leaves Mail's own default in force,
+  # and that default is *on*.
   #
   # Worth knowing when reading `invoke check-drift`: a command task in
   # check mode reports *skipped* whether its condition was false or it
@@ -727,5 +740,6 @@
   when:
     - cloud_mail_app.stat.exists
     - >-
-      cloud_mail_classification.stdout | default('') | trim
-      != cloud_mail_wanted
+      cloud_mail_stored == ''
+      or (cloud_mail_stored in ['yes', '1', 'true'])
+      != cloud.mail.classify_importance

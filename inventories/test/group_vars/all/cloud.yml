@@ -8,9 +8,9 @@ cloud:
       user: root
       password: test-root-password
   nextcloud:
-    version: "34.0.3"
+    version: "34.0.4"
     checksum: >-
-      d7ed36ac0e14a2d9bbd167d6f6d4fc498f0f39fcccdf304e67e35bfc42e4506d
+      00f226e6364f96e0918ab06157158f66601b8cedc25af777f5ee5a3056f42b83
     path: /var/www/nextcloud
     cron_minute: "*/5"
     data_dir: /var/www/nextcloud/data
