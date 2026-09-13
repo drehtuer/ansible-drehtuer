@@ -57,8 +57,17 @@ cloud:
   # playbooks/cloud.yml has failed its argument spec against the lab
   # ever since - which the static tests cannot see, because they read
   # inventories/test rather than this file.
+  apps:
+    - calendar
+    - checksum
+    - contacts
+    - files_pdfviewer
+    - files_sharing
+    - gpoddersync
+    - mail
+    - music
+    - tasks
   mail:
-    enabled: true
     classify_importance: false
   ocr:
     languages:
