@@ -176,16 +176,31 @@
 - name: Create the mysqld exporter account
   # Authenticates through the unix socket as the prometheus system
   # user, so nothing here is a password and nothing has to be
-  # rotated. PROCESS and REPLICATION CLIENT are what the exporter
-  # reads server-wide status with; SELECT on performance_schema is
-  # what it reads the per-query numbers with. No access to any
-  # application database is granted, and none is needed.
+  # rotated. PROCESS and BINLOG MONITOR are what the exporter reads
+  # server-wide status with; SELECT on performance_schema is what it
+  # reads the per-query numbers with. No access to any application
+  # database is granted, and none is needed.
+  #
+  # `BINLOG MONITOR` rather than `REPLICATION CLIENT`, and the
+  # difference is not cosmetic. MariaDB renamed that privilege in
+  # 10.5 and keeps the old name only as an alias accepted on input:
+  # `SHOW GRANTS` reports `BINLOG MONITOR` whatever was written. The
+  # module compares what it was asked for against what the server
+  # reports, so asking for the alias never matched and this task
+  # rewrote the same grant on every run - which made
+  # `invoke check-drift` report a change here permanently, and a
+  # permanent change is one nobody reads. Found on 2026-09-13 while
+  # checking why this role's deploy stamp was stale; with the name
+  # the server uses, the drift check reports `ok` and the role
+  # settles at `changed=0`. Note what it costs: this is MariaDB's
+  # spelling, so the task would need the old name back on MySQL.
+  # Both the production host and the lab run MariaDB (roles/database).
   community.mysql.mysql_user:
     name: "{{ monitoring.exporters.mysqld.user }}"
     host: localhost
     plugin: unix_socket
     priv:
-      "*.*": "PROCESS,REPLICATION CLIENT"
+      "*.*": "PROCESS,BINLOG MONITOR"
       "performance_schema.*": "SELECT"
     column_case_sensitive: false
     state: present
