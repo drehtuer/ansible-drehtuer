@@ -58,7 +58,7 @@ PLAYBOOKS=(
   dns database docker http cloud mail imap spam
   # Reads the log nginx has been writing since `http` ran, and is
   # served through a vhost whose name has to be on the seeded
-  # certificate - so `seed-certs` has to have covered `stats`.
+  # certificate - so `seed-certs` has to have covered `weblog`.
   analytics
   # Last: it delivers its alerts through the local Postfix, so mail
   # has to exist before the alert path can be shown to work.

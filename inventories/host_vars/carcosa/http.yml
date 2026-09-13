@@ -30,14 +30,14 @@ http:
       - mail
       - spam
       - status
-      # The GoAccess report vhost, see roles/analytics. The role
-      # builds server_name from its own `subdomain`, so the two must
-      # agree or the vhost is served with a mismatched certificate.
-      - stats
       # roles/talk serves the signaling WebSocket here. Must match
       # talk.subdomain or the vhost gets a certificate that does not
       # cover it.
       - talk
+      # The GoAccess report vhost, see roles/analytics. The role
+      # builds server_name from its own `subdomain`, so the two must
+      # agree or the vhost is served with a mismatched certificate.
+      - weblog
       - www
   # nginx's status page for prometheus-nginx-exporter, loopback only.
   stub_status:

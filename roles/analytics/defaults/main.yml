@@ -19,12 +19,17 @@ analytics:  # noqa: var-naming[no-role-prefix] - see doc/STATUS.adoc
   title: "{{ domain }} web traffic"
   # Serves <subdomain>.<domain> for every entry in http.domains.
   #
+  # `weblog` and deliberately not `stats`: roles/monitoring already
+  # serves Grafana at `status.<domain>`, and two names one character
+  # apart, both meaning roughly "numbers about the server", is a name
+  # to mistype for the life of the host. See doc/STATUS.adoc.
+  #
   # This has to also appear in `http.letsencrypt.subdomains` *and*
   # resolve in public DNS before roles/http next runs, or certbot's
   # HTTP-01 challenge fails for the name and takes the whole
   # certificate with it - not just this vhost. See doc/STATUS.adoc for
   # the order the three changes have to happen in.
-  subdomain: stats
+  subdomain: weblog
   # Crawlers are the majority of what hits a small site, and counting
   # them answers a different question than "what do people read". The
   # requests are still in the log either way; this only decides what
