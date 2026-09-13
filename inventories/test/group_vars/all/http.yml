@@ -22,6 +22,10 @@ http:
       # does not match its own vhosts.
       - spam
       - status
+      # The GoAccess report vhost, see roles/analytics. The role
+      # builds server_name from its own `subdomain`, so the two must
+      # agree or the vhost is served with a mismatched certificate.
+      - stats
       - www
   # nginx's status page for prometheus-nginx-exporter, loopback only.
   stub_status:

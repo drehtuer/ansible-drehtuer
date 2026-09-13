@@ -1,0 +1,7 @@
+---
+# The unit files this role installs, in one list so that deploying
+# them and reloading systemd cannot drift apart - the same shape
+# roles/backup uses.
+analytics_units:
+  - analytics.service
+  - analytics.timer

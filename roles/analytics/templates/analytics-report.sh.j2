@@ -1,0 +1,110 @@
+#!/usr/bin/env bash
+{{ ansible_managed | comment }}
+#
+# Rebuild the GoAccess report from the nginx access logs.
+#
+# The whole retained window is reparsed on every run rather than added
+# to incrementally. GoAccess can do the latter (--persist/--restore),
+# and it is deliberately not used here: it identifies what it has
+# already seen by inode plus the timestamp of the last parsed line, so
+# the boundary either side of a rotation is approximate, and a report
+# that has been accumulating for months cannot be checked against
+# anything. Reparsing costs about fourteen seconds of one core at this
+# host's volume - 1.5 million retained lines, timed through this same
+# zcat pipe - and buys a report that is a pure function of the files
+# on disk: delete it, run again, get the same page.
+set -euo pipefail
+
+readonly LOG={{ analytics.access_log | quote }}
+readonly REPORT_DIR={{ analytics.report_dir | quote }}
+readonly REPORT={{ (analytics.report_dir ~ '/' ~ analytics.report_file) | quote }}
+
+# Must match `log_format main` in roles/http's files/nginx.conf. The
+# two cannot be derived from one another - that file is static, not
+# templated - so this is the coupling, and it is worth knowing how it
+# fails: GoAccess matches the format against a prefix of the line, so
+# dropping the `host=` field here would NOT error. It would quietly
+# produce a report identical in every panel except the Virtual Hosts
+# one, which would simply be absent.
+readonly LOG_FORMAT='%h %^[%d:%t %^] "%r" %s %b "%R" "%u" host=%v'
+
+# Oldest generation first, down to the live file. Both `.N` and `.N.gz`
+# are looked for at each index because nginx's logrotate uses
+# `delaycompress`: the most recent rotation is still plain text and
+# everything older is gzipped, and which is which moves every night.
+logs=()
+for index in $(seq {{ analytics.rotations | int }} -1 1); do
+  for candidate in "${LOG}.${index}.gz" "${LOG}.${index}"; do
+    if [[ -f ${candidate} ]]; then
+      logs+=("${candidate}")
+    fi
+  done
+done
+if [[ -f ${LOG} ]]; then
+  logs+=("${LOG}")
+fi
+
+# Emptiness tested through the expansion rather than through
+# ${{'{'}}#logs[@]}: this is a Jinja template, and `{{'{'}}#` opens a comment tag.
+# The render fails with "Missing end of comment tag", which names the
+# file and not the construct.
+if [[ -z ${logs[*]-} ]]; then
+  echo "no access log at ${LOG} or beside it; nothing to report" >&2
+  exit 0
+fi
+
+args=(
+  # A report that depends on /etc/goaccess/goaccess.conf is a report
+  # that changes when the package is upgraded. Every option this run
+  # uses is below, and nothing else applies.
+  --no-global-config
+  --log-format="${LOG_FORMAT}"
+  --date-format='%d/%b/%Y'
+  --time-format='%H:%M:%S'
+  --html-report-title={{ analytics.title | quote }}
+  # Not a terminal, so the progress counter is only noise in the
+  # journal.
+  --no-progress
+  # Which user agents each host used, under the hosts panel.
+  --agent-list
+  # "Windows 10" rather than "Windows NT 10.0".
+  --real-os
+)
+{% if analytics.ignore_crawlers %}
+args+=(--ignore-crawlers)
+{% endif %}
+{% if analytics.anonymize_ip %}
+args+=(--anonymize-ip)
+{% endif %}
+{% for address in analytics.exclude_ips %}
+args+=(--exclude-ip={{ address | quote }})
+{% endfor %}
+{% if analytics.geoip_database %}
+
+# Tested rather than passed unconditionally: GoAccess treats a
+# database it cannot open as a fatal error and exits 1, so a path that
+# is merely configured - or a MaxMind download that failed overnight -
+# would take the whole report down rather than one panel of it.
+if [[ -f {{ analytics.geoip_database | quote }} ]]; then
+  args+=(--geoip-database={{ analytics.geoip_database | quote }})
+else
+  echo "no GeoIP database at {{ analytics.geoip_database }};" \
+       "reporting without the geolocation panel" >&2
+fi
+{% endif %}
+
+# Written beside the report and renamed over it, so that nginx never
+# serves a half-generated page: rename(2) within one directory is
+# atomic, whereas writing --output straight to ${REPORT} leaves the
+# file readable and incomplete for as long as the run takes. The
+# leading dot keeps the temporary out of the way of the vhost, which
+# refuses dotfiles.
+tmp=$(mktemp -p "${REPORT_DIR}" --suffix=.html .report.XXXXXXXX)
+trap 'rm -f "${tmp}"' EXIT
+
+zcat --force -- "${logs[@]}" | goaccess - "${args[@]}" --output="${tmp}"
+
+# mktemp creates 0600; the report is served by another user.
+chmod 0644 "${tmp}"
+mv -- "${tmp}" "${REPORT}"
+trap - EXIT

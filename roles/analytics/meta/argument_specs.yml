@@ -1,0 +1,118 @@
+argument_specs:
+  main:
+    short_description: GoAccess report over the nginx access logs
+    description:
+      - Rebuilds a static GoAccess HTML report from the nginx access
+        log and its rotated generations on a systemd timer, and
+        serves it at <subdomain>.<domain> for every served domain,
+        behind TLS and HTTP basic auth.
+      - The report is rebuilt from the logs on disk every run rather
+        than accumulated incrementally, so it is a pure function of
+        what is retained. That bounds its history to nginx's own
+        logrotate retention and, in exchange, makes it exactly
+        reproducible and free of the double-counting that incremental
+        parsing risks around a rotation boundary.
+      - Reading the logs is all this does to them. Nothing here
+        rotates, truncates or deletes anything under /var/log/nginx -
+        the nginx package's own logrotate config owns that.
+    options:
+      domain:
+        type: str
+        required: true
+        description:
+          - The host's primary domain, from the inventory. Only used
+            to build the default report title.
+      http:
+        type: dict
+        required: true
+        description:
+          - Shared with the http role. Only http.port_https and
+            http.domains are read here, to build the vhost.
+            Deliberately declared without suboptions - listing them
+            would make validation reject every other key the http
+            role itself requires.
+      analytics:
+        type: dict
+        required: true
+        description: Report generation and publication settings.
+        options:
+          access_log:
+            type: str
+            required: true
+            description:
+              - The live nginx access log. Must match the access_log
+                roles/http sets in files/nginx.conf, and the rotated
+                generations are expected beside it under the same
+                name.
+          rotations:
+            type: int
+            required: true
+            description:
+              - How many rotated generations to feed in alongside the
+                live log. A value above what logrotate actually keeps
+                is harmless; the missing generations are skipped.
+          report_dir:
+            type: str
+            required: true
+            description:
+              - Directory the report is written to, and the vhost's
+                document root.
+          report_file:
+            type: str
+            required: true
+            description: Report file name inside report_dir.
+          title:
+            type: str
+            required: true
+            description: Page title and header of the rendered report.
+          subdomain:
+            type: str
+            required: true
+            description:
+              - Subdomain the vhost answers for, per served domain.
+                Must also appear in http.letsencrypt.subdomains and
+                resolve publicly before roles/http next runs, or
+                certbot fails for the whole certificate.
+          ignore_crawlers:
+            type: bool
+            required: true
+            description:
+              - Drop requests GoAccess recognises as crawlers before
+                counting them.
+          anonymize_ip:
+            type: bool
+            required: true
+            description:
+              - Truncate addresses before they are written to the
+                report. Affects the report only, never the log.
+          exclude_ips:
+            type: list
+            elements: str
+            required: true
+            description:
+              - Addresses whose requests are dropped before counting.
+                May be empty.
+          geoip_database:
+            type: str
+            required: true
+            description:
+              - Path to a MaxMind GeoIP2 database, or empty for no
+                geolocation. A path that does not exist is skipped
+                with a warning rather than failing the run.
+          schedule:
+            type: dict
+            required: true
+            description: When the report is rebuilt.
+            options:
+              on_calendar:
+                type: str
+                required: true
+                description:
+                  - systemd OnCalendar expression. Keep it away from
+                    midnight, when nginx's logs are rotated and
+                    compressed.
+              randomized_delay:
+                type: str
+                required: true
+                description:
+                  - systemd RandomizedDelaySec value, as a time span.

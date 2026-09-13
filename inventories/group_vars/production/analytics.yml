@@ -1,0 +1,29 @@
+# Mirrors roles/analytics/defaults/main.yml, because an inventory dict
+# REPLACES the role default rather than merging into it. See
+# doc/STATUS.adoc.
+analytics:
+  access_log: /var/log/nginx/access.log
+  rotations: 14
+  report_dir: /var/www/analytics
+  report_file: index.html
+  title: "{{ domain }} web traffic"
+  subdomain: stats
+  ignore_crawlers: true
+  anonymize_ip: true
+  # This host's own addresses, and on this host it is not a nicety.
+  # roles/monitoring's blackbox exporter probes eight public names
+  # every 15 seconds from the machine itself, and those requests reach
+  # nginx from its own public address like anyone else's: measured on
+  # 2026-09-13, 75274 of the day's 82018 logged requests - 92% - were
+  # the host probing itself. A report without this line describes the
+  # monitoring rather than the visitors.
+  exclude_ips:
+    - "{{ ip_v4 }}"
+    - "{{ ip_v6 }}"
+  # No GeoIP database on this host. The data needs a MaxMind account
+  # and is not packaged; the referrer panels answer "where from" in
+  # the sense that usually matters without it. See doc/TODO.adoc.
+  geoip_database: ""
+  schedule:
+    on_calendar: "*:20"
+    randomized_delay: 1m

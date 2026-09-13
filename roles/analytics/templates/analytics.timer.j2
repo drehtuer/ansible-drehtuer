@@ -1,0 +1,20 @@
+{{ ansible_managed | comment }}
+#
+# A timer rather than cron, for Persistent=true - the same reason as
+# backup.timer and the textfile collectors. This host reboots for
+# unattended upgrades, and cron silently skips a run whose moment
+# passed while it was down.
+#
+# The schedule deliberately avoids midnight: that is when nginx's
+# logrotate runs, and a run that reads a .gz while it is being written
+# dies on the truncated member. See analytics.schedule.on_calendar.
+[Unit]
+Description=Rebuild the web traffic report
+
+[Timer]
+OnCalendar={{ analytics.schedule.on_calendar }}
+Persistent=true
+RandomizedDelaySec={{ analytics.schedule.randomized_delay }}
+
+[Install]
+WantedBy=timers.target

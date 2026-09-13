@@ -1,0 +1,23 @@
+# Needs http to have run on this host first - nginx, and a certificate
+# that already covers analytics.subdomain. That name also has to
+# resolve publicly before roles/http next renews, which makes nsd a
+# dependency too even though nothing here talks to it. See
+# doc/TODO.adoc.
+#
+# On a fresh host, run playbooks/apt.yml first - the apt role is the
+# only one that refreshes the apt cache. See doc/TODO.adoc.
+- name: Analytics role
+  hosts: all
+  gather_facts: false
+  roles:
+    - role: analytics
+      tags:
+        - analytics
+    # Runs after the role above, so a component that failed to
+    # deploy is never recorded as deployed. Carries the same tag,
+    # so `--tags analytics` stamps what it deployed.
+    - role: deploy_stamp
+      vars:
+        deploy_stamp_component: analytics
+      tags:
+        - analytics

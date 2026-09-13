@@ -1,0 +1,48 @@
+{{ ansible_managed | comment }}
+#
+# One-shot, run by the timer beside it. Root, because the nginx logs
+# are 0640 www-data:adm and the report is written into a root-owned
+# document root.
+[Unit]
+Description=Rebuild the web traffic report
+Documentation=file://{{ analytics.report_dir }}/{{ analytics.report_file }}
+# Reads nginx's logs and nothing of nginx itself, so this is ordering
+# and not a dependency: it is correct for the report to be rebuilt on
+# a host whose web server is down.
+After=nginx.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/analytics-report
+# Nothing waits on this, and it shares a core with everything that
+# does.
+Nice=10
+IOSchedulingClass=idle
+
+# Sandboxed more tightly than the other one-shots in this repo, and
+# for a reason they do not have: every byte GoAccess parses here was
+# chosen by a stranger. Request paths, referrers and user agents are
+# attacker-controlled input arriving at a C parser, which is the one
+# shape in this repo where a bug in a dependency is reachable from the
+# outside. So the process gets read-only access to the filesystem
+# apart from the directory it writes the report into, no network, and
+# no path to new privileges.
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths={{ analytics.report_dir }}
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+# AF_UNIX only, which is what journald needs. GoAccess resolves no
+# addresses here - `--with-output-resolver` is deliberately not passed
+# - so it has no other use for a socket, and this is what makes that
+# claim enforced rather than merely intended.
+RestrictAddressFamilies=AF_UNIX

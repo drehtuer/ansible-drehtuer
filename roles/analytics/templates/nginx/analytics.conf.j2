@@ -1,0 +1,50 @@
+{{ ansible_managed | comment }}
+#
+# Serves the generated GoAccess report, modelled on the `spam` and
+# `fail2ban_ui` vhosts. A static file and nothing else: there is no
+# application behind this name, so there is nothing to proxy and
+# nothing to authenticate against underneath. The basic-auth block is
+# the whole access control, and what it protects is a page listing
+# which addresses asked for what and when.
+server {
+  listen {{ http.port_https }} ssl http2;
+  listen [::]:{{ http.port_https }} ssl http2;
+
+  include conf-server/ssl.conf;
+  include conf-server/security.conf;
+  include conf-server/general.conf;
+
+  # One name per served domain, as the cloud, spam and f2b vhosts do.
+  # The certificate covers each of them through
+  # http.letsencrypt.subdomains, which must therefore list
+  # analytics.subdomain.
+  server_name {{ http.domains | map('regex_replace', '^', analytics.subdomain ~ '.') | join(' ') }};
+
+  root {{ analytics.report_dir }};
+  index {{ analytics.report_file }};
+
+  # This vhost's own requests are not recorded, so that the report
+  # does not measure the act of reading it - a page of this size
+  # reloaded a few times a day would otherwise sit near the top of its
+  # own "most requested" panel. Two things worth knowing before
+  # removing this line or copying it elsewhere: fail2ban's
+  # `nginx-http-auth` jail reads error.log, not this file, so failed
+  # logins here are still banned; and its `nginx-404` jail does read
+  # this file, so 404s on this vhost alone are not counted towards a
+  # ban.
+  access_log off;
+
+  # The report is written as a dotfile and renamed into place, so this
+  # both hides the temporary during the second it exists and keeps the
+  # usual editor and VCS leftovers unreachable.
+  location ~ /\. {
+    deny all;
+  }
+
+  location / {
+    auth_basic "Restricted Access";
+    auth_basic_user_file /etc/nginx/sites-enabled/analytics.htpasswd;
+
+    try_files $uri $uri/ =404;
+  }
+}
