@@ -19,7 +19,18 @@ analytics:
   exclude_ips:
     - "{{ ip_v4 }}"
     - "{{ ip_v6 }}"
-  geoip_database: ""
+  # Off on the lab, and it has to be: the credentials are production's
+  # and this is the machine that must never hold them. The report
+  # simply renders without a Geo Location panel, which is the branch
+  # of the script worth exercising here anyway.
+  geoip:
+    enabled: false
+    account_id: ""
+    license_key: ""
+    editions:
+      - GeoLite2-Country
+    database_dir: /var/lib/GeoIP
+    report_edition: GeoLite2-Country
   schedule:
     on_calendar: "*:20"
     randomized_delay: 1m

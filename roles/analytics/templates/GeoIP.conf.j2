@@ -1,0 +1,20 @@
+{{ ansible_managed | comment }}
+#
+# Read by geoipupdate, and by the packaged geoipupdate.service, which
+# names this exact path and has no option to be pointed elsewhere. It
+# is a dpkg conffile: dpkg keeps local modifications across an upgrade,
+# and this file is what the package ships it for.
+#
+# 0600, because the licence key below is a credential for a MaxMind
+# account. The task that writes it carries `no_log`, so that a
+# `--diff` from `invoke check-drift` cannot print it - the same
+# separation roles/monitoring makes for Grafana's admin password.
+AccountID {{ analytics.geoip.account_id }}
+LicenseKey {{ analytics.geoip.license_key }}
+EditionIDs {{ analytics.geoip.editions | join(' ') }}
+# Set explicitly rather than left to the built-in default. The
+# packaged unit runs under `ProtectSystem=strict` with exactly
+# `ReadWritePaths=/var/lib/GeoIP/`, so a default pointing anywhere
+# else - upstream's is /usr/share/GeoIP - would leave the service
+# unable to write where it had just been told it could.
+DatabaseDirectory {{ analytics.geoip.database_dir }}

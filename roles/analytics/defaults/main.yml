@@ -45,16 +45,39 @@ analytics:  # noqa: var-naming[no-role-prefix] - see doc/STATUS.adoc
   # own monitoring probes above all, which otherwise dominate the
   # hit counts of whatever they check.
   exclude_ips: []
-  # Optional MaxMind GeoIP2 database, e.g.
-  # /var/lib/GeoIP/GeoLite2-Country.mmdb. Empty disables the Geo
-  # Location panel; the rest of the report is unaffected. Ubuntu
-  # packages the *library* (libmaxminddb0, already pulled in by
-  # goaccess) but not the data, which needs a MaxMind account - so
-  # there is no default that would work out of the box, and a path
-  # that does not exist is a fatal error to GoAccess rather than a
-  # warning. The report script therefore tests for the file rather
-  # than trusting this value.
-  geoip_database: ""
+  # Geolocation, which answers "where from" by country rather than by
+  # referrer. Off by default and necessarily so: Ubuntu packages the
+  # *library* (libmaxminddb0, already pulled in by goaccess) but not
+  # the data, which is MaxMind's and needs an account. There is no
+  # default here that would work on a host that has not signed up.
+  geoip:
+    # Everything below is inert until this is true: no package, no
+    # credentials on disk, no timer, and an empty Geo Location panel.
+    # Turning it off again does not uninstall geoipupdate or stop its
+    # timer - the timer's own ExecCondition skips the run when the
+    # configuration carries no account, so a disabled host is quiet
+    # rather than failing.
+    enabled: false
+    # MaxMind account credentials. Both belong in an inventory as
+    # `!vault` values and never here - see doc/STATUS.adoc.
+    account_id: ""
+    license_key: ""
+    # Which databases geoipupdate downloads. More than the report
+    # reads is allowed and costs only the download.
+    editions:
+      - GeoLite2-Country
+    # Must match the packaged unit's ReadWritePaths, which is
+    # /var/lib/GeoIP/ and not upstream's default.
+    database_dir: /var/lib/GeoIP
+    # The one the report reads, as an edition name rather than a path,
+    # so it cannot name a file geoipupdate was never asked to fetch.
+    # It must appear in `editions` above.
+    #
+    # GoAccess treats a database it cannot open as fatal and exits 1,
+    # so the report script tests for the file rather than trusting
+    # this - a download that failed overnight then costs one panel
+    # instead of the whole report.
+    report_edition: GeoLite2-Country
   schedule:
     # Twenty past the hour, and the offset is the point. nginx's
     # logrotate runs at midnight sharp, and compressing the previous

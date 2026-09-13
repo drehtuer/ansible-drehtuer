@@ -9,6 +9,58 @@
     install_recommends: false
     name:
       - goaccess
+# Geolocation. All four are gated on the same flag rather than on a
+# block, so that `--tags` and `--check` report each of them by name.
+- name: Install geoipupdate
+  ansible.builtin.apt:
+    install_recommends: false
+    name:
+      - geoipupdate
+  when: analytics.geoip.enabled
+
+- name: Configure geoipupdate
+  # `no_log`, because this file carries a MaxMind licence key and a
+  # template task shows its diff - so `invoke check-drift` would print
+  # the credential every time the file changed. Same separation
+  # roles/monitoring makes for Grafana's admin password.
+  ansible.builtin.template:
+    src: templates/GeoIP.conf.j2
+    dest: /etc/GeoIP.conf
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+  when: analytics.geoip.enabled
+
+- name: Enable the GeoIP update timer
+  # The packaged timer and service, not ones of this role's: upstream
+  # already runs it Wed and Sat with a three-hour jitter and
+  # Persistent=true, under tighter sandboxing than anything here, and
+  # with an ExecCondition that skips the run when no account is
+  # configured. There is nothing to improve on.
+  #
+  # The package also ships /etc/cron.d/geoipupdate, which is NOT
+  # removed - unlike the stale cron job roles/nsd deletes. It guards
+  # itself with `test ! -d /run/systemd/system`, so on this host it
+  # can never run, and deleting a package's own conffile to prevent
+  # something that cannot happen would be a change to explain forever.
+  ansible.builtin.systemd_service:
+    name: geoipupdate.timer
+    state: started
+    enabled: true
+  when: analytics.geoip.enabled
+
+- name: Download the GeoIP databases
+  # Without this the Geo Location panel is empty until the timer's
+  # first Wednesday. `creates` keeps it to once per host; the timer
+  # owns every later refresh.
+  ansible.builtin.command:
+    cmd: geoipupdate
+    creates: >-
+      {{ analytics.geoip.database_dir }}/{{
+         analytics.geoip.report_edition }}.mmdb
+  when: analytics.geoip.enabled
+
 - name: Create the report directory
   ansible.builtin.file:
     path: "{{ analytics.report_dir }}"

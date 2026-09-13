@@ -79,16 +79,19 @@ args+=(--anonymize-ip)
 {% for address in analytics.exclude_ips %}
 args+=(--exclude-ip={{ address | quote }})
 {% endfor %}
-{% if analytics.geoip_database %}
+{% if analytics.geoip.enabled and analytics.geoip.report_edition %}
+{% set geoip_db = analytics.geoip.database_dir ~ '/'
+                  ~ analytics.geoip.report_edition ~ '.mmdb' %}
 
 # Tested rather than passed unconditionally: GoAccess treats a
-# database it cannot open as a fatal error and exits 1, so a path that
-# is merely configured - or a MaxMind download that failed overnight -
-# would take the whole report down rather than one panel of it.
-if [[ -f {{ analytics.geoip_database | quote }} ]]; then
-  args+=(--geoip-database={{ analytics.geoip_database | quote }})
+# database it cannot open as a fatal error and exits 1, so a download
+# that failed overnight, or a first run before geoipupdate has
+# fetched anything, would take the whole report down rather than one
+# panel of it.
+if [[ -f {{ geoip_db | quote }} ]]; then
+  args+=(--geoip-database={{ geoip_db | quote }})
 else
-  echo "no GeoIP database at {{ analytics.geoip_database }};" \
+  echo "no GeoIP database at {{ geoip_db }};" \
        "reporting without the geolocation panel" >&2
 fi
 {% endif %}
