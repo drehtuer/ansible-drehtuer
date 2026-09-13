@@ -65,6 +65,13 @@ cloud:
     # key has to be repeated here too.
     updater:
       keep_backups: 0
+    integrity:
+      cleanup_prefixes:
+        - 3rdparty
+        - core
+        - dist
+        - lib
+        - ocs
     upgrade:
       dump_dir: /var/backups/nextcloud
       repair_commands:
