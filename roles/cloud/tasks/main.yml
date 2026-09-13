@@ -697,11 +697,37 @@
   # Version0006, which is why subscribing to such a feed works and
   # marking its episodes played does not.
   #
-  # 1000 characters and the 500-character index prefix are that same
-  # Version0006 applied to this second table rather than numbers
-  # invented here - and the prefix is not optional: InnoDB caps an
-  # index key at 3072 bytes, which a full utf8mb4 VARCHAR(1000) column
-  # exceeds on its own at 4000.
+  # 1000 characters is that same Version0006 applied to this second
+  # table rather than a number invented here. Its index prefix is not
+  # copied with it, and that is deliberate - see below.
+  #
+  # Widening a column an index covers looks like it should fail:
+  # InnoDB caps an index key at 3072 bytes and a full utf8mb4
+  # VARCHAR(1000) is 4000 on its own. On MariaDB it does not. Since
+  # 10.4 a unique index whose key outgrows that cap is implemented as
+  # a hash over the whole value, and widening the column converts the
+  # existing index in place - `SHOW CREATE TABLE` afterwards reads
+  # `UNIQUE KEY ... USING HASH`. So no index work is needed here.
+  #
+  # Rebuilding the indexes over a 500-character prefix first, as
+  # Version0006 does, would be worse than merely unnecessary: at that
+  # point the columns still *are* 500, so the prefixes normalise away
+  # and the statements do nothing. A prefix only survives if it is
+  # added after the widen, which is how the app's own migration ends
+  # up with `(url(500), user_id)` on the subscriptions table - Doctrine
+  # emits the index against the final schema rather than in written
+  # order.
+  #
+  # Taking the hash index rather than a prefix also makes the
+  # constraint stricter than upstream's: uniqueness is on the whole
+  # value, so two episode URLs sharing their first 500 characters are
+  # two rows here and one row next door. Verified on mariadb:10.11,
+  # the version this host runs.
+  #
+  # Note what that ties this to: MySQL has no such conversion and
+  # refuses the widen outright with "Specified key was too long".
+  # Both the production host and the lab run MariaDB
+  # (roles/database).
   #
   # Re-asserted on every run, so an app update that recreates the
   # column at 500 is corrected the next time this role runs rather
@@ -757,27 +783,14 @@
       check_mode: false
 
     - name: Widen the episode-action URL columns
-      # Indexes before columns, and the order is not interchangeable:
-      # MariaDB refuses to widen a column an index covers in full once
-      # the key would pass 3072 bytes, so the prefix has to be in place
-      # first. Re-adding the unique index over a 500-character prefix
-      # cannot collide on existing rows, because 500 characters is all
-      # any stored value can be.
+      # Three statements and no index work: MariaDB converts the two
+      # unique indexes to hash indexes as the columns widen past the
+      # key limit, for the reason set out above.
       community.mysql.mysql_query:
         login_db: "{{ cloud.mysql.nextcloud.database }}"
         login_user: "{{ cloud.mysql.nextcloud.user }}"
         login_password: "{{ cloud.mysql.nextcloud.password }}"
         query:
-          - >-
-            ALTER TABLE `{{ cloud_gpodder_table }}`
-            DROP INDEX `gpodder_episode_user_id`,
-            ADD UNIQUE INDEX `gpodder_episode_user_id`
-            (`episode`(500), `user_id`(200))
-          - >-
-            ALTER TABLE `{{ cloud_gpodder_table }}`
-            DROP INDEX `gpodder_guid_user_id`,
-            ADD UNIQUE INDEX `gpodder_guid_user_id`
-            (`guid`(500), `user_id`(200))
           - >-
             ALTER TABLE `{{ cloud_gpodder_table }}`
             MODIFY `podcast` VARCHAR(1000) CHARACTER SET
