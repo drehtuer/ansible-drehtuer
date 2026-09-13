@@ -125,7 +125,8 @@ argument_specs:
                 required: true
                 description:
                   - Database editions geoipupdate downloads, e.g.
-                    GeoLite2-Country. Must contain report_edition.
+                    GeoLite2-Country. Must contain every entry in
+                    report_editions, which the role asserts.
               database_dir:
                 type: str
                 required: true

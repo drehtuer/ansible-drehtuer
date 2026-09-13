@@ -77,9 +77,12 @@
   # owns every later refresh.
   ansible.builtin.command:
     cmd: geoipupdate
+    # Keyed on the first *downloaded* edition rather than a reported
+    # one: report_editions may legitimately be empty, and this task's
+    # job is that the databases exist at all.
     creates: >-
       {{ analytics.geoip.database_dir }}/{{
-         analytics.geoip.report_edition }}.mmdb
+         analytics.geoip.editions | first }}.mmdb
   when: analytics.geoip.enabled
 
 - name: Create the report directory
