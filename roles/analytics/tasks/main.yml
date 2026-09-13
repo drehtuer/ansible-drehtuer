@@ -32,6 +32,31 @@
          | difference(analytics.geoip.editions) | list }}
   when: analytics.geoip.enabled
 
+- name: Refuse an ordering that would silently drop the city data
+  # GoAccess takes the first geolocation database it is given and
+  # ignores any later one, so Country listed before City leaves every
+  # city reading "N/A City, N/A Region" - which is indistinguishable
+  # from GeoLite2 simply not knowing, because that is what the gaps in
+  # the free tier look like too. Measured on this host: the same two
+  # addresses report Frankfurt with City first and N/A with Country
+  # first. Nothing about the run says anything is wrong.
+  ansible.builtin.assert:
+    that:
+      - >-
+        'GeoLite2-City' not in analytics_geoip_reported
+        or 'GeoLite2-Country' not in analytics_geoip_reported
+        or analytics_geoip_reported.index('GeoLite2-City')
+        < analytics_geoip_reported.index('GeoLite2-Country')
+    fail_msg: >-
+      analytics.geoip.report_editions lists GeoLite2-Country before
+      GeoLite2-City. GoAccess uses the first geolocation database and
+      ignores the second, so every city would read N/A. Put City
+      first, or drop Country - City carries the country data too.
+    success_msg: city data is not shadowed by a country database
+  vars:
+    analytics_geoip_reported: "{{ analytics.geoip.report_editions }}"
+  when: analytics.geoip.enabled
+
 - name: Install geoipupdate
   ansible.builtin.apt:
     install_recommends: false
@@ -83,6 +108,63 @@
     creates: >-
       {{ analytics.geoip.database_dir }}/{{
          analytics.geoip.editions | first }}.mmdb
+  when: analytics.geoip.enabled
+
+- name: Find databases that are no longer configured
+  # geoipupdate refreshes what `editions` asks for and never removes
+  # what it dropped, so an edition taken off that list would sit here
+  # frozen at whatever it last downloaded - a database nothing updates
+  # and nothing reads, which is the shape of the leftovers roles/nsd
+  # had to be taught not to make.
+  ansible.builtin.find:
+    paths: "{{ analytics.geoip.database_dir }}"
+    file_type: file
+    patterns: "*.mmdb"
+  register: analytics_geoip_present
+  when: analytics.geoip.enabled
+
+- name: Refuse a removal that would take a configured database with it
+  # An independent check on the arithmetic below rather than a restatement
+  # of it, which is the only kind worth having here: `reject('in', wanted)`
+  # cannot select a wanted file *if* `wanted` is right, so asserting that
+  # proves nothing. Counting does. If removing the selected files would
+  # leave fewer databases than `editions` asks for, the list is wrong and
+  # nothing is deleted.
+  #
+  # This is not hypothetical. Building `wanted` with a `\1` backreference
+  # inside a YAML *folded* scalar leaves the backslash intact all the way
+  # into re.sub, so every path came out as the literal
+  # `<dir>/\1.mmdb`, matched nothing, and the task deleted all three
+  # databases on carcosa. See doc/STATUS.adoc.
+  ansible.builtin.assert:
+    that:
+      - >-
+        (analytics_geoip_found | length) - (analytics_geoip_stale | length)
+        >= (analytics.geoip.editions | length)
+    fail_msg: >-
+      Of {{ analytics_geoip_found | length }} databases present,
+      {{ analytics_geoip_stale | length }} were classed as no longer
+      configured, which would leave fewer than the
+      {{ analytics.geoip.editions | length }} that analytics.geoip.editions
+      asks for. Refusing to delete anything.
+    success_msg: >-
+      {{ analytics_geoip_stale | length }} stale database(s) to remove
+  vars:
+    analytics_geoip_found: >-
+      {{ analytics_geoip_present.files | default([])
+         | map(attribute='path') | list }}
+    analytics_geoip_stale: "{{ analytics_geoip_found
+                               | reject('in', analytics_geoip_wanted) | list }}"
+  when: analytics.geoip.enabled
+
+- name: Remove databases that are no longer configured
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop: "{{ analytics_geoip_present.files | default([]) | map(attribute='path')
+            | reject('in', analytics_geoip_wanted) | list }}"
+  loop_control:
+    label: "{{ item | basename }}"
   when: analytics.geoip.enabled
 
 - name: Create the report directory

@@ -45,17 +45,22 @@ analytics:
     # Saturday and are there to be used without a second sign-up -
     # GeoLite2-City is much the largest of them. Trim this list if
     # that trade stops being worth it.
+    # GeoLite2-Country is deliberately absent: the City database
+    # carries the same country data, so downloading both meant
+    # fetching 8.2 MB twice a week to answer a question the 63 MB file
+    # beside it already answered. Everything downloaded here is read.
     editions:
       - GeoLite2-ASN
       - GeoLite2-City
-      - GeoLite2-Country
     database_dir: /var/lib/GeoIP
     # Country for the Geo Location panel, ASN for the network behind
     # each visitor - which is what distinguishes a hosting provider
     # scanning the site from somebody reading it, and the database was
     # already being downloaded for nothing.
+    # City first, and the order is load-bearing - see the assert in
+    # the role, and doc/STATUS.adoc for what it costs to get wrong.
     report_editions:
-      - GeoLite2-Country
+      - GeoLite2-City
       - GeoLite2-ASN
   schedule:
     on_calendar: "*:20"
