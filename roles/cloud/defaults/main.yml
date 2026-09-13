@@ -77,7 +77,16 @@ cloud:  # noqa: var-naming[no-role-prefix] - see doc/STATUS.adoc
       # - so one pass cannot finish. Passes after the last productive
       # one cost a condition each, so this is a ceiling rather than a
       # count: reaching it ends the run instead of spinning.
-      max_passes: 12
+      #
+      # 120 rather than the 12 this started at, and the number comes
+      # from measuring the 34.0.3-to-34.0.4 cleanup rather than from
+      # taste. That upgrade left 283 stale files and each pass
+      # removed about three, so twelve passes cleared 33 and the host
+      # needed three playbook runs to come clean. A ceiling of 120
+      # covers an upgrade of that size in a single run, which is the
+      # point: the warning should clear when the role runs, not when
+      # somebody notices it is still there and runs it again.
+      max_passes: 120
       cleanup_prefixes:
         - 3rdparty
         - core
