@@ -115,7 +115,7 @@ monitoring:
         - f2b
         - status
         # roles/analytics, behind the same kind of basic-auth gate.
-        - stats
+        - weblog
     mail:
       host: "mail.{{ domain }}"
       starttls_ports:

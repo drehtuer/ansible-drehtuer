@@ -10,7 +10,7 @@ analytics:
   report_dir: /var/www/analytics
   report_file: index.html
   title: "{{ domain }} web traffic"
-  subdomain: stats
+  subdomain: weblog
   ignore_crawlers: true
   anonymize_ip: true
   # The lab probes itself exactly as production does, and its logs are

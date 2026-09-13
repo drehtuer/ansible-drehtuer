@@ -7,7 +7,7 @@ analytics:
   report_dir: /var/www/analytics
   report_file: index.html
   title: "{{ domain }} web traffic"
-  subdomain: stats
+  subdomain: weblog
   ignore_crawlers: true
   anonymize_ip: true
   # This host's own addresses, and on this host it is not a nicety.

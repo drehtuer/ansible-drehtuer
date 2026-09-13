@@ -85,7 +85,7 @@ nsd:
   zones:
     - name: "{{ domain }}"
       ttl: 3600
-      serial: 2026091301
+      serial: 2026091302
       # Shared secret authenticating the AXFR of this zone to Hetzner's
       # secondaries, so they can verify it came from here unaltered.
       # Each zone has its own key; see `drehtuer.de` below.
@@ -182,7 +182,7 @@ nsd:
         # pulled by the secondaries BEFORE http.letsencrypt lists
         # it - certbot validates over HTTP-01, and a name that
         # does not resolve fails the whole certificate.
-        - {name: stats, type: CNAME, value: "{{ domain }}."}
+        - {name: weblog, type: CNAME, value: "{{ domain }}."}
         # DMARC is p=reject with strict alignment, so a message that
         # fails both SPF and DKIM is discarded rather than quarantined.
         - name: _dmarc
@@ -242,7 +242,7 @@ nsd:
     # while silently changing meaning if the alias list is reordered.
     - name: drehtuer.de
       ttl: 3600
-      serial: 2026091301
+      serial: 2026091302
       # A different secret from the zone above, and necessarily a
       # different name - Hetzner derives it from the zone, so the two
       # could not collide even if they shared a secret. Keeping the
@@ -312,7 +312,7 @@ nsd:
         - {name: spam, type: CNAME, value: drehtuer.de.}
         - {name: talk, type: CNAME, value: drehtuer.de.}
         - {name: status, type: CNAME, value: drehtuer.de.}
-        - {name: stats, type: CNAME, value: drehtuer.de.}
+        - {name: weblog, type: CNAME, value: drehtuer.de.}
         - name: _dmarc
           type: TXT
           value: >-
