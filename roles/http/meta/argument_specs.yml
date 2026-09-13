@@ -118,6 +118,14 @@ argument_specs:
                 type: str
                 required: true
                 description: Document root.
+              spa_fallback:
+                type: bool
+                default: false
+                description:
+                  - Serve /index.html for paths that do not exist,
+                    instead of 404. Only for a site that routes in the
+                    browser; it makes every probe answer 200 and stops
+                    the nginx-404 jail seeing anything.
               include_locations:
                 type: bool
                 default: false

@@ -9,7 +9,16 @@ server {
     listen {{ http.port_http }};
     listen [::]:{{ http.port_http }};
 
-    server_name _;
+    # The names this host actually serves, built exactly as the
+    # certificate's list is - the host FQDN, each domain, and every
+    # subdomain of every domain. `_` used to be here, which made this
+    # the catch-all for port 80; default_server.conf owns that now,
+    # and two blocks both claiming `_` would only be a warning and a
+    # coin toss.
+    server_name {{ ([hostname_fqdn] + (http.domains | list)
+                    + (http.domains | product(http.letsencrypt.subdomains)
+                       | map('reverse') | map('join', '.') | list))
+                   | unique | sort | join(' ') }};
 
     location ^~ /.well-known/acme-challenge/ {
         root {{ http.letsencrypt.webroot_path }};
