@@ -668,6 +668,161 @@
     item not in (cloud_app_list.stdout | default('{}')
                  | from_json).enabled | default({})
 
+- name: Note whether gpoddersync is installed
+  # The schema correction below is about one app's own table, which
+  # exists only once that app's migrations have run.
+  ansible.builtin.stat:
+    path: "{{ cloud.nextcloud.path }}/apps/gpoddersync/appinfo/info.xml"
+  register: cloud_gpoddersync_app
+
+- name: Correct gpoddersync's episode-action URL columns
+  # gpoddersync keeps an episode action's feed URL, enclosure URL and
+  # GUID in VARCHAR(500) columns, and silently discards every action
+  # whose values do not fit. `EpisodeActionSaver::saveEpisodeActions`
+  # catches the DbalException the oversized insert raises, asks whether
+  # it was a unique-constraint violation, and - when it was not, as
+  # here - falls out of the catch with no rethrow and no log.
+  # `EpisodeActionController::create` then returns 200 whatever
+  # happened. So the client is told its write succeeded, the server
+  # stored nothing, and the episode stays unplayed in every client for
+  # ever.
+  #
+  # The feeds that hit this are the paid, per-subscriber kind, which
+  # sign each enclosure URL with a token: Supercast's run 516-517
+  # characters, and an Acast one of 612 is what identified the cause
+  # upstream (thrillfall/nextcloud-gpodder#81). The maintainer accepted
+  # the fix there in 2022 - "Well increase the length then" - and it
+  # was never made; 3.17.0 still creates the column at 500. Only
+  # `gpodder_subscriptions.url` was ever widened, by that app's own
+  # Version0006, which is why subscribing to such a feed works and
+  # marking its episodes played does not.
+  #
+  # 1000 characters is that same Version0006 applied to this second
+  # table rather than a number invented here. Its index prefix is not
+  # copied with it, and that is deliberate - see below.
+  #
+  # Widening a column an index covers looks like it should fail:
+  # InnoDB caps an index key at 3072 bytes and a full utf8mb4
+  # VARCHAR(1000) is 4000 on its own. On MariaDB it does not. Since
+  # 10.4 a unique index whose key outgrows that cap is implemented as
+  # a hash over the whole value, and widening the column converts the
+  # existing index in place - `SHOW CREATE TABLE` afterwards reads
+  # `UNIQUE KEY ... USING HASH`. So no index work is needed here.
+  #
+  # Rebuilding the indexes over a 500-character prefix first, as
+  # Version0006 does, would be worse than merely unnecessary: at that
+  # point the columns still *are* 500, so the prefixes normalise away
+  # and the statements do nothing. A prefix only survives if it is
+  # added after the widen, which is how the app's own migration ends
+  # up with `(url(500), user_id)` on the subscriptions table - Doctrine
+  # emits the index against the final schema rather than in written
+  # order.
+  #
+  # Taking the hash index rather than a prefix also makes the
+  # constraint stricter than upstream's: uniqueness is on the whole
+  # value, so two episode URLs sharing their first 500 characters are
+  # two rows here and one row next door. Verified on mariadb:10.11,
+  # the version this host runs.
+  #
+  # Note what that ties this to: MySQL has no such conversion and
+  # refuses the widen outright with "Specified key was too long".
+  # Both the production host and the lab run MariaDB
+  # (roles/database).
+  #
+  # Re-asserted on every run, so an app update that recreates the
+  # column at 500 is corrected the next time this role runs rather
+  # than quietly resuming the data loss.
+  when: cloud_gpoddersync_app.stat.exists
+  block:
+    - name: Read the database table prefix
+      # `maintenance:install` writes it to config.php and this repo
+      # never changes it, but reading it beats hardcoding `oc_` into a
+      # statement that would then match nothing at all - and match
+      # nothing silently, since ALTER against a missing table is the
+      # one outcome this task would report as a plain failure.
+      ansible.builtin.command:
+        cmd: sudo -u www-data php occ config:system:get dbtableprefix
+        chdir: "{{ cloud.nextcloud.path }}"
+      register: cloud_db_prefix
+      changed_when: false
+      # Read-only, and the schema read below needs its answer under
+      # `invoke check-drift` too.
+      check_mode: false
+
+    - name: Note the gpoddersync episode-action table
+      ansible.builtin.set_fact:
+        cloud_gpodder_table: >-
+          {{ cloud_db_prefix.stdout | trim }}gpodder_episode_action
+
+    - name: Read the episode-action column definition
+      # `episode` stands for all three: they are only ever changed
+      # together, and only by the task below, so its width is a
+      # faithful record of whether that task has run. The charset and
+      # collation are read rather than assumed because MODIFY takes a
+      # whole column definition - anything left out is re-derived from
+      # the table default, which would silently re-collate a column
+      # that had one of its own.
+      community.mysql.mysql_query:
+        login_db: "{{ cloud.mysql.nextcloud.database }}"
+        # Nextcloud's own account rather than root, for the reason the
+        # pre-upgrade dump gives above: it already holds every
+        # privilege on this one database and nothing beyond it.
+        login_user: "{{ cloud.mysql.nextcloud.user }}"
+        login_password: "{{ cloud.mysql.nextcloud.password }}"
+        query: >-
+          SELECT character_maximum_length AS width,
+          character_set_name AS charset, collation_name AS collation
+          FROM information_schema.columns
+          WHERE table_schema = %s AND table_name = %s
+          AND column_name = 'episode'
+        positional_args:
+          - "{{ cloud.mysql.nextcloud.database }}"
+          - "{{ cloud_gpodder_table }}"
+      register: cloud_gpodder_column
+      changed_when: false
+      check_mode: false
+
+    - name: Widen the episode-action URL columns
+      # Three statements and no index work: MariaDB converts the two
+      # unique indexes to hash indexes as the columns widen past the
+      # key limit, for the reason set out above.
+      community.mysql.mysql_query:
+        login_db: "{{ cloud.mysql.nextcloud.database }}"
+        login_user: "{{ cloud.mysql.nextcloud.user }}"
+        login_password: "{{ cloud.mysql.nextcloud.password }}"
+        query:
+          - >-
+            ALTER TABLE `{{ cloud_gpodder_table }}`
+            MODIFY `podcast` VARCHAR(1000) CHARACTER SET
+            {{ cloud_gpodder_episode.charset }} COLLATE
+            {{ cloud_gpodder_episode.collation }} NOT NULL
+          - >-
+            ALTER TABLE `{{ cloud_gpodder_table }}`
+            MODIFY `episode` VARCHAR(1000) CHARACTER SET
+            {{ cloud_gpodder_episode.charset }} COLLATE
+            {{ cloud_gpodder_episode.collation }} NOT NULL
+          - >-
+            ALTER TABLE `{{ cloud_gpodder_table }}`
+            MODIFY `guid` VARCHAR(1000) CHARACTER SET
+            {{ cloud_gpodder_episode.charset }} COLLATE
+            {{ cloud_gpodder_episode.collation }} DEFAULT NULL
+      vars:
+        cloud_gpodder_episode: >-
+          {{ cloud_gpodder_column.query_result[0][0] | default({}) }}
+      # The guard is the comparison, so reaching this task means the
+      # columns are still the narrow ones. The emptiness check comes
+      # first and has to: the app can be installed with its migrations
+      # not yet run, and `when` conditions are evaluated in order.
+      #
+      # Worth knowing when reading `invoke check-drift`: mysql_query
+      # does not support check mode, so this reports *skipped* there
+      # whether it was guarded out or merely deferred. The read above
+      # prints the live width either way, which is the answer.
+      when:
+        - cloud_gpodder_column.query_result[0] | length > 0
+        - cloud_gpodder_episode.width | int < 1000
+      changed_when: true
+
 - name: Note whether the Mail app is installed
   # The Mail settings below are conditional on the app being present,
   # which a `cloud.apps` without it leaves it not being.
