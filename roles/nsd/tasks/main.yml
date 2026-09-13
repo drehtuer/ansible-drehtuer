@@ -215,8 +215,12 @@
 
 - name: Remove the signing temporaries older runs left behind
   ansible.builtin.file:
-    path: "{{ item.path }}"
+    path: "{{ item }}"
     state: absent
+  # `map(attribute='path')` already reduced each match to its path, so
+  # the loop variable is a string and not the file dict `find`
+  # returned. Writing `item.path` here fails every iteration with
+  # "object of type 'str' has no attribute 'path'".
   loop: "{{ nsd_signing_leftovers.files | map(attribute='path') | list }}"
   loop_control:
     label: "{{ item | basename }}"
