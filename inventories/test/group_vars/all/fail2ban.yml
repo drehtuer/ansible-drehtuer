@@ -24,10 +24,18 @@ fail2ban:
     # was never exercised.
     - name: postfix
       port: smtp,submission
-      filter: postfix
+      filter: "postfix[mode=normal]"
       backend: systemd
       options:
-        mode: normal
+        journalmatch: _SYSTEMD_UNIT=postfix@-.service
+    # The SASL half of the same service. Also the only jail here whose
+    # `filter` differs from its `name`, which is the shape the render
+    # would otherwise never exercise.
+    - name: postfix-auth
+      port: smtp,submission
+      filter: "postfix[mode=auth]"
+      backend: systemd
+      options:
         journalmatch: _SYSTEMD_UNIT=postfix@-.service
     - name: nginx-404
       port: https
