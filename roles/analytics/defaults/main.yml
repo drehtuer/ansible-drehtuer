@@ -69,15 +69,22 @@ analytics:  # noqa: var-naming[no-role-prefix] - see doc/STATUS.adoc
     # Must match the packaged unit's ReadWritePaths, which is
     # /var/lib/GeoIP/ and not upstream's default.
     database_dir: /var/lib/GeoIP
-    # The one the report reads, as an edition name rather than a path,
-    # so it cannot name a file geoipupdate was never asked to fetch.
-    # It must appear in `editions` above.
+    # The ones the report reads, by edition name rather than path, so
+    # they cannot name a file geoipupdate was never asked to fetch -
+    # every entry must appear in `editions` above, and the role
+    # asserts it rather than leaving a typo to show up as a panel that
+    # quietly never appears.
+    #
+    # A list because GoAccess takes `--geoip-database` more than once
+    # and needs to: Country answers where an address is, ASN answers
+    # whose network it is, and they are separate databases.
     #
     # GoAccess treats a database it cannot open as fatal and exits 1,
-    # so the report script tests for the file rather than trusting
+    # so the report script tests for each file rather than trusting
     # this - a download that failed overnight then costs one panel
     # instead of the whole report.
-    report_edition: GeoLite2-Country
+    report_editions:
+      - GeoLite2-Country
   schedule:
     # Twenty past the hour, and the offset is the point. nginx's
     # logrotate runs at midnight sharp, and compressing the previous

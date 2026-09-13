@@ -79,21 +79,27 @@ args+=(--anonymize-ip)
 {% for address in analytics.exclude_ips %}
 args+=(--exclude-ip={{ address | quote }})
 {% endfor %}
-{% if analytics.geoip.enabled and analytics.geoip.report_edition %}
-{% set geoip_db = analytics.geoip.database_dir ~ '/'
-                  ~ analytics.geoip.report_edition ~ '.mmdb' %}
+{% if analytics.geoip.enabled %}
+{% for edition in analytics.geoip.report_editions %}
+{% set geoip_db = analytics.geoip.database_dir ~ '/' ~ edition ~ '.mmdb' %}
 
+# `--geoip-database` once per database, which GoAccess accepts and
+# needs: one file answers where an address is and a different one
+# answers whose network it is, so Geo Location and ASN are two
+# databases rather than two panels of one.
+#
 # Tested rather than passed unconditionally: GoAccess treats a
 # database it cannot open as a fatal error and exits 1, so a download
-# that failed overnight, or a first run before geoipupdate has
-# fetched anything, would take the whole report down rather than one
-# panel of it.
+# that failed overnight, or a first run before geoipupdate has fetched
+# anything, would take the whole report down rather than one panel of
+# it.
 if [[ -f {{ geoip_db | quote }} ]]; then
   args+=(--geoip-database={{ geoip_db | quote }})
 else
   echo "no GeoIP database at {{ geoip_db }};" \
-       "reporting without the geolocation panel" >&2
+       "reporting without what {{ edition }} would have added" >&2
 fi
+{% endfor %}
 {% endif %}
 
 # Written beside the report and renamed over it, so that nginx never
