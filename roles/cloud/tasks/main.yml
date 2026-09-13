@@ -95,11 +95,14 @@
     mode: "0644"
   when: not cloud_installed.stat.exists
 - name: Extract Nextcloud
+  # `--no-overwrite-dir` for the reason spelled out at the upgrade's
+  # own extract below: it keeps tar from resetting an existing
+  # directory's ownership to the archive's.
   ansible.builtin.unarchive:
     src: "/tmp/{{ cloud_archive }}"
     dest: "{{ cloud.nextcloud.path }}"
     remote_src: true
-    extra_opts: [--strip-components=1]
+    extra_opts: [--strip-components=1, --no-overwrite-dir]
   when: not cloud_installed.stat.exists
 - name: Set ownership for Nextcloud files
   # Same condition as the extraction above rather than a handler: the
@@ -284,11 +287,30 @@
       # any "delete what the tarball does not contain" cleanup would be
       # catastrophic. Stale files from the previous release are left
       # behind; they are inert, and that is the right trade.
+      #
+      # `--no-overwrite-dir` is what keeps the background job quiet
+      # while this runs. tar as root restores a directory's ownership
+      # from the archive, and the tarball does contain `config/` - it
+      # ships `config.sample.php` - so a plain extract hands that
+      # directory to root for the seconds until the chown below. The
+      # five-minutely cron job landing in that window finds it cannot
+      # write there and mails "Cannot write into config directory",
+      # which is alarming and means nothing. Maintenance mode does not
+      # suppress it: the writability check happens early enough in
+      # bootstrap that the maintenance check never gets there. Seen
+      # once on 2026-09-13, at 12:45:02, against an extract that
+      # finished at 12:45:13.
+      #
+      # The flag says "preserve metadata of existing directories", so
+      # `config/` keeps www-data and the file inside it is the only
+      # thing that briefly belongs to root - which nothing checks.
+      # Verified by extracting a tarball over a www-data-owned
+      # directory with and without it.
       ansible.builtin.unarchive:
         src: "/tmp/{{ cloud_archive }}"
         dest: "{{ cloud.nextcloud.path }}"
         remote_src: true
-        extra_opts: [--strip-components=1]
+        extra_opts: [--strip-components=1, --no-overwrite-dir]
 
     - name: Set ownership for the new files
       ansible.builtin.file:
@@ -323,6 +345,83 @@
         cmd: sudo -u www-data php occ maintenance:mode --off
         chdir: "{{ cloud.nextcloud.path }}"
       changed_when: true
+
+- name: Read the core integrity result
+  # The upgrade extracts over the top and deletes nothing, for the
+  # reason its own comment gives: the data directory lives *inside*
+  # the installation directory here, so "delete whatever the tarball
+  # does not contain" would delete every user's files. What that
+  # leaves behind is the previous release's build output - 183 files
+  # under `dist/` after 34.0.3 to 34.0.4 - and Nextcloud draws those
+  # as a code-integrity failure in the admin overview.
+  #
+  # They are inert. The warning is not: this host has had a *genuine*
+  # integrity failure before, from the PNG cleanup cron job that
+  # truncated 1.7 GB of the installation, and a standing warning is
+  # exactly what would hide the next one.
+  #
+  # Asking Nextcloud which files are stale, rather than working it out
+  # here, is the whole safety of this: the list comes from comparing
+  # the installation against the release's own signed manifest.
+  ansible.builtin.command:
+    cmd: sudo -u www-data php occ integrity:check-core --output=json
+    chdir: "{{ cloud.nextcloud.path }}"
+  register: cloud_integrity
+  changed_when: false
+  # Read-only, and the removal below needs its answer under
+  # `invoke check-drift` too.
+  check_mode: false
+
+- name: Note which stale files may be removed
+  # Two filters, and the second is the one that matters. `EXTRA_FILE`
+  # means "present and not in the manifest", which is also true of
+  # anything an administrator legitimately added - a custom theme
+  # under `themes/`, a file left in `config/`. Only the directories
+  # that hold code this role itself unpacked are eligible, so a file
+  # nobody here created is reported by Nextcloud and left alone,
+  # which is the correct outcome for something this role does not own.
+  #
+  # `..` and absolute paths are refused outright. Nextcloud has no
+  # reason to emit either, and `state: absent` on one would delete
+  # outside the installation.
+  ansible.builtin.set_fact:
+    cloud_stale_files: >-
+      {{ cloud_integrity_extra
+         | reject('search', '\.\.')
+         | reject('match', '/')
+         | select('match', cloud_integrity_prefixes)
+         | list }}
+  vars:
+    cloud_integrity_parsed: >-
+      {{ ((cloud_integrity.stdout | default('')) | trim or '{}')
+         | from_json }}
+    cloud_integrity_extra: >-
+      {{ (cloud_integrity_parsed.EXTRA_FILE | default({}) | list)
+         if cloud_integrity_parsed is mapping else [] }}
+    cloud_integrity_prefixes: >-
+      ^({{ cloud.nextcloud.integrity.cleanup_prefixes | join('|') }})/
+
+- name: Remove the stale files the previous release left
+  ansible.builtin.file:
+    path: "{{ cloud.nextcloud.path }}/{{ item }}"
+    state: absent
+  loop: "{{ cloud_stale_files }}"
+  loop_control:
+    label: "{{ item }}"
+
+- name: Re-read the integrity result so the admin overview agrees
+  # Nextcloud stores the outcome of the last check and the overview
+  # renders that, so deleting the files is only half of it - without
+  # this the warning stays up until something else triggers a check.
+  # Conditional on having removed something, because it is the one
+  # part of this that costs a second.
+  ansible.builtin.command:
+    cmd: sudo -u www-data php occ integrity:check-core
+    chdir: "{{ cloud.nextcloud.path }}"
+  register: cloud_integrity_recheck
+  changed_when: false
+  failed_when: false
+  when: cloud_stale_files | length > 0
 
 - name: Nextcloud trusted domains
   # Same config/*.config.php mechanism as the cache settings below.

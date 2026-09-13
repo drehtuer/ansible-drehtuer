@@ -55,6 +55,27 @@ cloud:  # noqa: var-naming[no-role-prefix] - see doc/STATUS.adoc
       # role snapshots the host nightly. What the updater's copy adds
       # is 1.7 GB per upgrade of a tree nothing reads.
       keep_backups: 0
+    # Cleanup of what an upgrade leaves behind. The upgrade extracts
+    # over the top and deletes nothing - it has to, since the data
+    # directory lives inside the installation directory - so the
+    # previous release's build output stays, and Nextcloud reports it as
+    # a code-integrity failure.
+    #
+    # The list to delete comes from Nextcloud's own signed manifest
+    # rather than from a pattern here; these prefixes are the second
+    # filter on it. Only directories holding code this role unpacked are
+    # eligible, so a file an administrator added - a custom theme under
+    # `themes/`, something left in `config/` - is reported by Nextcloud
+    # and left alone. Narrowing this list is always safe; widening it to
+    # `apps` or `themes` would let a core check delete what it does not
+    # own.
+    integrity:
+      cleanup_prefixes:
+        - 3rdparty
+        - core
+        - dist
+        - lib
+        - ocs
     upgrade:
       # `occ upgrade` migrates the database schema, and that - not the
       # files - is the part of an upgrade that cannot be undone by

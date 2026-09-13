@@ -129,6 +129,29 @@ argument_specs:
                         under data/updater-<instanceid>/backups/ to
                         keep, newest first. The updater never removes
                         one itself. Zero keeps none.
+              integrity:
+                type: dict
+                required: true
+                description:
+                  - Cleanup of the previous release's files, which the
+                    upgrade leaves in place because it extracts over
+                    the top and deletes nothing.
+                options:
+                  cleanup_prefixes:
+                    type: list
+                    elements: str
+                    required: true
+                    description:
+                      - Top-level directories whose stale files may be
+                        removed. The files themselves are named by
+                        `occ integrity:check-core`, against the
+                        release's own signed manifest; this is the
+                        second filter on that list, so that a file an
+                        administrator added - a custom theme, anything
+                        left in config/ - is reported and left alone.
+                        Narrowing is safe; widening it to `apps` or
+                        `themes` would let a core check delete what it
+                        does not own.
               upgrade:
                 type: dict
                 required: true
