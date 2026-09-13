@@ -7,9 +7,18 @@ firewall:
     # A literal here rather than the default-route fact, so the static
     # tests do not depend on the machine they run on.
     wan_interface: eth0
+    # Non-empty on purpose, though this host publishes nothing: the
+    # DOCKER-USER RETURN rules are rendered in a loop, and empty lists
+    # leave that branch unrendered anywhere in the repo. Production
+    # carried the only real entries until the Satisfactory server was
+    # removed on 2026-09-13, which is what made this the sole cover.
     published:
-      tcp: []
-      udp: []
+      tcp:
+        - port: 7777
+          comment: "Example published container port"
+      udp:
+        - port: 7777
+          comment: "Example published container port"
   wireguard:
     enabled: true
     interface: wg0
