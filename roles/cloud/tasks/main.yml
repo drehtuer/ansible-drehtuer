@@ -368,6 +368,13 @@
     chdir: "{{ cloud.nextcloud.path }}"
   register: cloud_integrity
   changed_when: false
+  # `integrity:check-core` exits 1 exactly when it has something to
+  # report, which is the case this task exists for - so a non-zero
+  # return code here is the normal path, not a failure. The JSON is on
+  # stdout either way. Anything other than 0 or 1 is a real failure
+  # (no occ, no PHP, a broken installation) and still stops the run,
+  # as does stdout that does not parse.
+  failed_when: cloud_integrity.rc not in [0, 1]
   # Read-only, and the removal below needs its answer under
   # `invoke check-drift` too.
   check_mode: false
