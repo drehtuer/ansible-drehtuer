@@ -102,7 +102,17 @@ fi
 # disappear. The move is atomic; the signing is not.
 TMP="$(mktemp "${OUT}.XXXXXX")"
 SRC="$(mktemp "${IN}.XXXXXX")"
-trap 'rm -f "${TMP}" "${SRC}"' EXIT
+# dnssec-signzone also writes a `dsset-<zone>.` file, and it writes it
+# relative to the working directory. Under systemd that directory is
+# `/`, so this signer had been dropping files into the root of the
+# filesystem since it was written - the same name each time, so two
+# files rather than a growing pile, but still nothing that belongs
+# there. Signing happens inside a directory of its own below, which
+# catches that file and anything else the tool decides to write
+# beside its output. Every path handed to it is absolute, so the
+# change of directory reaches nothing else.
+WORK="$(mktemp -d)"
+trap 'rm -rf "${TMP}" "${SRC}" "${WORK}"' EXIT
 
 # The source with the computed serial substituted in. Only the first
 # such line is touched, which is the SOA's.
@@ -119,7 +129,7 @@ awk -v s="${NEXT}" '
 # that it wrote them correctly.
 #
 # -N keep, because the serial was already decided above.
-dnssec-signzone \
+( cd "${WORK}" && dnssec-signzone \
   -S \
   -K "${KEY_DIR}" \
   -o "${ZONE}" \
@@ -127,7 +137,7 @@ dnssec-signzone \
   -e "+${VALIDITY}" \
   -a \
   -f "${TMP}" \
-  "${SRC}" > /dev/null
+  "${SRC}" ) > /dev/null
 
 # The same check the role runs on the unsigned file. Signing is exactly
 # where a zone can become unloadable without anything else noticing.
@@ -137,17 +147,16 @@ chown root:nsd "${TMP}"
 chmod 0640 "${TMP}"
 mv "${TMP}" "${OUT}"
 
-# Both temporaries have to be gone before the trap is disarmed, and
-# only one of them is: `mv` consumed TMP, SRC is still here. Disarming
-# without this line leaked one copy of the unsigned zone per zone per
-# signing - so twice a week from the re-signing timer, plus one per
-# deploy of this role. 28 of them, 89 KB, had accumulated in
-# /etc/nsd/zones before it was noticed, and nothing was ever going to
-# notice: they are not served, nsd loads only the files named in its
-# configuration, and no check here looks at what else is in that
-# directory. The role removes the ones already there.
-rm -f "${SRC}"
-trap - EXIT
+# The trap is deliberately left armed for the rest of the script.
+# Disarming it here is what leaked: `mv` consumed TMP, but SRC was
+# still on disk and the trap that would have removed it was gone - so
+# every signing left one copy of the unsigned zone in /etc/nsd/zones,
+# twice a week from the re-signing timer plus one per run of this
+# role. 26 of them had accumulated before anyone looked, and nothing
+# was ever going to look: they are not served, nsd loads only the
+# files its configuration names, and no check here examines what else
+# is in that directory. Leaving the trap in place means a temporary
+# added later is cleaned up without anyone having to remember this.
 
 # Reload just this zone. nsd re-reads it from disk and notifies the
 # secondaries, which then see the new serial and transfer.

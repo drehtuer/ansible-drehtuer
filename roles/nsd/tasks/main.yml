@@ -225,6 +225,25 @@
   loop_control:
     label: "{{ item | basename }}"
 
+- name: Remove the dsset files the signer wrote outside its directory
+  # dnssec-signzone writes `dsset-<zone>.` relative to its working
+  # directory, and nothing set one - so under systemd they landed in
+  # `/` and, when the signer was run by hand from the zone directory,
+  # there. The script now signs inside a directory of its own, which
+  # leaves these two to clear. Unlike the temporaries above these
+  # overwrite rather than accumulate, so this is tidiness and not a
+  # leak.
+  #
+  # Exact paths, deliberately: `/` is not a directory to hand a glob.
+  ansible.builtin.file:
+    path: "{{ item.0 }}/dsset-{{ item.1 }}."
+    state: absent
+  loop: >-
+    {{ ['', '/etc/nsd/zones']
+       | product(nsd.zones | map(attribute='name') | list) | list }}
+  loop_control:
+    label: "{{ item.0 }}/dsset-{{ item.1 }}."
+
 - name: Remove the re-signing cron job
   # Superseded by the timer below. Left behind it would sign a second
   # time each week - harmless in itself, but it also means the cron
