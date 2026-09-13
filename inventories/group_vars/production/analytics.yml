@@ -50,7 +50,13 @@ analytics:
       - GeoLite2-City
       - GeoLite2-Country
     database_dir: /var/lib/GeoIP
-    report_edition: GeoLite2-Country
+    # Country for the Geo Location panel, ASN for the network behind
+    # each visitor - which is what distinguishes a hosting provider
+    # scanning the site from somebody reading it, and the database was
+    # already being downloaded for nothing.
+    report_editions:
+      - GeoLite2-Country
+      - GeoLite2-ASN
   schedule:
     on_calendar: "*:20"
     randomized_delay: 1m

@@ -30,7 +30,8 @@ analytics:
     editions:
       - GeoLite2-Country
     database_dir: /var/lib/GeoIP
-    report_edition: GeoLite2-Country
+    report_editions:
+      - GeoLite2-Country
   schedule:
     on_calendar: "*:20"
     randomized_delay: 1m

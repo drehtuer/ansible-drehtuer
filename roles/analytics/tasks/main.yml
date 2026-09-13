@@ -11,6 +11,27 @@
       - goaccess
 # Geolocation. All four are gated on the same flag rather than on a
 # block, so that `--tags` and `--check` report each of them by name.
+- name: Refuse to report on a database that is never downloaded
+  # A typo here is otherwise silent in the way that costs most: the
+  # file simply does not exist, the report script skips it with a line
+  # in the journal nobody reads, and the panel is absent rather than
+  # wrong. Caught at deploy time instead, the same stance as `nginx
+  # -t` and `bash -n` elsewhere in this repo.
+  ansible.builtin.assert:
+    that:
+      - analytics_geoip_undownloaded | length == 0
+    fail_msg: >-
+      analytics.geoip.report_editions names
+      {{ analytics_geoip_undownloaded | join(', ') }}, which
+      geoipupdate is not asked to download - add it to
+      analytics.geoip.editions or drop it from report_editions.
+    success_msg: every reported edition is downloaded
+  vars:
+    analytics_geoip_undownloaded: >-
+      {{ analytics.geoip.report_editions
+         | difference(analytics.geoip.editions) | list }}
+  when: analytics.geoip.enabled
+
 - name: Install geoipupdate
   ansible.builtin.apt:
     install_recommends: false
@@ -56,9 +77,12 @@
   # owns every later refresh.
   ansible.builtin.command:
     cmd: geoipupdate
+    # Keyed on the first *downloaded* edition rather than a reported
+    # one: report_editions may legitimately be empty, and this task's
+    # job is that the databases exist at all.
     creates: >-
       {{ analytics.geoip.database_dir }}/{{
-         analytics.geoip.report_edition }}.mmdb
+         analytics.geoip.editions | first }}.mmdb
   when: analytics.geoip.enabled
 
 - name: Create the report directory

@@ -125,19 +125,23 @@ argument_specs:
                 required: true
                 description:
                   - Database editions geoipupdate downloads, e.g.
-                    GeoLite2-Country. Must contain report_edition.
+                    GeoLite2-Country. Must contain every entry in
+                    report_editions, which the role asserts.
               database_dir:
                 type: str
                 required: true
                 description:
                   - Where the databases are written. Must match the
                     packaged unit's ReadWritePaths, /var/lib/GeoIP.
-              report_edition:
-                type: str
+              report_editions:
+                type: list
+                elements: str
                 required: true
                 description:
-                  - Edition the report reads, by name rather than
-                    path. Empty leaves the Geo Location panel out.
+                  - Editions the report reads, by name rather than
+                    path; one --geoip-database each. Every entry must
+                    appear in `editions`. Empty leaves geolocation
+                    out of the report while still downloading.
           schedule:
             type: dict
             required: true
