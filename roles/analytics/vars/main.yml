@@ -5,3 +5,19 @@
 analytics_units:
   - analytics.service
   - analytics.timer
+
+# The database files `analytics.geoip.editions` asks geoipupdate to
+# maintain, as full paths.
+#
+# Built by anchoring twice rather than with a `^(.*)$` capture and a
+# `\1` backreference, and that is not a style preference. A backslash
+# inside a YAML folded scalar survives into re.sub, so the
+# backreference form renders every entry as the literal `<dir>/\1.mmdb`
+# - which matches no real file, so everything on disk looks stale. It
+# deleted all three databases on carcosa before the arithmetic check
+# beside it existed. Anchoring needs no escape, and is what the rest of
+# this repository already does.
+analytics_geoip_wanted: >-
+  {{ analytics.geoip.editions
+     | map('regex_replace', '^', analytics.geoip.database_dir ~ '/')
+     | map('regex_replace', '$', '.mmdb') | list }}
