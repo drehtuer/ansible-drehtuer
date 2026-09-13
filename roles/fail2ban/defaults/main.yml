@@ -33,10 +33,19 @@ fail2ban:  # noqa: var-naming[no-role-prefix] - see doc/STATUS.adoc
       backend: systemd
     - name: postfix
       port: smtp,submission
-      filter: postfix
+      # `postfix[mode=normal]` and not a `mode` option below, which is
+      # where it used to be and did nothing at all. fail2ban passes
+      # *filter* parameters in the filter name; a bare `mode` in the
+      # jail section is silently ignored, and `fail2ban-client get
+      # <jail> failregex` is what proves it - with the option in the
+      # wrong place two jails differing only in `mode` compile byte
+      # for byte identical regexes. This jail had therefore been
+      # running the filter's own default, which is `more`; that
+      # expands to the same patterns as `normal`, so nothing was
+      # broken by it - the setting was simply not doing anything.
+      filter: "postfix[mode=normal]"
       backend: systemd
       options:
-        mode: normal
         # Overrides the journal match the *packaged* filter ships,
         # which is `_SYSTEMD_UNIT=postfix.service` and can never match
         # on Debian or Ubuntu. Both run Postfix as the instantiated
@@ -74,10 +83,9 @@ fail2ban:  # noqa: var-naming[no-role-prefix] - see doc/STATUS.adoc
     # busiest managed 240). `recidive` is what catches the rest.
     - name: postfix-auth
       port: smtp,submission
-      filter: postfix
+      filter: "postfix[mode=auth]"
       backend: systemd
       options:
-        mode: auth
         # Same correction as the jail above: Debian and Ubuntu run
         # Postfix as the instantiated template unit, and the packaged
         # `postfix.service` says almost nothing.
