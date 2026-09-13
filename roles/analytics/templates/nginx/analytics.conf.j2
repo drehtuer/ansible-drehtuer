@@ -6,12 +6,18 @@
 # nothing to authenticate against underneath. The basic-auth block is
 # the whole access control, and what it protects is a page listing
 # which addresses asked for what and when.
+#
+# conf-server/security.conf is deliberately NOT included here, for the
+# same reason roles/monitoring cannot include it: nginx *accumulates*
+# add_header at one level rather than replacing, and a browser given
+# two Content-Security-Policy headers enforces both, which would undo
+# the policy widened below. Its headers are reproduced here instead,
+# and so is its dot-file deny.
 server {
   listen {{ http.port_https }} ssl http2;
   listen [::]:{{ http.port_https }} ssl http2;
 
   include conf-server/ssl.conf;
-  include conf-server/security.conf;
   include conf-server/general.conf;
 
   # One name per served domain, as the cloud, spam and f2b vhosts do.
@@ -34,10 +40,44 @@ server {
   # ban.
   access_log off;
 
-  # The report is written as a dotfile and renamed into place, so this
-  # both hides the temporary during the second it exists and keeps the
-  # usual editor and VCS leftovers unreachable.
-  location ~ /\. {
+  # Declared once at server level so every location inherits them.
+  # No location below may declare an add_header of its own: nginx
+  # drops every inherited one the moment a block sets any, and that is
+  # invisible to `nginx -t`.
+  #
+  # The policy is security.conf's, widened by 'unsafe-eval' alone.
+  # GoAccess bundles Hogan and compiles every panel template with
+  # `new Function()` - `i.code = new Function("c","p","i", ...)` - and
+  # 'unsafe-inline' does not permit that; only 'unsafe-eval' does.
+  # Without it the report is fetched, its JavaScript runs, Hogan
+  # throws on the first panel, and the two lines that reveal the page
+  # never run:
+  #
+  #   $('.container').classList.remove('hide');
+  #   $('.spinner').classList.add('hide');
+  #
+  # so the page is a spinner that never stops. It answers 200 the
+  # whole time. A status code does not test this - a browser does,
+  # which is exactly the lesson roles/monitoring recorded for Grafana
+  # and this vhost then repeated.
+  #
+  # Nothing else is widened. The report needs no blob: and no worker:
+  # checked against the generated file rather than copied from the
+  # monitoring vhost, which needs both for Grafana.
+  add_header X-Content-Type-Options    "nosniff" always;
+  add_header Referrer-Policy           "no-referrer-when-downgrade" always;
+  add_header Content-Security-Policy   "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; font-src 'self' data:; connect-src 'self'; frame-ancestors 'self'; base-uri 'self'; form-action 'self';" always;
+  add_header Permissions-Policy        "interest-cohort=()" always;
+  # Repeated verbatim from conf-server/security.conf. Every HSTS
+  # header in this repo carries this exact value, without the
+  # `preload` token - see doc/STATUS.adoc.
+  add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+
+  # From conf-server/security.conf, which this vhost cannot include.
+  # Not idle here either: the report is written as a dotfile and
+  # renamed into place, so this also hides the temporary during the
+  # second it exists.
+  location ~ /\.(?!well-known) {
     deny all;
   }
 
