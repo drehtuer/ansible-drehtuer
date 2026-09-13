@@ -1,0 +1,100 @@
+# Needs roles/http (nginx, and the certificate covering
+# analytics.subdomain) and the access log it writes. Needs roles/nsd
+# too, less obviously: the vhost's name has to resolve publicly before
+# roles/http next renews, or certbot fails the challenge for it and
+# loses the whole certificate. playbooks/site-web.yml records the
+# order; doc/STATUS.adoc records why it is not interchangeable.
+- name: Install goaccess
+  ansible.builtin.apt:
+    install_recommends: false
+    name:
+      - goaccess
+- name: Create the report directory
+  ansible.builtin.file:
+    path: "{{ analytics.report_dir }}"
+    state: directory
+    owner: root
+    group: root
+    # Served by nginx as www-data, written by the timer as root.
+    mode: "0755"
+- name: Deploy the report script
+  ansible.builtin.template:
+    src: templates/analytics-report.sh.j2
+    dest: /usr/local/bin/analytics-report
+    owner: root
+    group: root
+    mode: "0755"
+    # Caught before it is installed rather than at twenty past the
+    # hour, the same stance as `nginx -t` here and `bash -n` in
+    # roles/backup. It parses without running, so it finds the
+    # unbalanced quote a Jinja loop can introduce - and nothing about
+    # what the script would do.
+    validate: bash -n %s
+- name: Deploy the systemd units
+  ansible.builtin.template:
+    src: templates/{{ item }}.j2
+    dest: /etc/systemd/system/{{ item }}
+    owner: root
+    group: root
+    mode: "0644"
+  loop: "{{ analytics_units }}"
+  notify:
+    - Reload systemd
+- name: Enable the report timer
+  # Flush first: a timer cannot be started from a unit file systemd
+  # has not read yet, and the handler above is what makes it read it.
+  ansible.builtin.systemd_service:
+    name: analytics.timer
+    state: started
+    enabled: true
+    daemon_reload: true
+- name: Build the first report
+  # Without this the vhost answers 404 until twenty past the hour, and
+  # a deploy that looks finished but serves nothing is the kind of
+  # thing that gets debugged as a broken vhost. `creates` is what
+  # keeps it a one-off: every later run belongs to the timer, and this
+  # task reports changed exactly once per host.
+  ansible.builtin.command:
+    cmd: /usr/local/bin/analytics-report
+    creates: "{{ analytics.report_dir }}/{{ analytics.report_file }}"
+- name: Add htaccess for the analytics report
+  # Vault-encrypted and decrypted at deploy time, the same pattern as
+  # the spam and fail2ban_ui credentials. `copy` compares content, so
+  # replacing the credential is picked up without a separate checksum.
+  ansible.builtin.copy:
+    src: files/nginx/analytics.htpasswd.aes256
+    dest: /etc/nginx/sites-available/analytics.htpasswd
+    decrypt: true
+    owner: root
+    group: root
+    mode: "0644"
+- name: Enable the analytics htpasswd in nginx
+  ansible.builtin.file:
+    src: /etc/nginx/sites-available/analytics.htpasswd
+    dest: /etc/nginx/sites-enabled/analytics.htpasswd
+    state: link
+  notify:
+    - Reload nginx
+- name: Add the analytics site in nginx
+  ansible.builtin.template:
+    src: templates/nginx/analytics.conf.j2
+    dest: /etc/nginx/sites-available/analytics.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify:
+    - Reload nginx
+- name: Enable the analytics site in nginx
+  ansible.builtin.file:
+    src: /etc/nginx/sites-available/analytics.conf
+    dest: /etc/nginx/sites-enabled/analytics.conf
+    state: link
+  notify:
+    - Reload nginx
+- name: Validate nginx configuration
+  # Same stance as the http, cloud and fail2ban_ui roles: a reload of
+  # a broken config leaves the old one serving, so the run would go
+  # green with the vhost not actually loaded.
+  ansible.builtin.command:
+    cmd: nginx -t
+  changed_when: false

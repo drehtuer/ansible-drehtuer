@@ -1,0 +1,25 @@
+# Mirrors roles/analytics/defaults/main.yml, because an inventory dict
+# REPLACES the role default rather than merging into it. See
+# doc/STATUS.adoc.
+#
+# Same shape as the production group_vars, so a deploy here exercises
+# the real code path rather than a simplified one.
+analytics:
+  access_log: /var/log/nginx/access.log
+  rotations: 14
+  report_dir: /var/www/analytics
+  report_file: index.html
+  title: "{{ domain }} web traffic"
+  subdomain: stats
+  ignore_crawlers: true
+  anonymize_ip: true
+  # The lab probes itself exactly as production does, and its logs are
+  # otherwise empty - so without this the report here would be nothing
+  # but monitoring.
+  exclude_ips:
+    - "{{ ip_v4 }}"
+    - "{{ ip_v6 }}"
+  geoip_database: ""
+  schedule:
+    on_calendar: "*:20"
+    randomized_delay: 1m

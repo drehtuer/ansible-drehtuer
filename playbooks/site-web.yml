@@ -10,6 +10,9 @@
 # Nextcloud through `occ` and there has to be a Nextcloud to register
 # with.
 #
+# `analytics` last, and only because it is cheapest there: it needs
+# nginx and the certificate, and nothing needs it.
+#
 # Note what is *not* here: `fail2ban` and `fail2ban_ui`. Both are in
 # `site-security.yml`, which runs after the mail stack as well - see
 # the reason there.
@@ -19,3 +22,5 @@
   ansible.builtin.import_playbook: cloud.yml
 - name: Talk backend
   ansible.builtin.import_playbook: talk.yml
+- name: Web traffic report
+  ansible.builtin.import_playbook: analytics.yml

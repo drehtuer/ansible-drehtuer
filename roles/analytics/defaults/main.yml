@@ -1,0 +1,62 @@
+analytics:  # noqa: var-naming[no-role-prefix] - see doc/STATUS.adoc
+  # The log this reads. Set by roles/http (`access_log` in
+  # files/nginx.conf), and the rotated generations beside it are what
+  # give the report more history than the live file holds.
+  access_log: /var/log/nginx/access.log
+  # How many rotated generations to feed in, oldest first. 14 is what
+  # nginx's *packaged* logrotate config keeps (`rotate 14` in
+  # /etc/logrotate.d/nginx), and this role deliberately does not raise
+  # it: that file is a dpkg conffile owned by the nginx package, and
+  # editing it here would trade a bounded report window for a conffile
+  # conflict on every nginx upgrade. Raising this number above what
+  # logrotate keeps is harmless - the extra generations simply do not
+  # exist - so it is the retention that decides the window, not this.
+  rotations: 14
+  # Where the rendered report lands, and the vhost's document root.
+  report_dir: /var/www/analytics
+  report_file: index.html
+  # Shown as the page title and the report's own header.
+  title: "{{ domain }} web traffic"
+  # Serves <subdomain>.<domain> for every entry in http.domains.
+  #
+  # This has to also appear in `http.letsencrypt.subdomains` *and*
+  # resolve in public DNS before roles/http next runs, or certbot's
+  # HTTP-01 challenge fails for the name and takes the whole
+  # certificate with it - not just this vhost. See doc/STATUS.adoc for
+  # the order the three changes have to happen in.
+  subdomain: stats
+  # Crawlers are the majority of what hits a small site, and counting
+  # them answers a different question than "what do people read". The
+  # requests are still in the log either way; this only decides what
+  # the report totals.
+  ignore_crawlers: true
+  # Truncates the last IPv4 octet and the IPv6 interface half before
+  # anything is written to the report. The report is a file on disk
+  # behind basic auth, so this is about what is *stored* rather than
+  # who can read it: fail2ban already has the full addresses in its
+  # own log, and nothing here needs to identify a visitor.
+  anonymize_ip: true
+  # Addresses whose requests are dropped before counting - the host's
+  # own monitoring probes above all, which otherwise dominate the
+  # hit counts of whatever they check.
+  exclude_ips: []
+  # Optional MaxMind GeoIP2 database, e.g.
+  # /var/lib/GeoIP/GeoLite2-Country.mmdb. Empty disables the Geo
+  # Location panel; the rest of the report is unaffected. Ubuntu
+  # packages the *library* (libmaxminddb0, already pulled in by
+  # goaccess) but not the data, which needs a MaxMind account - so
+  # there is no default that would work out of the box, and a path
+  # that does not exist is a fatal error to GoAccess rather than a
+  # warning. The report script therefore tests for the file rather
+  # than trusting this value.
+  geoip_database: ""
+  schedule:
+    # Twenty past the hour, and the offset is the point. nginx's
+    # logrotate runs at midnight sharp, and compressing the previous
+    # day's log leaves a window in which a .gz is half-written; a run
+    # that reads it dies on the truncated member. Twenty minutes is
+    # several orders of magnitude more than the rotation takes, so a
+    # failure here is a real one worth the alert it raises rather
+    # than a nightly race.
+    on_calendar: "*:20"
+    randomized_delay: 1m

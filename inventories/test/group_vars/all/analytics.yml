@@ -1,0 +1,24 @@
+# Mirrors the role defaults, because the static tests render templates
+# from this inventory alone - without role defaults - so anything a
+# template reads has to be defined here or the render fails.
+#
+# `exclude_ips` and `geoip_database` are deliberately non-empty here
+# and empty in the role defaults: both guard a conditional branch of
+# the report script, and the static render only ever exercises the
+# branch this fixture selects.
+analytics:
+  access_log: /var/log/nginx/access.log
+  rotations: 14
+  report_dir: /var/www/analytics
+  report_file: index.html
+  title: "{{ domain }} web traffic"
+  subdomain: stats
+  ignore_crawlers: true
+  anonymize_ip: true
+  exclude_ips:
+    - "{{ ip_v4 }}"
+    - "{{ ip_v6 }}"
+  geoip_database: /var/lib/GeoIP/GeoLite2-Country.mmdb
+  schedule:
+    on_calendar: "*:20"
+    randomized_delay: 1m
