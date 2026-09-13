@@ -361,11 +361,22 @@
   # `cloud.nextcloud.integrity.max_passes` bounds it rather than
   # `until`, so a check that somehow never quiets down ends the run
   # instead of spinning.
+  #
+  # The condition here is deliberately the *constant* half - check
+  # mode - while the half that depends on what the previous pass found
+  # stays on the block inside. `when` on a looped `include_tasks` is
+  # evaluated for every item before any iteration runs, so a condition
+  # naming `cloud_stale_files` here reads the value from before pass
+  # one and skips every later pass: proven with a stub that hands back
+  # three files, then two, then none, which ran once instead of three
+  # times. It costs three skipped lines per idle pass rather than one,
+  # and that is the price of the loop working.
   ansible.builtin.include_tasks: integrity_cleanup.yml
   loop: "{{ range(cloud.nextcloud.integrity.max_passes | int) | list }}"
   loop_control:
     loop_var: cloud_integrity_pass
     label: "pass {{ cloud_integrity_pass + 1 }}"
+  when: cloud_integrity_pass == 0 or not ansible_check_mode
 
 - name: Re-read the integrity result so the admin overview agrees
   # Nextcloud stores the outcome of the last check and the overview
