@@ -177,9 +177,18 @@ argument_specs:
             type: dict
             required: true
             description:
-              - The Nextcloud Mail app. Not installed by this role, but
-                configured by it where it is present.
+              - The Nextcloud Mail app, which is where a user edits
+                their own Sieve filters - it is a ManageSieve client,
+                talking to the listener roles/imap opens.
             options:
+              enabled:
+                type: bool
+                required: true
+                description:
+                  - Whether to install and enable the app. False means
+                    do not install it, not remove it - an installed
+                    app holds accounts and cached messages, so removal
+                    is a deliberate act rather than a flag.
               classify_importance:
                 type: bool
                 required: true

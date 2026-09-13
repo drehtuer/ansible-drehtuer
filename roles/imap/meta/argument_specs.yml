@@ -92,6 +92,42 @@ argument_specs:
                 type: int
                 required: true
                 description: Port to bind.
+          managesieve:
+            type: dict
+            required: true
+            description:
+              - ManageSieve (RFC 5804), the protocol a client uses to
+                edit the user's own Sieve script on the server. The
+                `sieve_before` scripts this role deploys sit outside
+                the user's script storage, so nothing a client writes
+                here can disable spam filing or the training rules.
+            options:
+              enabled:
+                type: bool
+                required: true
+                description:
+                  - Whether to speak the protocol at all. Adds `sieve`
+                    to `protocols` and opens the listener below.
+              port:
+                type: int
+                required: true
+                description:
+                  - Port to bind. The listener inherits the global
+                    `listen`, so whether anything off-host can reach
+                    it is roles/firewall's decision, not this one.
+              max_scripts:
+                type: int
+                required: true
+                description:
+                  - How many scripts one user may store, as
+                    `sieve_quota_max_scripts`.
+              max_script_size:
+                type: str
+                required: true
+                description:
+                  - Cap on one script, as `sieve_max_script_size`,
+                    with a size suffix (e.g. `64k`) and emitted
+                    verbatim.
           logrotate:
             type: dict
             required: true

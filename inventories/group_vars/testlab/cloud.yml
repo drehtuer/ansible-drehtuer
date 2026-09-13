@@ -58,6 +58,7 @@ cloud:
   # ever since - which the static tests cannot see, because they read
   # inventories/test rather than this file.
   mail:
+    enabled: true
     classify_importance: false
   ocr:
     languages:

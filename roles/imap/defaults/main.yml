@@ -14,6 +14,26 @@ imap:  # noqa: var-naming[no-role-prefix] - see doc/STATUS.adoc
       cert: /etc/letsencrypt/live/{{ hostname_fqdn }}/fullchain.pem
       key: /etc/letsencrypt/live/{{ hostname_fqdn }}/privkey.pem
       ca: /etc/letsencrypt/live/{{ hostname_fqdn }}/chain.pem
+  # ManageSieve (RFC 5804) - the protocol a mail client uses to read
+  # and write the user's *own* sieve script on the server, which is
+  # what makes filtering self-service instead of an inventory edit.
+  # Nextcloud Mail's filter editor speaks it, as do the desktop
+  # ManageSieve clients; no Android mail client does.
+  #
+  # On rather than off: the listener inherits `listen = *, ::` like
+  # every other one here, so what decides who can reach it is
+  # roles/firewall - which opens 993 and deliberately does not open
+  # this port. The host still reaches its own public address over
+  # `lo`, which is how Nextcloud connects from this same machine.
+  managesieve:
+    enabled: true
+    port: 4190
+    # Caps on what a user can store, because this is the one part of
+    # Dovecot's configuration a user can write to. Ten scripts and
+    # 64k each is far beyond any hand-written filter set and still
+    # bounded.
+    max_scripts: 10
+    max_script_size: 64k
   # Rotation for the log above. Dovecot's own package ships none,
   # because out of the box it logs to syslog and has nothing of its own
   # to rotate - diverting it is this role's decision, so rotating it is

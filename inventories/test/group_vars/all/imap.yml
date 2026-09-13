@@ -10,6 +10,11 @@ imap:
     enabled: true
     listen_address: 127.0.0.1
     port: 9166
+  managesieve:
+    enabled: true
+    port: 4190
+    max_scripts: 10
+    max_script_size: 64k
   logrotate:
     frequency: weekly
     rotate: 26

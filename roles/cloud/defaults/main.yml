@@ -78,11 +78,18 @@ cloud:  # noqa: var-naming[no-role-prefix] - see doc/STATUS.adoc
   # the path `occ notify_push:setup` expects.
   push:
     port: 7867
-  # The Nextcloud Mail app. This role does not install it - it is an
-  # app the user adds - but it does own this one setting when it is
-  # present, because the default is surprising and its effect lands
-  # outside Nextcloud entirely.
+  # The Nextcloud Mail app, which is this host's sieve filter editor:
+  # it speaks ManageSieve to the Dovecot listener roles/imap opens, so
+  # a user edits their own filters in a browser - the phone included -
+  # rather than by an inventory change here. No Android mail client
+  # speaks the protocol, which is what makes the web UI the answer
+  # there rather than a convenience.
   mail:
+    # Installs and enables the app. False means "do not install it",
+    # not "remove it": an app that is already there carries accounts
+    # and cached messages, so taking it away is a decision for a
+    # human, not a side effect of flipping a flag.
+    enabled: true
     # Mail's importance classifier tags messages it predicts are
     # important with the IMAP keyword `$label1`. That keyword is not
     # Nextcloud's private bookkeeping: it is stored on the message in

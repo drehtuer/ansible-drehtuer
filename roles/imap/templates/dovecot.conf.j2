@@ -1,5 +1,5 @@
 !include_try /usr/share/dovecot/protocols.d/*.protocol
-protocols = imap lmtp
+protocols = imap lmtp{{ ' sieve' if imap.managesieve.enabled else '' }}
 listen = *, ::
 
 # Auth
@@ -60,6 +60,29 @@ service imap-login {
   }
 }
 
+{% if imap.managesieve.enabled %}
+# ManageSieve, which is what lets a user edit their own sieve script
+# from a client rather than by an inventory change here. It is the
+# protocol behind Nextcloud Mail's filter editor.
+#
+# No `ssl = yes` on the listener: 4190 is STARTTLS by convention, not
+# implicit TLS, and `disable_plaintext_auth = yes` above already
+# refuses credentials until the connection is secured.
+#
+# Note what this does *not* decide. The listener inherits
+# `listen = *, ::` exactly as imaps does, so reachability is
+# roles/firewall's: it opens 993 and does not open this port, which
+# leaves the world out while `-A INPUT -i lo -j ACCEPT` still lets
+# this host connect to its own public address - the path Nextcloud
+# takes, running on this same machine. A desktop client from outside
+# needs a rule for {{ imap.managesieve.port }} added there.
+service managesieve-login {
+  inet_listener sieve {
+    port = {{ imap.managesieve.port }}
+  }
+}
+
+{% endif %}
 service lmtp {
   unix_listener /var/spool/postfix/private/dovecot-lmtp {
     mode = 0600
@@ -185,6 +208,17 @@ plugin {
   # Runs before any per-user script, on every delivery, which is how
   # spam gets filed without each account needing its own sieve.
   sieve_before = /etc/dovecot/sieve/spam-to-folder.sieve
+{% if imap.managesieve.enabled %}
+  # The user's own script storage, which is what ManageSieve reads and
+  # writes. Stated rather than left to the default because it is the
+  # one location here a user can write to, and because it is what the
+  # line above is *before*: the scripts this role deploys live in
+  # /etc/dovecot/sieve and are reachable from no client, so spam
+  # filing and the training rules survive whatever a user saves.
+  sieve = file:~/sieve;active=~/.dovecot.sieve
+  sieve_quota_max_scripts = {{ imap.managesieve.max_scripts }}
+  sieve_max_script_size = {{ imap.managesieve.max_script_size }}
+{% endif %}
   sieve_plugins = sieve_imapsieve sieve_extprograms
   sieve_extensions = +vnd.dovecot.pipe
   sieve_pipe_bin_dir = /etc/dovecot/sieve-pipe
