@@ -58,6 +58,30 @@ fail2ban:  # noqa: var-naming[no-role-prefix] - see doc/STATUS.adoc
         # the distribution - and because a per-jail `journalmatch` is
         # what fail2ban documents for exactly this case.
         journalmatch: _SYSTEMD_UNIT=postfix@-.service
+    # A second jail over the same service and the same journal, and it
+    # has to be a second one rather than a mode change on the jail
+    # above. The postfix filter selects *one* `mdre-<mode>` set rather
+    # than combining them, so `mode = auth` would trade the delivery
+    # rejects for the authentication failures instead of adding them.
+    # Measured against the real journal with `fail2ban-regex`: mode
+    # `normal` matches 4402 lines, mode `auth` matches 17160, and they
+    # are different lines.
+    #
+    # What was going uncounted was the whole SMTP-AUTH brute force -
+    # 9357 failures in a fortnight against 0 successes. Temper the
+    # expectation, though: it arrived from 1672 distinct addresses, so
+    # per-address banning only reaches the persistent ones (the
+    # busiest managed 240). `recidive` is what catches the rest.
+    - name: postfix-auth
+      port: smtp,submission
+      filter: postfix
+      backend: systemd
+      options:
+        mode: auth
+        # Same correction as the jail above: Debian and Ubuntu run
+        # Postfix as the instantiated template unit, and the packaged
+        # `postfix.service` says almost nothing.
+        journalmatch: _SYSTEMD_UNIT=postfix@-.service
     - name: dovecot
       port: imaps
       filter: dovecot

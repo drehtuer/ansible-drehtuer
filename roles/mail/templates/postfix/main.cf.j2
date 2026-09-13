@@ -8,6 +8,23 @@ inet_protocols = all
 
 mynetworks = 127.0.0.0/8 [::1]/128
 
+# VRFY answers whether an address exists, and that is the whole
+# problem: Postfix returns `252` for a real recipient and
+# `550 ... User unknown in virtual mailbox table` for an invented one,
+# so anyone can walk a word list and learn the valid addresses without
+# sending a thing. Measured on this host before it was turned off -
+# `VRFY root` answered 252 and `VRFY nosuchuser8842xyz` answered 550.
+#
+# Worth setting against what was in the log at the time: the busiest
+# SMTP-AUTH target by a wide margin was the one genuinely valid
+# account, with 4425 attempts, while everything else in the top ten
+# was generic guessing - `info`, `admin`, `office`, `sales`. That is
+# what an attacker does when it knows which name is real. VRFY is not
+# proven to be where it learned that, but it is one open door and it
+# is used by nothing: RFC 5321 permits refusing it, and no mail client
+# needs it.
+disable_vrfy_command = yes
+
 # SMTP defaults
 smtpd_relay_restrictions = 
     permit_mynetworks,
