@@ -103,7 +103,12 @@ valheim:
     # `server_port` in the mod's own config on the host. Nothing off
     # this host ever connects to this port - the map is reached at
     # https://valheim.<domain> on 443, like every other vhost.
-    port: 3000
+    #
+    # 8091 and not the mod's default of 3000: Grafana already holds
+    # 127.0.0.1:3000 on this host via `monitoring.grafana.port`, and
+    # the container refuses to start on a bound port. Found the hard
+    # way on the first deploy.
+    port: 8091
     # Must also appear in http.letsencrypt.subdomains for both
     # domains, or the vhost answers with a certificate that does not
     # cover the name. Nothing enforces the pairing.

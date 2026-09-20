@@ -40,5 +40,6 @@ valheim:
     repository: https://github.com/f00d4tehg0dz/valheim-webmap.git
     revision: 99c6e940153d53c39c6db504aaf953d0fba97748
     builder_image: valheim-webmap
-    port: 3000
+    # 8091, not the mod default of 3000, which Grafana holds.
+    port: 8091
     subdomain: valheim
