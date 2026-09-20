@@ -1,0 +1,85 @@
+valheim:  # noqa: var-naming[no-role-prefix] - see doc/STATUS.adoc
+  # community-valheim-tools/valheim-server, the continuation of
+  # lloesche/valheim-server-docker under the same maintainers. It is
+  # the image the WebMap mod documents its own Docker install against,
+  # which is worth something here: the plugin path this role uses is
+  # the one both upstreams agree on.
+  #
+  # Pinned by tag *and* digest, the stance `fail2ban_ui` and `talk`
+  # take. This is the multi-arch *index* digest rather than one
+  # platform's, so the pin survives a host of another architecture.
+  image: ghcr.io/community-valheim-tools/valheim-server
+  tag: "1.3.0"
+  digest: >-
+    sha256:c43502d3b28c8d341f5362f365deb4802018bda9fc49f98c7631b099f597eb49
+  # Three directories, three owners, deliberately not one:
+  #
+  #   compose_dir - this repository's. Rewritten every run.
+  #   config_dir  - the container's /config: worlds, backups, BepInEx
+  #                 configuration, and the staging copy of the plugin.
+  #                 This is the one that must survive everything.
+  #   data_dir    - the container's /opt/valheim: the game itself and
+  #                 the BepInEx install. Rebuilt from Steam on demand
+  #                 and worth nothing on its own.
+  compose_dir: /etc/valheim
+  config_dir: /srv/valheim/config
+  data_dir: /srv/valheim/data
+  server:
+    name: Valheim
+    # The world save under config_dir/worlds_local. Changing this does
+    # not rename a world, it starts a different one - the old files
+    # stay where they are and the server generates a new map.
+    world: Dedicated
+    # Whether to advertise in the in-game server browser. Players can
+    # always reach it with Join by IP, so `false` is a listing
+    # decision and not an access control one - the password is that.
+    public: false
+    # The first of three consecutive UDP ports. port+1 is Steam's
+    # query port; port+2 is what mods use for RPC, which is precisely
+    # why it is opened here and would not be for a vanilla server.
+    port: 2456
+    timezone: Europe/Berlin
+    # SteamID64s that get admin in game. Empty is the safe default:
+    # this grants ban, kick, no-cost building and the world-modifier
+    # console commands to whoever is listed.
+    admin_ids: []
+    # Extra arguments appended to the server command line, joined with
+    # spaces. This is where world modifiers go - a dedicated server
+    # takes them here and nowhere else, since the client's
+    # world-settings screen only appears when creating a world
+    # locally. `-preset` must come before any `-modifier`, because it
+    # overwrites them and logs nothing when it does.
+    args: []
+    # `password` has deliberately no default. It is the only thing
+    # standing between a public UDP port and someone else's world, so
+    # a host that forgets to set one should fail at the top of the
+    # role rather than come up with a value this file chose for it.
+    # See meta/argument_specs.yml, where it is required.
+  webmap:
+    # f00d4tehg0dz/valheim-webmap, MIT. A BepInEx plugin that serves a
+    # live map of the world over HTTP, with no client-side install.
+    #
+    # Pinned to a revision rather than a tag because upstream publishes
+    # neither: there are no releases and no binaries, so this is built
+    # from source - see files/webmap/Dockerfile for what that involves
+    # and why. Bumping `revision` is what causes a rebuild, so it plays
+    # the part `digest` plays for a pulled image.
+    repository: https://github.com/f00d4tehg0dz/valheim-webmap.git
+    revision: 5ea71ea6d472c14419c72014f1f25b7c46ace4fd
+    builder_image: valheim-webmap
+    # The plugin's own default, and the one its configuration file
+    # carries. Changing it here changes the published port and the
+    # vhost; the mod only learns about it through the seeded config in
+    # templates/webmap.cfg.j2, so the two have to be changed together.
+    #
+    # Published to loopback only and reached through nginx - see the
+    # compose template for why that means no `firewall.docker.published`
+    # entry is needed for it, unlike the game ports.
+    port: 3000
+    # Serves <subdomain>.<domain> for every entry in http.domains.
+    #
+    # This has to also appear in `http.letsencrypt.subdomains`, or the
+    # certificate will not cover the name this vhost answers for and
+    # every request gets a name mismatch. Nothing enforces the pairing -
+    # the same standing trap the `spam` and `fail2ban_ui` roles have.
+    subdomain: valheim

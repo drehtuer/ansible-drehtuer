@@ -1,0 +1,44 @@
+# Mirrors the role defaults, because the static tests render templates
+# from this inventory alone - without role defaults - so anything a
+# template reads has to be defined here or the render fails.
+#
+# The image digest and the plugin revision are the real ones rather
+# than placeholders: both are public information, and a fake would make
+# this file stop being a working example of what the role expects.
+#
+# The password is deliberately fake, deliberately unencrypted, and
+# deliberately long enough to satisfy the five-character minimum the
+# server enforces. Nothing here is ever deployed.
+valheim:
+  image: ghcr.io/community-valheim-tools/valheim-server
+  tag: "1.3.0"
+  digest: >-
+    sha256:c43502d3b28c8d341f5362f365deb4802018bda9fc49f98c7631b099f597eb49
+  compose_dir: /etc/valheim
+  config_dir: /srv/valheim/config
+  data_dir: /srv/valheim/data
+  server:
+    name: testhost-valheim
+    world: TestWorld
+    password: test-valheim-join
+    public: false
+    port: 2456
+    timezone: Etc/UTC
+    # Non-empty on purpose: ADMINLIST_IDS is rendered by joining this
+    # list, and an empty one would leave that branch untested
+    # everywhere in the repo.
+    admin_ids:
+      - "76561190000000000"
+    # Non-empty on purpose, for the same reason as admin_ids above:
+    # SERVER_ARGS is rendered by joining this list, and an empty one
+    # would leave that branch untested everywhere in the repo. It
+    # also shows the ordering the real inventory warns about.
+    args:
+      - "-preset normal"
+      - "-modifier raids less"
+  webmap:
+    repository: https://github.com/f00d4tehg0dz/valheim-webmap.git
+    revision: 5ea71ea6d472c14419c72014f1f25b7c46ace4fd
+    builder_image: valheim-webmap
+    port: 3000
+    subdomain: valheim

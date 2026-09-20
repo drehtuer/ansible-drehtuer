@@ -1,0 +1,65 @@
+{{ ansible_managed | comment }}
+#
+# Reverse proxy for the Valheim WebMap, modelled on the fail2ban_ui
+# vhost.
+#
+# The basic-auth block is the only authentication there is. The mod has
+# no login of its own - upstream says so in as many words and suggests
+# exactly this - so removing `auth_basic` here does not merely expose a
+# map: it publishes where every player is standing, in real time, to
+# anyone who can resolve the name.
+#
+# What it does *not* expose either way: fog of war is applied on the
+# server, so ground nobody has walked is never sent, and boss altars,
+# dungeons, traders and the world seed are withheld outright.
+server {
+  listen {{ http.port_https }} ssl http2;
+  listen [::]:{{ http.port_https }} ssl http2;
+
+  include conf-server/ssl.conf;
+  include conf-server/security.conf;
+  include conf-server/general.conf;
+
+  # One name per served domain, as the cloud, spam and fail2ban_ui
+  # vhosts do. The certificate covers each of them through
+  # http.letsencrypt.subdomains, which must therefore list
+  # valheim.webmap.subdomain.
+  server_name {{ http.domains | map('regex_replace', '^', valheim.webmap.subdomain ~ '.') | join(' ') }};
+
+  location / {
+    auth_basic "Restricted Access";
+    auth_basic_user_file /etc/nginx/sites-enabled/valheim.htpasswd;
+
+    proxy_pass http://127.0.0.1:{{ valheim.webmap.port }}/;
+
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+
+    # The map's live half - players moving, chat pins, tiles finishing
+    # - arrives over a WebSocket at /ws. Without these two the page
+    # loads, draws once and then silently never updates, which reads as
+    # a stalled server rather than a proxy that refused an upgrade.
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection $connection_upgrade;
+
+    # nginx closes an idle upstream connection after 60s by default,
+    # which is a WebSocket that drops every minute on a quiet server.
+    # The mod's own ping is slower than that. It applies to the
+    # ordinary responses here too, harmlessly: it is a timeout between
+    # reads rather than a budget for the whole response.
+    proxy_read_timeout 1h;
+
+    # Buffering is deliberately left at nginx's default of *on*. The
+    # upstream is a small embedded HTTP server inside the game process,
+    # and its megabyte-scale assets - the 3D view's libraries, the
+    # exported models - would otherwise hold one of its connections
+    # open for as long as the slowest phone takes to read them.
+    # Buffering lets nginx take the response at local speed and free
+    # the upstream immediately, which is worth more here than it would
+    # be in front of something built to handle slow clients.
+    # WebSockets bypass it either way.
+  }
+}

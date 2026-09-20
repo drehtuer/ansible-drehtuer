@@ -1,0 +1,110 @@
+# The Valheim dedicated server on carcosa, and the WebMap plugin it
+# runs. Mirrors roles/valheim/defaults/main.yml, because an inventory
+# dict REPLACES the role default rather than merging into it - so this
+# file has to repeat every key the role reads. See doc/STATUS.adoc.
+#
+# It lives in group_vars/production/ rather than group_vars/all/
+# because of what is vaulted in it: the join password and the admin
+# list. Anything that is a credential belongs to an environment, so
+# the test machine never receives these - see
+# group_vars/testlab/valheim.yml for its own.
+valheim:
+  image: ghcr.io/community-valheim-tools/valheim-server
+  tag: "1.3.0"
+  digest: >-
+    sha256:c43502d3b28c8d341f5362f365deb4802018bda9fc49f98c7631b099f597eb49
+  compose_dir: /etc/valheim
+  config_dir: /srv/valheim/config
+  data_dir: /srv/valheim/data
+  server:
+    name: drehtuer.net
+    # Changing this does not rename the world, it starts a different
+    # one. The save under config_dir/worlds_local keeps this name.
+    world: Midgard
+    # The only way in: the server is not listed, so players reach it
+    # with Join by IP and this. Rotate with
+    # `ansible-vault encrypt_string --stdin-name password`.
+    #
+    # Two rules the server enforces by refusing to start rather than
+    # by warning: at least five characters, and not a substring of
+    # `name` above.
+    password: !vault |
+      $ANSIBLE_VAULT;1.1;AES256
+      39326662653237333232663534323063343732663463643861646438343563663963636137343265
+      6431636265396133643335383137323033653263366539320a623334356330323439626139623434
+      36306534386233373438643537643666336331653136326661313733643731333161336632663231
+      6461396333306364360a656562643963336531373336323364333335383836646138303463636331
+      3531
+    # Not advertised in the in-game server browser. A listing
+    # decision rather than an access control one - the password is
+    # that - but there is no reason to publish a private world to
+    # everyone scrolling the list. Players join by IP.
+    public: false
+    # 2456 and the two above it: 2457 is Steam's query port and 2458
+    # is the RPC port WebMap needs. All three are opened in
+    # firewall.docker.published.udp, which is what actually admits
+    # them; the INPUT allow-list never sees a published port.
+    port: 2456
+    timezone: Europe/Berlin
+    # SteamID64s granted admin in game: ban, kick, no-cost building,
+    # and - the reason it is not merely a convenience here - the
+    # world-modifier console commands. `setworldmodifier`,
+    # `setworldpreset` and `resetworldkeys` are admin commands, so
+    # this list is what makes the world's difficulty settings
+    # adjustable in game rather than only through `args` below.
+    #
+    # Vaulted: a SteamID64 identifies a real person's account, and
+    # this repository's rule is that personal data is encrypted.
+    # Rendered into server.env rather than into compose.yml for the
+    # same reason the password is.
+    admin_ids:
+      - !vault |
+          $ANSIBLE_VAULT;1.1;AES256
+          36353231643962613866316566646639613364346363653633343134303638623139666563393234
+          3264333433363461646532363133666132623535333638320a336465376362333434663039613066
+          38653664633364303839343234326133363534303762663362313139303630346565393164366438
+          6438653937623431650a383763356439363934376666363839356438343965633834363461666264
+          64616637613138373837653334303231303162653065376230336637396262653164
+    # Extra arguments appended to the server command line, joined
+    # with spaces. Empty means Valheim's defaults, which is the
+    # `normal` preset.
+    #
+    # This is where world modifiers go - combat, deathpenalty,
+    # resources, raids, portals - because a dedicated server takes
+    # them here and nowhere else: the client's world-settings screen
+    # only appears when creating a world locally, and a player
+    # joining this one never sees it. See doc/STATUS.adoc.
+    #
+    # ORDER MATTERS AND FAILS SILENTLY. A `-preset` overwrites every
+    # modifier that came before it, logging nothing, so `-preset`
+    # goes first, then each `-modifier <name> <value>`, then each
+    # `-setkey <key>`. Example:
+    #
+    #   args:
+    #     - "-preset normal"
+    #     - "-modifier deathpenalty casual"
+    #     - "-modifier raids less"
+    #     - "-setkey passivemobs"
+    #
+    # Note the asymmetry if these are ever changed on a live world:
+    # the value-based modifiers are stored with the world and can
+    # also be changed in game by an admin, while the on/off `-setkey`
+    # flags are read when the world is first created and ignored
+    # afterwards.
+    args: []
+  webmap:
+    repository: https://github.com/f00d4tehg0dz/valheim-webmap.git
+    # Upstream publishes no releases, so this is the pin: it does for
+    # the plugin what `digest` above does for the image, and changing
+    # it is what makes the role rebuild and restage.
+    revision: 5ea71ea6d472c14419c72014f1f25b7c46ace4fd
+    builder_image: valheim-webmap
+    # Loopback only, reached through the nginx vhost. Must match
+    # `server_port` in the mod's own config on the host. Nothing off
+    # this host ever connects to this port - the map is reached at
+    # https://valheim.<domain> on 443, like every other vhost.
+    port: 3000
+    # Must also appear in http.letsencrypt.subdomains for both
+    # domains, or the vhost answers with a certificate that does not
+    # cover the name. Nothing enforces the pairing.
+    subdomain: valheim

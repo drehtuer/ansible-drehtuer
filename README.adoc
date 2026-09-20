@@ -13,7 +13,7 @@ include::doc/.attributes-page.adoc[]
 This repo contains the configuration for the hosts link:{url-drehtuer-de}/link:{url-drehtuer-net} as link:{url-ansible} scripts.
 The environment is provided as configuration for link:{url-dev-container} and link:{url-vscode}.
 
-The goal is a complete, documentation-as-code setup of the server so that it can be rebuilt or migrated to another host with minimal manual effort. The server runs nginx (serving Nextcloud, with Let's Encrypt certificates), Postfix + Dovecot (with RSpamd for anti-spam filtering, including learning from user feedback), SSH, MariaDB + Redis, and two DNS servers side by side — Unbound resolving recursively on loopback, and NSD answering authoritatively on the public addresses as a hidden primary for `drehtuer.net` — plus supporting system services (firewall, fail2ban, cron, NTP, Docker).
+The goal is a complete, documentation-as-code setup of the server so that it can be rebuilt or migrated to another host with minimal manual effort. The server runs nginx (serving Nextcloud, with Let's Encrypt certificates), Postfix + Dovecot (with RSpamd for anti-spam filtering, including learning from user feedback), SSH, MariaDB + Redis, and two DNS servers side by side — Unbound resolving recursively on loopback, and NSD answering authoritatively on the public addresses as a hidden primary for `drehtuer.net` — plus supporting system services (firewall, fail2ban, cron, NTP, Docker). A Valheim dedicated server runs alongside all of that in a container, with a live web map of the world behind the same nginx and a password.
 
 Secrets (passwords, private keys, personal data) are never stored unencrypted in this repository — they are encrypted with `ansible-vault`. The vault password itself is kept in `vault/secret.txt`, which is excluded from version control and must never be committed.
 
@@ -127,6 +127,20 @@ ssh <host> sudo systemctl start backup.service
 ----
 
 See link:{url-doc-backup} for what is backed up, what deliberately is not and why, and - the part most likely to cost time under pressure - the order a restore has to happen in.
+
+== Game server
+
+:url-webmap: https://github.com/f00d4tehg0dz/valheim-webmap[valheim-webmap^]
+
+`roles/valheim` runs a Valheim dedicated server as a Compose stack and serves a live map of the world at `valheim.<domain>`, behind TLS and a password. The map is the link:{url-webmap} BepInEx plugin, which upstream publishes as source only - so the role compiles it in a throwaway image rather than downloading a binary, pinned to a git revision the way every image here is pinned to a digest.
+
+[source, bash]
+----
+# Deploy it. Not part of playbooks/site.yml - see the playbook header.
+invoke run-playbook --playbook=playbooks/valheim.yml --hosts=production
+----
+
+The first run is long and mostly waiting: the plugin build downloads the dedicated server to compile against, and the server container then downloads its own copy. Three UDP ports have to be open in `firewall.docker.published` - 2456 for the game, 2457 for Steam's query protocol and 2458 for the RPC the map needs - and the map's own port is published to loopback, so nginx is the only route to it. See `doc/STATUS.adoc` for the rest.
 
 == License
 

@@ -38,6 +38,22 @@ backup:
     - /etc/letsencrypt
     - /var/www/nextcloud/config
     - /var/www/nextcloud/data
+    # The Valheim world, roles/valheim. The one thing under that
+    # container that no playbook can reproduce - the image, the game
+    # and the mod are all re-downloadable, and the map redraws itself
+    # from the world.
+    #
+    # Its sibling `/srv/valheim/config/backups` is deliberately left
+    # out. The container keeps its own hourly zips of exactly this
+    # world there, three days deep, and they compress badly enough to
+    # defeat deduplication - so including them would push the same
+    # data through restic seventy times over for one extra day of
+    # history. What that costs is the one thing they are better at:
+    # each zip is taken by the server itself and is therefore
+    # internally consistent, while a snapshot of the live files can in
+    # principle catch a save in progress. They are still on the host
+    # if a restored world turns out to be torn. See doc/BACKUP.adoc.
+    - /srv/valheim/config/worlds_local
   exclude_file: /etc/restic/excludes
   excludes:
     - dovecot.index*

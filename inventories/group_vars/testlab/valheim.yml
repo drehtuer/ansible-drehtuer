@@ -1,0 +1,47 @@
+# The lab's copy of the Valheim server settings, so the role can be
+# proven on a disposable host before carcosa sees it (see
+# .claude/skills/testlab/). Mirrors roles/valheim/defaults/main.yml,
+# because an inventory dict REPLACES the role default rather than
+# merging into it. See doc/STATUS.adoc.
+#
+# Its own password, its own world: nothing here is shared with
+# production, which is the whole point of the file existing separately.
+#
+# Be aware of what running this on the lab costs. The plugin build
+# downloads the dedicated server to compile against, and the server
+# container then downloads its own copy - a guest with a small disk
+# will run out before either finishes.
+valheim:
+  image: ghcr.io/community-valheim-tools/valheim-server
+  tag: "1.3.0"
+  digest: >-
+    sha256:c43502d3b28c8d341f5362f365deb4802018bda9fc49f98c7631b099f597eb49
+  compose_dir: /etc/valheim
+  config_dir: /srv/valheim/config
+  data_dir: /srv/valheim/data
+  server:
+    name: valheim-lab
+    world: LabWorld
+    password: !vault |
+      $ANSIBLE_VAULT;1.1;AES256
+      33303662646331356434666538326137663036313934363830386539646538633833383866396434
+      3233323137366535366232326630633237303434653864620a303334656136396134396236313136
+      65666264313161313839363836363066376161376265623135626635323965396336656665633434
+      6363666561333161660a356561363165373265623565373266326264313864353433613235383233
+      39643832656564363830616662646464346666616134306535383761363938353435
+    # Never listed. A lab guest has no business in the public server
+    # browser even briefly.
+    public: false
+    port: 2456
+    timezone: Europe/Berlin
+    admin_ids: []
+    # World modifiers would go here; the lab runs Valheim's defaults.
+    args: []
+  webmap:
+    repository: https://github.com/f00d4tehg0dz/valheim-webmap.git
+    revision: 5ea71ea6d472c14419c72014f1f25b7c46ace4fd
+    builder_image: valheim-webmap
+    port: 3000
+    # Must also appear in http.letsencrypt.subdomains in
+    # group_vars/testlab/http.yml, as it does for production.
+    subdomain: valheim
