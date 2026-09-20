@@ -13,9 +13,9 @@
 # will run out before either finishes.
 valheim:
   image: ghcr.io/community-valheim-tools/valheim-server
-  tag: "1.3.0"
+  tag: "1.4.0"
   digest: >-
-    sha256:c43502d3b28c8d341f5362f365deb4802018bda9fc49f98c7631b099f597eb49
+    sha256:f3ccde9a4e292663cf5096d502ff33cc9617015f6d70b6a9ca0968543f165ef2
   compose_dir: /etc/valheim
   config_dir: /srv/valheim/config
   data_dir: /srv/valheim/data
@@ -39,7 +39,7 @@ valheim:
     args: []
   webmap:
     repository: https://github.com/f00d4tehg0dz/valheim-webmap.git
-    revision: 5ea71ea6d472c14419c72014f1f25b7c46ace4fd
+    revision: 99c6e940153d53c39c6db504aaf953d0fba97748
     builder_image: valheim-webmap
     port: 3000
     # Must also appear in http.letsencrypt.subdomains in
