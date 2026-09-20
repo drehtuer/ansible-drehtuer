@@ -83,11 +83,25 @@ argument_specs:
               password:
                 type: str
                 required: true
-                no_log: true
                 description:
                   - Join password, at least five characters, and not
                     a substring of the server name - the server
                     refuses to start otherwise. Vault-encrypted.
+                  - Deliberately NOT no_log, although a password is
+                    exactly what no_log is for. Role argument-spec
+                    validation cannot convert an inline vault value
+                    on an option marked no_log; it fails with an
+                    unknown-parameter-type error naming
+                    AnsibleVaultEncryptedUnicode, before the role
+                    runs a single task. The type does not matter -
+                    raw fails the same way - so the flag itself is
+                    the problem. The vaulted secrets in roles/talk
+                    and roles/database are declared the same way and
+                    for the same reason.
+                  - Little is lost. The one task that handles this
+                    value, the server.env template, carries no_log
+                    at task level, and that is what actually keeps
+                    it out of diffs and output.
               public:
                 type: bool
                 required: true
@@ -112,13 +126,14 @@ argument_specs:
                 type: list
                 elements: str
                 required: true
-                no_log: true
                 description:
                   - SteamID64s granted admin in game, which also
                     grants the world-modifier console commands. May
                     be empty. Vaulted, since a SteamID64 identifies
-                    a real account - hence no_log, and hence it is
-                    rendered into server.env rather than compose.yml.
+                    a real account, and rendered into server.env
+                    rather than compose.yml for the same reason.
+                  - Deliberately NOT no_log, which would look right
+                    and break the role. See `password` below.
               args:
                 type: list
                 elements: str

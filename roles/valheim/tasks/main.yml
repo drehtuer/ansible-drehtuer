@@ -128,9 +128,15 @@
     mode: "0644"
 
 - name: Configure the valheim server environment
-  # The join password, and nothing else. no_log because the diff would
-  # otherwise print it; the compose file beside it stays readable
-  # precisely so that this is the only task that has to be blind.
+  # The join password and the admin list, and nothing else. no_log
+  # because the diff would otherwise print both; the compose file
+  # beside it stays readable precisely so that this is the only task
+  # that has to be blind.
+  #
+  # This `no_log` is also the only one the role has, and that is not an
+  # oversight: the same flag on the *argument spec* breaks role
+  # validation outright against an inline `!vault` value. See
+  # meta/argument_specs.yml.
   ansible.builtin.template:
     src: templates/server.env.j2
     dest: "{{ valheim.compose_dir }}/server.env"

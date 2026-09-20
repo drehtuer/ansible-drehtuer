@@ -67,15 +67,24 @@ valheim:  # noqa: var-naming[no-role-prefix] - see doc/STATUS.adoc
     repository: https://github.com/f00d4tehg0dz/valheim-webmap.git
     revision: 99c6e940153d53c39c6db504aaf953d0fba97748
     builder_image: valheim-webmap
-    # The plugin's own default, and the one its configuration file
-    # carries. Changing it here changes the published port and the
-    # vhost; the mod only learns about it through the seeded config in
-    # templates/webmap.cfg.j2, so the two have to be changed together.
+    # NOT the mod's own default, which is 3000, and the difference is
+    # load bearing: `monitoring.grafana.port` is already 3000 on
+    # 127.0.0.1, so a container publishing 3000 there fails to start
+    # with "address already in use". That is what happened on the
+    # first deploy to carcosa. 8091 continues the block this host
+    # already uses for loopback web services - 8080 stub_status, 8081
+    # talk, 8090 fail2ban_ui.
+    #
+    # Because this is not the mod's default, the seeded config in
+    # templates/webmap.cfg.j2 is the only thing that tells the mod
+    # about it. The two are halves of one number and nothing checks
+    # that they agree; change them together or the vhost proxies to a
+    # port nothing is listening on.
     #
     # Published to loopback only and reached through nginx - see the
     # compose template for why that means no `firewall.docker.published`
     # entry is needed for it, unlike the game ports.
-    port: 3000
+    port: 8091
     # Serves <subdomain>.<domain> for every entry in http.domains.
     #
     # This has to also appear in `http.letsencrypt.subdomains`, or the
