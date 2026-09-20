@@ -1,0 +1,43 @@
+{{ ansible_managed | comment }}
+#
+# Seed for the WebMap plugin's own configuration, written once and then
+# left alone - the role deploys this with `force: false`.
+#
+# WHY SEEDED RATHER THAN OWNED. BepInEx does not read a config file, it
+# *binds* to one: on start it writes back every setting a plugin has
+# declared, with the type and default of each as comments, in its own
+# order and its own formatting. A file this repository rewrote on every
+# run would therefore be rewritten straight back by the next start, and
+# `invoke check-drift` would report a change forever - the one signal
+# this repository relies on turned into noise. So this establishes the
+# values on a fresh host, and after the first start the file on the
+# host is the truth. Changing a setting later means editing it there,
+# under {{ valheim.config_dir }}/bepinex/, and restarting the stack.
+#
+# Every other setting is left at the mod's default deliberately, fog of
+# war above all: `reveal_all` stays off, so the map shows only ground
+# players have actually walked, and boss altars, dungeons, traders and
+# the world seed are never sent to the browser at all.
+#
+# NOT SEEDED, AND NOT AN OVERSIGHT: there is no `announce.token` file
+# beside the plugin. Without one the mod refuses /announce,
+# /api/rerender and /api/reexport outright - the three endpoints that
+# write rather than read. Nothing behind this vhost needs them.
+[Server]
+
+## TCP port the map listens on inside the container.
+##
+## This must agree with valheim.webmap.port in the inventory, which is
+## what decides the published port and what nginx proxies to. They are
+## two halves of one number and nothing checks that they match: set
+## them apart and the vhost proxies to a port nothing is listening on.
+server_port = {{ valheim.webmap.port }}
+
+## Title on the page. Defaults to the server name; spelled out here so
+## the page says the same thing the server browser does even if the
+## mod's default ever changes.
+map_title = {{ valheim.server.name }}
+
+## Shown to players in game as the address of this map. The public
+## name, not the container's port: what a player can actually open.
+webmap_url = https://{{ valheim.webmap.subdomain }}.{{ http.domains | first }}

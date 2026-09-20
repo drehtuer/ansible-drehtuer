@@ -22,6 +22,10 @@ http:
       # does not match its own vhosts.
       - spam
       - status
+      # The Valheim web map vhost, see roles/valheim. The role builds
+      # server_name from its own `webmap.subdomain`, so the two must
+      # agree or the vhost is served with a mismatched certificate.
+      - valheim
       # The GoAccess report vhost, see roles/analytics. The role
       # builds server_name from its own `subdomain`, so the two must
       # agree or the vhost is served with a mismatched certificate.

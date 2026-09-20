@@ -1,0 +1,209 @@
+# Needs roles/docker (the engine, Buildx and Compose v2) and roles/http
+# (nginx, the WebSocket upgrade map, and the certificate covering
+# valheim.webmap.subdomain). Neither is asserted here - the ordering
+# lives in playbooks/valheim.yml and in doc/STATUS.adoc with the other
+# constraints.
+#
+# It also needs the three UDP game ports in firewall.docker.published,
+# which belongs to roles/firewall and is deliberately not duplicated
+# here: one chain, one owner.
+- name: Create valheim directories
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "{{ item.mode }}"
+  loop:
+    - {path: "{{ valheim.compose_dir }}", mode: "0755"}
+    # Build context for the plugin image. Kept under compose_dir
+    # because it is the same kind of thing: configuration this repo
+    # owns and rewrites, not state the container produces.
+    - {path: "{{ valheim.compose_dir }}/webmap", mode: "0755"}
+    # The container's /config. Not world-readable: it holds the world
+    # saves, the backups of them, and the admin list.
+    - {path: "{{ valheim.config_dir }}", mode: "0700"}
+    # Where a BepInEx plugin is staged for the image to pick up. The
+    # bootstrap rsyncs this directory into the live plugins directory
+    # on every container start, which is what makes updating the mod a
+    # matter of writing here and restarting.
+    - {path: "{{ valheim.config_dir }}/bepinex", mode: "0700"}
+    - {path: "{{ valheim.config_dir }}/bepinex/plugins", mode: "0700"}
+    # The container's /opt/valheim - the game and the BepInEx install.
+    - {path: "{{ valheim.data_dir }}", mode: "0700"}
+  loop_control:
+    label: "{{ item.path }}"
+
+- name: Install the WebMap build context
+  ansible.builtin.copy:
+    src: files/webmap/Dockerfile
+    dest: "{{ valheim.compose_dir }}/webmap/Dockerfile"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Build the WebMap plugin
+  # Upstream ships no release and no binary, so the plugin is compiled
+  # here. See files/webmap/Dockerfile for what that pulls in and why.
+  #
+  # docker_image_build rather than docker_image: it drives the Buildx
+  # CLI the docker role already installs, so nothing needs the Python
+  # docker SDK on the target - the same reason the stack below uses
+  # docker_compose_v2.
+  #
+  # `rebuild: never` is what makes this idempotent, and the tag is what
+  # gives that meaning: the image is named for the revision it was
+  # built from, so a converged host does nothing and bumping
+  # valheim.webmap.revision in the inventory is what asks for a new
+  # build. Expect that build to take a while - it downloads the
+  # dedicated server to compile against.
+  community.docker.docker_image_build:
+    name: "{{ valheim.webmap.builder_image }}"
+    tag: "{{ valheim.webmap.revision[:12] }}"
+    path: "{{ valheim.compose_dir }}/webmap"
+    target: plugin
+    rebuild: never
+    args:
+      WEBMAP_REPOSITORY: "{{ valheim.webmap.repository }}"
+      WEBMAP_REVISION: "{{ valheim.webmap.revision }}"
+
+- name: Read the staged WebMap revision
+  # Missing on a host that has never had the plugin, which is not a
+  # failure but the answer to the question being asked.
+  ansible.builtin.slurp:
+    src: "{{ valheim_webmap_dir }}/.webmap-revision"
+  register: valheim_webmap_staged
+  failed_when: false
+  changed_when: false
+
+- name: Stage the built WebMap plugin
+  # A one-shot container that copies the plugin out of the image built
+  # above and into the directory the server's bootstrap syncs from.
+  #
+  # `command` rather than community.docker.docker_container, which
+  # would pull the Python docker SDK onto the target for the sake of
+  # one `cp`. The guard below is what keeps it honest: this runs when
+  # the staged revision differs from the pinned one and not otherwise,
+  # so `changed_when: true` is the truth rather than a shrug.
+  #
+  # The destination is removed first so that a file dropped between two
+  # revisions of the mod does not survive as a stale leftover. Nothing
+  # the container itself writes lives here - map tiles and the model
+  # library are produced under the *install* path, not this staging
+  # copy - so there is nothing here to lose.
+  ansible.builtin.command:
+    cmd: >-
+      docker run --rm
+      --volume {{ valheim.config_dir }}/bepinex/plugins:/dest
+      {{ valheim.webmap.builder_image }}:{{ valheim.webmap.revision[:12] }}
+      sh -c 'rm -rf /dest/WebMap && mkdir -p /dest/WebMap
+      && cp -a /out/WebMap/. /dest/WebMap/'
+  when: valheim_webmap_revision != valheim.webmap.revision
+  changed_when: true
+  notify:
+    - Restart valheim
+
+- name: Record the staged WebMap revision
+  # Written after the copy, never before: a stamp that runs ahead of
+  # the thing it describes is worse than no stamp, because the next run
+  # believes it.
+  ansible.builtin.copy:
+    content: "{{ valheim.webmap.revision }}\n"
+    dest: "{{ valheim_webmap_dir }}/.webmap-revision"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Seed the WebMap configuration
+  # `force: false` on purpose - see the template for why this file is
+  # established once and then belongs to the host. In short: BepInEx
+  # rewrites it on every start, so a file this repo owned would be a
+  # permanent, meaningless diff in `invoke check-drift`.
+  ansible.builtin.template:
+    src: templates/webmap.cfg.j2
+    dest: "{{ valheim.config_dir }}/bepinex/com.valheimwebmap.server.cfg"
+    force: false
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Configure the valheim server environment
+  # The join password, and nothing else. no_log because the diff would
+  # otherwise print it; the compose file beside it stays readable
+  # precisely so that this is the only task that has to be blind.
+  ansible.builtin.template:
+    src: templates/server.env.j2
+    dest: "{{ valheim.compose_dir }}/server.env"
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+  notify:
+    - Restart valheim
+
+- name: Configure the valheim compose stack
+  ansible.builtin.template:
+    src: templates/compose.yml.j2
+    dest: "{{ valheim.compose_dir }}/compose.yml"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Start valheim
+  # docker_compose_v2 rather than docker_container: it drives the
+  # `docker compose` CLI the docker role already installs, so nothing
+  # needs the Python docker SDK on the target, and the compose file
+  # stays the readable description of what runs.
+  community.docker.docker_compose_v2:
+    project_src: "{{ valheim.compose_dir }}"
+    state: present
+    # Pull only what the pin asks for. `missing` and not `always`, so a
+    # converged host does not reach out to the registry on every run -
+    # the digest already decides which image this is.
+    pull: missing
+
+- name: Add htaccess for the valheim web map
+  # Vault-encrypted and decrypted at deploy time, the same pattern as
+  # the spam and fail2ban_ui roles. `copy` compares content, so
+  # replacing the credential is picked up without a separate checksum.
+  ansible.builtin.copy:
+    src: files/nginx/valheim.htpasswd.aes256
+    dest: /etc/nginx/sites-available/valheim.htpasswd
+    decrypt: true
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Enable valheim htpasswd in nginx
+  ansible.builtin.file:
+    src: /etc/nginx/sites-available/valheim.htpasswd
+    dest: /etc/nginx/sites-enabled/valheim.htpasswd
+    state: link
+  notify:
+    - Reload nginx
+
+- name: Add valheim web map rproxy in nginx
+  ansible.builtin.template:
+    src: templates/nginx/valheim.conf.j2
+    dest: /etc/nginx/sites-available/valheim.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify:
+    - Reload nginx
+
+- name: Enable valheim site in nginx
+  ansible.builtin.file:
+    src: /etc/nginx/sites-available/valheim.conf
+    dest: /etc/nginx/sites-enabled/valheim.conf
+    state: link
+  notify:
+    - Reload nginx
+
+- name: Validate nginx configuration
+  # Same stance as the http, cloud and fail2ban_ui roles: a reload of a
+  # broken config leaves the old one serving, so the run would go green
+  # with the vhost not actually loaded.
+  ansible.builtin.command:
+    cmd: nginx -t
+  changed_when: false

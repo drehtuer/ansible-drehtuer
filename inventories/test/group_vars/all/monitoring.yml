@@ -105,6 +105,8 @@ monitoring:
       guarded:
         - spam
         - f2b
+        # roles/valheim's web map, behind the same basic-auth gate.
+        - valheim
         - status
     mail:
       host: "mail.{{ domain }}"

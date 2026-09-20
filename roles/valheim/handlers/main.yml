@@ -1,0 +1,27 @@
+- name: Reload nginx
+  ansible.builtin.systemd:
+    name: nginx
+    state: reloaded
+    enabled: true
+
+- name: Restart valheim
+  # What actually installs a new build of the mod. The container's
+  # bootstrap rsyncs the staged plugins directory into the live BepInEx
+  # tree on start, and BepInEx loads plugins once, at start - so a new
+  # DLL sitting in the staging directory changes nothing until this
+  # runs.
+  #
+  # It drops whoever is playing, which is why it is a handler rather
+  # than something the role does unconditionally: it fires when the
+  # plugin or the server's environment actually changed, and on a run
+  # that changed neither it does not fire at all.
+  #
+  # On a host seeing this role for the first time it fires anyway,
+  # against a container that started seconds earlier and is still
+  # downloading the game. That costs nothing - there is nobody to drop
+  # and steamcmd resumes - and the alternative, suppressing it on a
+  # first run, would mean the role knowing whether the stack existed
+  # before it touched it.
+  community.docker.docker_compose_v2:
+    project_src: "{{ valheim.compose_dir }}"
+    state: restarted

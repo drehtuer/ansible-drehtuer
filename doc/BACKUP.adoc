@@ -69,6 +69,14 @@ Four failure modes, because they need different answers and a design that confla
 | local only
 | Bad-upgrade protection. The off-site copy is the sync clients.
 
+| The Valheim world (`/srv/valheim/config/worlds_local`)
+| local + off-site
+| The one thing under that container no playbook can reproduce. See <<valheim-world,the Valheim decision below>>.
+
+| The Valheim server's own hourly zips of that world
+| none
+| Three days of the same data, compressed so it deduplicates badly. Kept on the host, not in the repository.
+
 | Logs, Prometheus TSDB, Grafana's database
 | none
 | Live data. Losing it is acceptable and is recorded as a decision, not an oversight.
@@ -147,6 +155,15 @@ It can be retrained, and the corpus is the restored mail: `rspamd-train-bulk` se
 * The result is a *different* classifier, not the same one. `carcosa`'s current counters (`learns_spam` 20147, `learns_ham` 11778) include a one-sided skew of roughly 1910 from the 2026-08-16 seeding incident, deliberately accepted; a fresh seed would not reproduce it, which is arguably an improvement.
 * Filtering is weaker until the seed completes. A classifier at zero learns contributes nothing, and everything else in the pipeline — SPF, DKIM, DMARC, RBLs, `force_actions.conf` — carries the load meanwhile.
 * The STATUS lesson applies unchanged and is the one way to make this worse: **do not re-send a corpus to chase a shortfall.** An immediate second pass over an identical corpus re-learned 6% of it on an idle lab guest.
+
+[#valheim-world]
+=== The Valheim world is backed up; the server's own backups of it are not
+
+`roles/valheim` runs a game server in a container, and almost none of what that container holds is worth keeping: the image is pinned and pullable, the game and BepInEx are Steam downloads, the mod is compiled from a pinned revision, and the map redraws itself. The world save is the exception and the whole of it — `/srv/valheim/config/worlds_local` is in `backup.paths` for exactly that reason.
+
+**Its sibling `/srv/valheim/config/backups` is deliberately left out.** The container keeps hourly zips of the same world there, three days deep. Zips compress badly enough to defeat restic's deduplication, so including them would push the same world through the repository seventy times over to buy one extra day of history.
+
+**What that trade costs is consistency, and it is worth stating rather than glossing.** Each zip is taken by the server itself and is internally consistent; a restic snapshot of the live files can in principle catch a save in progress. The nightly run is at 02:30 and the server's own restart is at 05:10, so they do not collide, but nothing prevents a player from being mid-save at 02:30. If a restored world turns out to be torn, the zips are still on the host — this decision moves them out of the repository, not off the disk.
 
 === Logs, Prometheus and Grafana are not backed up
 

@@ -14,10 +14,35 @@ firewall:
     # traffic, not `rules` below - a published port is DNATed and
     # traverses FORWARD, so the INPUT allow-list never sees it. The
     # Satisfactory server was the one entry here and was removed on
-    # 2026-09-13 with the game server itself.
+    # 2026-09-13 with the game server itself; `roles/valheim` is what
+    # put entries back.
+    #
+    # Note what is deliberately *not* also added to `rules.udp` below:
+    # nothing. The Satisfactory episode ended by removing exactly those
+    # duplicate INPUT rules, having established they never admitted a
+    # byte of the traffic they appeared to be for. Listing a published
+    # port in both places looks thorough and only makes the chain that
+    # matters harder to find.
     published:
       tcp: []
-      udp: []
+      udp:
+        # The Valheim dedicated server, roles/valheim. Three
+        # consecutive ports and all three are needed: 2456 is the
+        # game, 2457 is Steam's query port - without it the server
+        # answers nothing the client asks before connecting - and 2458
+        # is the RPC port mods use, which WebMap is. Opening only the
+        # first two gives a server that plays fine and a map nobody
+        # can load.
+        #
+        # The map's own port is absent on purpose: it is published to
+        # 127.0.0.1, so it never arrives on wan_interface and nginx is
+        # the only route to it.
+        - port: 2456
+          comment: "Valheim game (roles/valheim)"
+        - port: 2457
+          comment: "Valheim Steam query (roles/valheim)"
+        - port: 2458
+          comment: "Valheim mod RPC, needed by WebMap (roles/valheim)"
   wireguard:
     # carcosa terminates the VPN, so wg0 traffic is forwarded and
     # masqueraded and the nat table is emitted. Values come from the

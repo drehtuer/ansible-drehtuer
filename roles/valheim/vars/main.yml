@@ -1,0 +1,17 @@
+---
+# Where the plugin is staged for the container's bootstrap to pick up.
+# Spelled once here rather than four times in tasks/main.yml, since
+# getting one of them wrong would stage a plugin nothing ever reads and
+# the only symptom would be a map that never appears.
+valheim_webmap_dir: "{{ valheim.config_dir }}/bepinex/plugins/WebMap"
+
+# Which revision of the plugin is currently staged, or the empty string
+# on a host that has never had it.
+#
+# Lazily templated, which is the whole trick: this is defined here but
+# only evaluated where it is used, after the slurp that registers
+# `valheim_webmap_staged` has run. The `default('')` covers the missing
+# file, where that task is deliberately allowed to fail and therefore
+# registers no content at all.
+valheim_webmap_revision: >-
+  {{ valheim_webmap_staged.content | default('') | b64decode | trim }}

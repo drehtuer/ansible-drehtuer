@@ -1,0 +1,172 @@
+argument_specs:
+  main:
+    short_description: Valheim dedicated server, with a web map
+    description:
+      - Runs the community-valheim-tools/valheim-server image as a
+        Compose stack with BepInEx enabled, and compiles the
+        f00d4tehg0dz/valheim-webmap plugin from source into it.
+      - The game itself is reached over three published UDP ports,
+        which need matching entries in firewall.docker.published -
+        a published container port is DNATed and traverses FORWARD,
+        so the INPUT allow-list never sees it.
+      - The map is published to loopback only and reverse proxied at
+        <subdomain>.<domain> for every served domain, behind TLS and
+        HTTP basic auth. The mod has no authentication of its own, so
+        that basic-auth credential is the whole access control.
+    options:
+      http:
+        type: dict
+        required: true
+        description:
+          - Shared with the http role. Only http.port_https and
+            http.domains are read here, to build the vhost.
+            Deliberately declared without suboptions - listing them
+            would make validation reject every other key the http role
+            itself requires.
+      valheim:
+        type: dict
+        required: true
+        description: Game server and web map settings.
+        options:
+          image:
+            type: str
+            required: true
+            description: Container image repository.
+          tag:
+            type: str
+            required: true
+            description:
+              - Image tag. Human-readable half of the pin; the digest
+                below is what actually decides which image runs.
+          digest:
+            type: str
+            required: true
+            description:
+              - Image digest, as sha256:... A tag can be moved, a
+                digest cannot. Use the multi-arch index digest so the
+                pin survives a host of another architecture.
+          compose_dir:
+            type: str
+            required: true
+            description:
+              - Directory holding the generated compose file, the
+                environment file and the plugin build context. Owned
+                by this repository and rewritten on every run.
+          config_dir:
+            type: str
+            required: true
+            description:
+              - The container's /config - worlds, backups, BepInEx
+                configuration and the staging copy of the plugin.
+                The only directory here whose loss costs anything.
+          data_dir:
+            type: str
+            required: true
+            description:
+              - The container's /opt/valheim - the game and the
+                BepInEx install, both re-downloadable.
+          server:
+            type: dict
+            required: true
+            description: The game server itself.
+            options:
+              name:
+                type: str
+                required: true
+                description: Name shown in the server browser.
+              world:
+                type: str
+                required: true
+                description:
+                  - World save name. Changing it starts a different
+                    world rather than renaming the existing one.
+              password:
+                type: str
+                required: true
+                no_log: true
+                description:
+                  - Join password, at least five characters, and not
+                    a substring of the server name - the server
+                    refuses to start otherwise. Vault-encrypted.
+              public:
+                type: bool
+                required: true
+                description:
+                  - Advertise in the in-game server browser. A
+                    listing decision, not an access control one.
+              port:
+                type: int
+                required: true
+                description:
+                  - First of three consecutive UDP ports. port+1 is
+                    the Steam query port, port+2 is the RPC port mods
+                    need. All three must appear in
+                    firewall.docker.published.udp.
+              timezone:
+                type: str
+                required: true
+                description:
+                  - Container timezone, which is what the in-game
+                    day and the backup/restart schedules follow.
+              admin_ids:
+                type: list
+                elements: str
+                required: true
+                no_log: true
+                description:
+                  - SteamID64s granted admin in game, which also
+                    grants the world-modifier console commands. May
+                    be empty. Vaulted, since a SteamID64 identifies
+                    a real account - hence no_log, and hence it is
+                    rendered into server.env rather than compose.yml.
+              args:
+                type: list
+                elements: str
+                required: true
+                description:
+                  - Extra arguments appended to the server command
+                    line, joined with spaces. Where world modifiers
+                    go, a dedicated server taking them here and
+                    nowhere else. May be empty. `-preset` must
+                    precede any `-modifier`, which it silently
+                    overwrites otherwise.
+          webmap:
+            type: dict
+            required: true
+            description: The WebMap BepInEx plugin.
+            options:
+              repository:
+                type: str
+                required: true
+                description: Git repository the plugin is built from.
+              revision:
+                type: str
+                required: true
+                description:
+                  - Full git commit the plugin is built from.
+                    Upstream publishes no releases and no binaries,
+                    so this is the pin - it does for the plugin what
+                    `digest` does for a pulled image, and changing it
+                    is what triggers a rebuild.
+              builder_image:
+                type: str
+                required: true
+                description:
+                  - Local name for the image that compiles the
+                    plugin. Tagged with the revision, never pushed.
+              port:
+                type: int
+                required: true
+                description:
+                  - Loopback port the map listens on, and the one
+                    nginx proxies to. Never published to a network.
+                    Must match `server_port` in the mod's own config,
+                    which templates/webmap.cfg.j2 seeds.
+              subdomain:
+                type: str
+                required: true
+                description:
+                  - Subdomain the vhost answers for, per served
+                    domain. Must also appear in
+                    http.letsencrypt.subdomains, or the certificate
+                    will not cover it.

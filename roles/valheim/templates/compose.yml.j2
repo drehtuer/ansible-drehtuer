@@ -1,0 +1,81 @@
+{{ ansible_managed | comment }}
+#
+# The Valheim dedicated server, and the web map that runs inside it.
+#
+# TWO KINDS OF PORT, AND THEY ARE NOT THE SAME KIND OF DECISION.
+#
+#   * The three UDP game ports are published on every interface,
+#     because the point of the server is that people on the internet
+#     reach it. A published port is DNATed and traverses FORWARD rather
+#     than INPUT, so `firewall.rules.udp` has nothing to do with it -
+#     `firewall.docker.published.udp` is what admits this traffic, and
+#     without matching entries there the DOCKER-USER chain's trailing
+#     DROP swallows it however the allow-list reads. That lesson cost a
+#     day on the Satisfactory server; see doc/STATUS.adoc.
+#   * The map's TCP port is published to 127.0.0.1 and nowhere else, so
+#     it never reaches DOCKER-USER from the WAN interface at all and
+#     needs no entry. nginx is the only way to it, and the basic-auth
+#     block in the vhost is the only authentication there is - the mod
+#     ships none, by its author's own account.
+#
+# WHY port+2. A vanilla server needs the game port and the Steam query
+# port beside it. Mods that use RPC need a third, and WebMap is one, so
+# the range is three wide rather than two. Opening two is the failure
+# that looks like a working server with a map nobody can load.
+services:
+  valheim:
+    image: "{{ valheim.image }}:{{ valheim.tag }}@{{ valheim.digest }}"
+    container_name: valheim
+    # Survives a reboot and a daemon restart, but stays down if it was
+    # stopped deliberately. `live-restore` in the docker role keeps it
+    # running when the firewall role bounces dockerd - which matters
+    # more here than anywhere else in this repo, since the alternative
+    # is dropping everyone out of the game to change a firewall rule.
+    restart: unless-stopped
+    # The server raises the priority of its own threads. Without this
+    # it starts anyway and logs the failure, so the symptom is stutter
+    # under load rather than anything that looks like a misconfigured
+    # container.
+    cap_add:
+      - SYS_NICE
+    # Valheim writes the world on shutdown. Docker's default ten
+    # seconds is not enough for a large one, and the difference between
+    # a clean stop and a kill is however many minutes of play happened
+    # since the last autosave.
+    stop_grace_period: 2m
+{% set game_ports = valheim.server.port ~ '-' ~ (valheim.server.port + 2) %}
+    ports:
+      - "{{ game_ports }}:{{ game_ports }}/udp"
+      - "127.0.0.1:{{ valheim.webmap.port }}:{{ valheim.webmap.port }}/tcp"
+    # The two secrets - the join password and the admin list - live in
+    # their own file rather than here, so that this one stays
+    # readable, reviewable and diffable by `invoke check-drift` while
+    # only what has to be blind is 0600 and no_log.
+    env_file:
+      - server.env
+    environment:
+      SERVER_NAME: "{{ valheim.server.name }}"
+      WORLD_NAME: "{{ valheim.server.world }}"
+      SERVER_PORT: "{{ valheim.server.port }}"
+      SERVER_PUBLIC: "{{ valheim.server.public | string | lower }}"
+      TZ: "{{ valheim.server.timezone }}"
+      # World modifiers and anything else appended to the server's
+      # command line. Not a secret, so it stays here where a reader
+      # can see what the world is actually set to.
+      SERVER_ARGS: "{{ valheim.server.args | join(' ') }}"
+      # The mod loader. Mutually exclusive with VALHEIM_PLUS, which the
+      # image refuses to start alongside it rather than picking one.
+      #
+      # This is also what makes the plugin install work: with BepInEx
+      # on, the image's bootstrap rsyncs /config/bepinex/plugins/ into
+      # the live BepInEx plugins directory on *every* container start.
+      # That is why the role stages the plugin under config_dir and
+      # restarts the stack, rather than writing into the install tree.
+      BEPINEX: "true"
+    volumes:
+      # Worlds, backups, BepInEx configuration, and the staged plugin.
+      # The only volume here whose loss costs anything.
+      - "{{ valheim.config_dir }}:/config"
+      # The game and the BepInEx install. Re-downloaded from Steam if
+      # it is ever lost, which is why it is kept apart from the above.
+      - "{{ valheim.data_dir }}:/opt/valheim"

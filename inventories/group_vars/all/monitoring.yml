@@ -113,6 +113,11 @@ monitoring:
       guarded:
         - spam
         - f2b
+        # roles/valheim's web map, behind the same kind of basic-auth
+        # gate. Worth probing for its own reason as well as the
+        # certificate: the map is the only outward sign that the game
+        # server behind it is still running.
+        - valheim
         - status
         # roles/analytics, behind the same kind of basic-auth gate.
         - weblog
