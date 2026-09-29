@@ -66,32 +66,33 @@ valheim:
           6438653937623431650a383763356439363934376666363839356438343965633834363461666264
           64616637613138373837653334303231303162653065376230336637396262653164
     # Extra arguments appended to the server command line, joined
-    # with spaces. Empty means Valheim's defaults, which is the
-    # `normal` preset.
-    #
-    # This is where world modifiers go - combat, deathpenalty,
-    # resources, raids, portals - because a dedicated server takes
-    # them here and nowhere else: the client's world-settings screen
-    # only appears when creating a world locally, and a player
-    # joining this one never sees it. See doc/STATUS.adoc.
+    # with spaces. This is where world modifiers go - a dedicated
+    # server takes them here and nowhere else, since the client's
+    # world-settings screen only appears when creating a world
+    # locally and a player joining this one never sees it. See
+    # doc/STATUS.adoc.
     #
     # ORDER MATTERS AND FAILS SILENTLY. A `-preset` overwrites every
     # modifier that came before it, logging nothing, so `-preset`
     # goes first, then each `-modifier <name> <value>`, then each
-    # `-setkey <key>`. Example:
+    # `-setkey <key>`. There is deliberately no `-preset` below: the
+    # four dials named here are the only ones meant to move, and a
+    # preset would reset the rest to its own idea of normal.
     #
-    #   args:
-    #     - "-preset normal"
-    #     - "-modifier deathpenalty casual"
-    #     - "-modifier raids less"
-    #     - "-setkey passivemobs"
-    #
-    # Note the asymmetry if these are ever changed on a live world:
-    # the value-based modifiers are stored with the world and can
-    # also be changed in game by an admin, while the on/off `-setkey`
-    # flags are read when the world is first created and ignored
-    # afterwards.
-    args: []
+    # These four are all value-based modifiers, which is what makes
+    # them safe to add to a world that already exists - they travel
+    # with the world and take effect on the next start. The on/off
+    # `-setkey` flags are the ones that would not: those are read
+    # when a world is first created and ignored ever after.
+    args:
+      # Keep what you were carrying, and no skill loss.
+      - "-modifier deathpenalty casual"
+      # Denser ore, wood and other gathered resources.
+      - "-modifier resources muchmore"
+      # More frequent base raids.
+      - "-modifier raids more"
+      # Portals carry everything, ore and metal bars included.
+      - "-modifier portals casual"
   webmap:
     repository: https://github.com/f00d4tehg0dz/valheim-webmap.git
     # Upstream publishes no releases, so this is the pin: it does for
