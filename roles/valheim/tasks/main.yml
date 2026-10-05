@@ -24,9 +24,15 @@
     # tree on every container start, which is what makes updating a
     # mod a matter of writing here and restarting. The directory
     # itself is the live BepInEx/config, by symlink.
-    - {path: "{{ valheim.config_dir }}/bepinex", mode: "0700"}
-    - {path: "{{ valheim.config_dir }}/bepinex/plugins", mode: "0700"}
-    - {path: "{{ valheim.config_dir }}/bepinex/patchers", mode: "0700"}
+    #
+    # 0755 because that is what the image sets them to on every start
+    # (BEPINEX_CONFIG_DIRECTORY_PERMISSIONS, from its 022 umask), so
+    # anything else is a change every run reports and every start
+    # undoes. Nothing is exposed by it: config_dir above is 0700, and
+    # nobody reaches these except through it.
+    - {path: "{{ valheim.config_dir }}/bepinex", mode: "0755"}
+    - {path: "{{ valheim.config_dir }}/bepinex/plugins", mode: "0755"}
+    - {path: "{{ valheim.config_dir }}/bepinex/patchers", mode: "0755"}
     # What library/thunderstore_package.py staged, one file per
     # package. Beside bepinex/ rather than in it, so the bootstrap
     # never syncs it anywhere.
