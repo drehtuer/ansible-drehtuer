@@ -72,6 +72,11 @@ services:
       # That is why the role stages the plugin under config_dir and
       # restarts the stack, rather than writing into the install tree.
       BEPINEX: "true"
+      # The image chmods /config to this on every start, 0755 unless
+      # told otherwise - which silently undid the 0700 the role sets on
+      # config_dir, and made every run report it as a change. The
+      # server runs as root inside, so it loses nothing by this.
+      CONFIG_DIRECTORY_PERMISSIONS: "0700"
     volumes:
       # Worlds, backups, BepInEx configuration, and the staged plugin.
       # The only volume here whose loss costs anything.
