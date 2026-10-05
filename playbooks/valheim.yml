@@ -1,5 +1,5 @@
-# Needs docker and http to have run on this host first - the engine,
-# Buildx and Compose v2, and the certificate covering the map's vhost.
+# Needs docker and http to have run on this host first - the engine
+# and Compose v2, and the certificate covering the map's vhost.
 # It also needs firewall to have run with the three UDP game ports in
 # `firewall.docker.published`, or the server comes up and nobody can
 # reach it. See doc/STATUS.adoc.
@@ -10,8 +10,8 @@
 # DELIBERATELY NOT PART OF playbooks/site.yml. Every other role there
 # builds the host; this one runs a game on it, and the first run costs
 # two large downloads that a rebuild of the serving infrastructure has
-# no reason to wait for - the dedicated server for the plugin to
-# compile against, and the server's own copy of the game. It is opt-in
+# no reason to wait for - close to a gigabyte of mods, and the
+# server's own copy of the game. It is opt-in
 # for the same reason `upgrade` is, if less dramatically: run it when
 # the game server is what you want.
 - name: Valheim role

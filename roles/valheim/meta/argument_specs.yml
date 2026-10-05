@@ -3,8 +3,9 @@ argument_specs:
     short_description: Valheim dedicated server, with a web map
     description:
       - Runs the community-valheim-tools/valheim-server image as a
-        Compose stack with BepInEx enabled, and compiles the
-        f00d4tehg0dz/valheim-webmap plugin from source into it.
+        Compose stack with BepInEx enabled, and stages the pinned
+        Thunderstore packages in valheim_mods into it - among them the
+        f00d4tehg0dz/valheim-webmap plugin.
       - The game itself is reached over three published UDP ports,
         which need matching entries in firewall.docker.published -
         a published container port is DNATed and traverses FORWARD,
@@ -150,25 +151,6 @@ argument_specs:
             required: true
             description: The WebMap BepInEx plugin.
             options:
-              repository:
-                type: str
-                required: true
-                description: Git repository the plugin is built from.
-              revision:
-                type: str
-                required: true
-                description:
-                  - Full git commit the plugin is built from.
-                    Upstream publishes no releases and no binaries,
-                    so this is the pin - it does for the plugin what
-                    `digest` does for a pulled image, and changing it
-                    is what triggers a rebuild.
-              builder_image:
-                type: str
-                required: true
-                description:
-                  - Local name for the image that compiles the
-                    plugin. Tagged with the revision, never pushed.
               port:
                 type: int
                 required: true
@@ -185,3 +167,36 @@ argument_specs:
                     domain. Must also appear in
                     http.letsencrypt.subdomains, or the certificate
                     will not cover it.
+      valheim_mods:
+        type: list
+        elements: dict
+        # Not required: the role defaults carry the list, and no
+        # inventory needs to repeat it. Validated when one does.
+        required: false
+        description:
+          - Thunderstore packages to stage, each pinned by version and
+            by the SHA-256 of its zip. Dependencies are not resolved;
+            list them too. Removing an entry removes the mod.
+        options:
+          name:
+            type: str
+            required: true
+            description: Package as <namespace>-<name>.
+          version:
+            type: str
+            required: true
+            description: Package version.
+          sha256:
+            type: str
+            required: true
+            description:
+              - SHA-256 of the package zip. A download that does not
+                match fails the run.
+          directory:
+            type: str
+            required: false
+            description:
+              - Directory under plugins/ (and patchers/) the package
+                is staged into. Defaults to the package name. Matters
+                for a plugin that keeps runtime data beside its DLL,
+                as WebMap does.

@@ -2,8 +2,8 @@
 # from this inventory alone - without role defaults - so anything a
 # template reads has to be defined here or the render fails.
 #
-# The image digest and the plugin revision are the real ones rather
-# than placeholders: both are public information, and a fake would make
+# The image digest and the mod pins are the real ones rather than
+# placeholders: both are public information, and a fake would make
 # this file stop being a working example of what the role expects.
 #
 # The password is deliberately fake, deliberately unencrypted, and
@@ -37,9 +37,19 @@ valheim:
       - "-preset normal"
       - "-modifier raids less"
   webmap:
-    repository: https://github.com/f00d4tehg0dz/valheim-webmap.git
-    revision: 99c6e940153d53c39c6db504aaf953d0fba97748
-    builder_image: valheim-webmap
     # 8091, not the mod default of 3000, which Grafana holds.
     port: 8091
     subdomain: valheim
+
+# Two real entries out of the role default's list, not all of them:
+# enough for the argument spec to validate the shape - including the
+# optional `directory` - without repeating the whole list here, which
+# would be one more copy to bump on every update.
+valheim_mods:
+  - name: ValheimModding-Jotunn
+    version: "2.30.2"
+    sha256: 8aae92da2be0eb6820cd4cf57e2f6c1d6ad0d738d4915966e7c3d7a94e9a9b0f
+  - name: f00d4tehg0dz-ValheimWebMap
+    version: "2.1.6"
+    sha256: 1ce6e3ac26b1b39e9be05d88db32efb454c273d544ced696f631476794052ef2
+    directory: WebMap

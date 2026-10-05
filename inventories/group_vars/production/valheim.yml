@@ -1,5 +1,6 @@
-# The Valheim dedicated server on carcosa, and the WebMap plugin it
-# runs. Mirrors roles/valheim/defaults/main.yml, because an inventory
+# The Valheim dedicated server on carcosa, and how its web map is
+# exposed; the mods it runs are in valheim_mods, in the role defaults.
+# Mirrors roles/valheim/defaults/main.yml, because an inventory
 # dict REPLACES the role default rather than merging into it - so this
 # file has to repeat every key the role reads. See doc/STATUS.adoc.
 #

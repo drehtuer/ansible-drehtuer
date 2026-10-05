@@ -1,4 +1,4 @@
-# Needs roles/docker (the engine, Buildx and Compose v2) and roles/http
+# Needs roles/docker (the engine and Compose v2) and roles/http
 # (nginx, the WebSocket upgrade map, and the certificate covering
 # valheim.webmap.subdomain). Neither is asserted here - the ordering
 # lives in playbooks/valheim.yml and in doc/STATUS.adoc with the other
@@ -16,103 +16,71 @@
     mode: "{{ item.mode }}"
   loop:
     - {path: "{{ valheim.compose_dir }}", mode: "0755"}
-    # Build context for the plugin image. Kept under compose_dir
-    # because it is the same kind of thing: configuration this repo
-    # owns and rewrites, not state the container produces.
-    - {path: "{{ valheim.compose_dir }}/webmap", mode: "0755"}
     # The container's /config. Not world-readable: it holds the world
     # saves, the backups of them, and the admin list.
     - {path: "{{ valheim.config_dir }}", mode: "0700"}
-    # Where a BepInEx plugin is staged for the image to pick up. The
-    # bootstrap rsyncs this directory into the live plugins directory
-    # on every container start, which is what makes updating the mod a
-    # matter of writing here and restarting.
+    # Where BepInEx plugins are staged for the image to pick up. The
+    # bootstrap rsyncs plugins/ and patchers/ in here into the live
+    # tree on every container start, which is what makes updating a
+    # mod a matter of writing here and restarting. The directory
+    # itself is the live BepInEx/config, by symlink.
     - {path: "{{ valheim.config_dir }}/bepinex", mode: "0700"}
     - {path: "{{ valheim.config_dir }}/bepinex/plugins", mode: "0700"}
+    - {path: "{{ valheim.config_dir }}/bepinex/patchers", mode: "0700"}
+    # What library/thunderstore_package.py staged, one file per
+    # package. Beside bepinex/ rather than in it, so the bootstrap
+    # never syncs it anywhere.
+    - {path: "{{ valheim_mods_state_dir }}", mode: "0700"}
     # The container's /opt/valheim - the game and the BepInEx install.
     - {path: "{{ valheim.data_dir }}", mode: "0700"}
   loop_control:
     label: "{{ item.path }}"
 
-- name: Install the WebMap build context
-  ansible.builtin.copy:
-    src: files/webmap/Dockerfile
-    dest: "{{ valheim.compose_dir }}/webmap/Dockerfile"
-    owner: root
-    group: root
-    mode: "0644"
-
-- name: Build the WebMap plugin
-  # Upstream ships no release and no binary, so the plugin is compiled
-  # here. See files/webmap/Dockerfile for what that pulls in and why.
+- name: Stage the BepInEx mods
+  # Downloads each pinned package, checks it against its SHA-256 and
+  # stages it under config_dir/bepinex - see the module for how a
+  # Thunderstore zip is mapped onto BepInEx's directories, which is
+  # the part a plain get_url + unarchive gets wrong.
   #
-  # docker_image_build rather than docker_image: it drives the Buildx
-  # CLI the docker role already installs, so nothing needs the Python
-  # docker SDK on the target - the same reason the stack below uses
-  # docker_compose_v2.
-  #
-  # `rebuild: never` is what makes this idempotent, and the tag is what
-  # gives that meaning: the image is named for the revision it was
-  # built from, so a converged host does nothing and bumping
-  # valheim.webmap.revision in the inventory is what asks for a new
-  # build. Expect that build to take a while - it downloads the
-  # dedicated server to compile against.
-  community.docker.docker_image_build:
-    name: "{{ valheim.webmap.builder_image }}"
-    tag: "{{ valheim.webmap.revision[:12] }}"
-    path: "{{ valheim.compose_dir }}/webmap"
-    target: plugin
-    rebuild: never
-    args:
-      WEBMAP_REPOSITORY: "{{ valheim.webmap.repository }}"
-      WEBMAP_REVISION: "{{ valheim.webmap.revision }}"
-
-- name: Read the staged WebMap revision
-  # Missing on a host that has never had the plugin, which is not a
-  # failure but the answer to the question being asked.
-  ansible.builtin.slurp:
-    src: "{{ valheim_webmap_dir }}/.webmap-revision"
-  register: valheim_webmap_staged
-  failed_when: false
-  changed_when: false
-
-- name: Stage the built WebMap plugin
-  # A one-shot container that copies the plugin out of the image built
-  # above and into the directory the server's bootstrap syncs from.
-  #
-  # `command` rather than community.docker.docker_container, which
-  # would pull the Python docker SDK onto the target for the sake of
-  # one `cp`. The guard below is what keeps it honest: this runs when
-  # the staged revision differs from the pinned one and not otherwise,
-  # so `changed_when: true` is the truth rather than a shrug.
-  #
-  # The destination is removed first so that a file dropped between two
-  # revisions of the mod does not survive as a stale leftover. Nothing
-  # the container itself writes lives here - map tiles and the model
-  # library are produced under the *install* path, not this staging
-  # copy - so there is nothing here to lose.
-  ansible.builtin.command:
-    cmd: >-
-      docker run --rm
-      --volume {{ valheim.config_dir }}/bepinex/plugins:/dest
-      {{ valheim.webmap.builder_image }}:{{ valheim.webmap.revision[:12] }}
-      sh -c 'rm -rf /dest/WebMap && mkdir -p /dest/WebMap
-      && cp -a /out/WebMap/. /dest/WebMap/'
-  when: valheim_webmap_revision != valheim.webmap.revision
-  changed_when: true
+  # Idempotent without touching the network: the module compares a
+  # state file per package against the pin and does nothing when they
+  # agree. Expect the first run to take a while; the full set is
+  # close to a gigabyte, most of it the Therzie and MWL asset bundles.
+  thunderstore_package:
+    name: "{{ item.name }}"
+    version: "{{ item.version }}"
+    sha256: "{{ item.sha256 }}"
+    directory: "{{ item.directory | default(omit) }}"
+    bepinex_dir: "{{ valheim.config_dir }}/bepinex"
+    state_dir: "{{ valheim_mods_state_dir }}"
+  loop: "{{ valheim_mods }}"
+  loop_control:
+    label: "{{ item.name }} {{ item.version }}"
   notify:
     - Restart valheim
 
-- name: Record the staged WebMap revision
-  # Written after the copy, never before: a stamp that runs ahead of
-  # the thing it describes is worse than no stamp, because the next run
-  # believes it.
-  ansible.builtin.copy:
-    content: "{{ valheim.webmap.revision }}\n"
-    dest: "{{ valheim_webmap_dir }}/.webmap-revision"
-    owner: root
-    group: root
-    mode: "0644"
+- name: Find staged BepInEx mods
+  ansible.builtin.find:
+    paths: "{{ valheim_mods_state_dir }}"
+    patterns: "*.json"
+  register: valheim_mods_staged
+
+- name: Remove BepInEx mods no longer listed
+  # So that deleting an entry from valheim_mods is how a mod is
+  # removed, rather than something to remember to do by hand. The
+  # image's bootstrap then prunes the live copy on the next start,
+  # from its own record of what it synced.
+  thunderstore_package:
+    name: "{{ item }}"
+    bepinex_dir: "{{ valheim.config_dir }}/bepinex"
+    state_dir: "{{ valheim_mods_state_dir }}"
+    state: absent
+  loop: >-
+    {{ valheim_mods_staged.files | map(attribute='path')
+       | map('basename') | map('splitext') | map('first')
+       | difference(valheim_mods | map(attribute='name')) | sort }}
+  notify:
+    - Restart valheim
 
 - name: Seed the WebMap configuration
   # `force: false` on purpose - see the template for why this file is
