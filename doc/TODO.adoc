@@ -63,7 +63,7 @@ Two decisions that come with it. *Back up the mods' own configuration:* everythi
 . *Join the server from a real Valheim client*, by IP on 2456 with the join password. Reachability as far as the host is established — a probe from off-host arrived and was admitted, which the `DOCKER-USER` counter on the udp/2457 rule shows — but Valheim does not answer a raw Source query, so nothing short of a client proves a player can actually connect and play.
 --
 +
-Two smaller things worth doing while there: confirm the map redraws after the first BepInEx or server update, since the rendered tiles live under the install path that an update discards, and decide whether `valheim.server.args` should carry any world modifiers rather than leaving Valheim's defaults.
+Two smaller things worth doing while there: confirm the map redraws after the first BepInEx or server update, since the rendered tiles live under the install path that an update discards. The world modifiers are decided as of 2026-10-05 — `deathpenalty casual`, `raids more`, `resources muchmore` in `valheim.server.args` — and go live with the next run of `playbooks/valheim.yml`; confirm in game with an admin's `F5` console that the world reports them.
 
 == Future work (not urgent)
 

@@ -21,7 +21,11 @@ valheim:
     name: drehtuer.net
     # Changing this does not rename the world, it starts a different
     # one. The save under config_dir/worlds_local keeps this name.
-    world: Midgard
+    #
+    # Yggdrasil since 2026-10-05, generated fresh with the mods in
+    # valheim_mods. Its vanilla predecessor, Midgard, is still in
+    # worlds_local and archived beside it - see doc/STATUS.adoc.
+    world: Yggdrasil
     # The only way in: the server is not listed, so players reach it
     # with Join by IP and this. Rotate with
     # `ansible-vault encrypt_string --stdin-name password`.
@@ -94,13 +98,10 @@ valheim:
       - "-modifier raids more"
       # Portals carry everything, ore and metal bars included.
       - "-modifier portals casual"
+  # The plugin itself is pinned in valheim_mods, in the role defaults,
+  # with every other mod - it is the same everywhere, so no inventory
+  # repeats it. What is here is how this host exposes the map.
   webmap:
-    repository: https://github.com/f00d4tehg0dz/valheim-webmap.git
-    # Upstream publishes no releases, so this is the pin: it does for
-    # the plugin what `digest` above does for the image, and changing
-    # it is what makes the role rebuild and restage.
-    revision: 99c6e940153d53c39c6db504aaf953d0fba97748
-    builder_image: valheim-webmap
     # Loopback only, reached through the nginx vhost. Must match
     # `server_port` in the mod's own config on the host. Nothing off
     # this host ever connects to this port - the map is reached at
