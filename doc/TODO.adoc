@@ -54,7 +54,7 @@ Two decisions still open. *Back up the mods' own configuration:* everything unde
 . *Join the server from a real Valheim client*, by IP on 2456 with the join password. Reachability as far as the host is established — a probe from off-host arrived and was admitted, which the `DOCKER-USER` counter on the udp/2457 rule shows — but Valheim does not answer a raw Source query, so nothing short of a client proves a player can actually connect and play.
 --
 +
-Two smaller things worth doing while there: confirm the map redraws after the first BepInEx or server update, since the rendered tiles live under the install path that an update discards. The world modifiers are set as of 2026-10-05 — `deathpenalty casual`, `raids more`, `resources muchmore` — and the server logs them on every start; worth a look in an admin's `F5` console in game all the same.
+Two smaller things worth doing while there: confirm the map redraws after the first BepInEx or server update, since the rendered tiles live under the install path that an update discards. The world modifiers are set — `deathpenalty casual`, `resources muchmore`, `raids more`, `portals casual` — and the server logs them on every start; `portals casual` reaches `carcosa` with the next deploy of `playbooks/valheim.yml`. Worth a look in an admin's `F5` console in game all the same, and a decision on whether ServersideQoL_PortalProgression stays once portals carry everything.
 
 == Future work (not urgent)
 
