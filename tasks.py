@@ -8,7 +8,12 @@ correct parameters as well as shorthand
 for complex parameters.
 """
 
+import hashlib
+import json
 import re
+import time
+import urllib.error
+import urllib.request
 from pathlib import Path
 from shutil import rmtree, which
 from tempfile import mkdtemp
@@ -67,6 +72,22 @@ ASK_BECOME_PASS = '--ask-become-pass'
 VERBOSE = '-vvv'
 CHECK = '--check'
 DIFF = '--diff'
+# The Valheim mod pins, and every other file that repeats some of
+# them. `valheim-mods --update` rewrites a pin wherever it appears.
+VALHEIM_MODS_FILES = [
+  'roles/valheim/defaults/main.yml',
+  f'{INVENTORY_DIR}/test/group_vars/all/valheim.yml',
+]
+THUNDERSTORE_API = 'https://thunderstore.io/api/experimental/package'
+# Installed by the image itself (`BEPINEX: "true"`), not pinned here.
+THUNDERSTORE_PROVIDED = ('denikson-BepInExPack_Valheim',)
+# One pin as the YAML spells it: `- name:` and the keys indented under
+# it, in whatever order - WebMap's carries a `directory:` between
+# version and sha256. The rewrite is textual on purpose, so the
+# comments around it survive.
+MOD_PIN = re.compile(r'- name: (?P<name>\S+)\n(?:[ \t]+\w+: .*\n?)+')
+MOD_VERSION = re.compile(r'(version: )"([^"]+)"')
+MOD_SHA256 = re.compile(r'(sha256: )([0-9a-f]{64})')
 
 
 def ctx_run(
@@ -853,3 +874,129 @@ def check_drift(
       'cannot run in check mode and fail for that reason alone.',
       code=1,
     )
+
+
+def thunderstore(url: str, attempts: int = 5) -> bytes:
+  """
+  Fetch a Thunderstore URL.
+
+  Thunderstore answers 429 after a few dozen requests in quick
+  succession, which one check of the whole list already is. Wait as
+  long as it asks and try again, rather than failing half way.
+  """
+  request = urllib.request.Request(url, headers={'User-Agent': 'invoke'})
+  for attempt in range(attempts):
+    try:
+      with urllib.request.urlopen(request, timeout=120) as response:
+        return response.read()
+    except urllib.error.HTTPError as error:
+      if error.code != 429 or attempt == attempts - 1:
+        raise
+      wait = int(error.headers.get('Retry-After') or 2 ** (attempt + 2))
+      print(f'Thunderstore rate limit, waiting {wait}s')
+      time.sleep(wait)
+  raise AssertionError('unreachable')
+
+
+def version_tuple(version: str) -> tuple[int, ...]:
+  """Turn `1.10.5` into (1, 10, 5) for comparison."""
+  return tuple(int(part) for part in re.findall(r'\d+', version))
+
+
+@task
+def valheim_mods(
+  ctx: context,
+  update: bool = False,
+) -> None:
+  """
+  Check the Valheim mod pins against Thunderstore.
+
+  Reports every pinned package with a newer release or a deprecation,
+  and checks that every dependency of what is pinned is pinned too,
+  at least at the version it asks for - the role does not resolve
+  dependencies, so this is where a missing one is caught.
+
+  With `--update`, moves each outdated pin to the latest release:
+  downloads the zip, computes its SHA-256 and rewrites version and
+  checksum in place. Nothing is deployed - review the diff, then run
+  playbooks/valheim.yml. Every client has to update with the server.
+  """
+  text = Path(VALHEIM_MODS_FILES[0]).read_text()
+  pins = {
+    m['name']: MOD_VERSION.search(m[0])[2] for m in MOD_PIN.finditer(text)
+  }
+  if not pins:
+    raise Exit(f'No mod pins found in {VALHEIM_MODS_FILES[0]}', code=1)
+
+  latest: dict[str, dict] = {}
+  for name in pins:
+    namespace, package = name.split('-', 1)
+    data = json.loads(
+      thunderstore(f'{THUNDERSTORE_API}/{namespace}/{package}/')
+    )
+    latest[name] = data['latest'] | {'deprecated': data['is_deprecated']}
+
+  outdated = {
+    name: info['version_number']
+    for name, info in latest.items()
+    if version_tuple(info['version_number']) > version_tuple(pins[name])
+  }
+  for name, info in latest.items():
+    if name in outdated:
+      print(f'{name}: {pins[name]} -> {outdated[name]}')
+    if info['deprecated']:
+      print(f'{name}: DEPRECATED on Thunderstore')
+  print(f'{len(outdated)} of {len(pins)} pinned mods have a newer release.')
+
+  # Dependencies of what will be pinned once this run is done.
+  target = pins | (outdated if update else {})
+  missing: list[str] = []
+  for name in target:
+    deps = (
+      latest[name]['dependencies']
+      if target[name] == latest[name]['version_number']
+      else json.loads(
+        thunderstore(
+          f'{THUNDERSTORE_API}/{name.replace("-", "/", 1)}/{target[name]}/'
+        )
+      )['dependencies']
+    )
+    for dep in deps:
+      dep_name, _, dep_version = dep.rpartition('-')
+      if dep_name in THUNDERSTORE_PROVIDED:
+        continue
+      if dep_name not in target or version_tuple(
+        target[dep_name]
+      ) < version_tuple(dep_version):
+        missing.append(f'{name} needs {dep}')
+  for line in missing:
+    print(f'unmet dependency: {line}')
+
+  if update and outdated and not missing:
+    for name, version in outdated.items():
+      namespace, package = name.split('-', 1)
+      digest = hashlib.sha256(
+        thunderstore(
+          f'https://thunderstore.io/package/download/'
+          f'{namespace}/{package}/{version}/'
+        )
+      ).hexdigest()
+      for path in VALHEIM_MODS_FILES:
+        file = Path(path)
+        file.write_text(
+          MOD_PIN.sub(
+            lambda m, name=name, version=version, digest=digest: (
+              MOD_SHA256.sub(
+                rf'\g<1>{digest}',
+                MOD_VERSION.sub(rf'\g<1>"{version}"', m[0]),
+              )
+              if m['name'] == name
+              else m[0]
+            ),
+            file.read_text(),
+          )
+        )
+      print(f'updated {name} to {version}')
+
+  if missing:
+    raise Exit('Pin the missing dependencies first.', code=1)
