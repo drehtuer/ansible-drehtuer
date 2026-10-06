@@ -101,10 +101,14 @@ valheim:  # noqa: var-naming[no-role-prefix] - see doc/STATUS.adoc
 # which plays the part an image digest does: Thunderstore versions
 # are immutable in principle, the checksum is what makes that so in
 # practice. Bumping a version means bumping its checksum, and the
-# module refuses a download that does not match. To get one:
+# module refuses a download that does not match. Neither is edited by
+# hand:
 #
-#   curl -sL https://thunderstore.io/package/download/<ns>/<name>/<v>/ \
-#     | sha256sum
+#   invoke valheim-mods            # what is outdated, what is unmet
+#   invoke valheim-mods --update   # move every pin to the latest
+#
+# The second rewrites version and checksum in place and deploys
+# nothing; playbooks/valheim.yml does that, after a look at the diff.
 #
 # Removing an entry removes the mod on the next run - its staged
 # directories, and any config file it shipped that nobody has edited.
@@ -199,8 +203,8 @@ valheim_mods:
     version: "1.0.0"
     sha256: 5559667affa4da8ff108afbb90d0bc09f4e04ddfea9c4758d0e881f820bf9288
   - name: OdinPlus-OdinHorse
-    version: "1.8.5"
-    sha256: 66defc3ea815c4cd7112d2c3ae1241e8ef6d7e811bd84996b1c6c33cc0865668
+    version: "1.8.6"
+    sha256: caa7c89971046eb1adbf4154794884b4d4e5bf827b48df1378091f3bc31f39d1
   - name: shudnal-LongshipUpgrades
     version: "1.0.23"
     sha256: 2bfe2aaf6327b9f7e107cc8a9278aaeadf32faf9b5d1e872b999a2aaeb1eae5a
@@ -211,8 +215,8 @@ valheim_mods:
     version: "5.1.8"
     sha256: 110ccf2b3598f207b95ece6c76b43681ebb156ddbbbe4ccc5586c9f2153d4c5a
   - name: MidnightMods-StarLevelSystem
-    version: "1.21.0"
-    sha256: f3536028557e90018eb1d130f685b86662ace8e615cc5adaec90e4a143a7add6
+    version: "1.22.0"
+    sha256: bd0486acdf2006d54f8593f45f8efcbd23912a6efe61f87a854b1e86f61611f4
   - name: Therzie-Warfare
     version: "1.9.4"
     sha256: 2aed973693b5aa654bd88682925714e48fc33170a8b733817a5bb9c7ea8b10f5
@@ -226,8 +230,8 @@ valheim_mods:
     version: "1.2.2"
     sha256: 61d6220379864134021a2a234eaf82a88335914e37f247905a196d7a18337e1f
   - name: shudnal-Seasons
-    version: "1.10.4"
-    sha256: 120580ad193880ad0f32eed7602cc9855ce34c3fb94341c2391f8ca85e6ff69e
+    version: "1.10.5"
+    sha256: 9d494fe48577b8efa3e8010791728825c7b05cc089b7a90b2cdee62ebfcdb0be
   - name: shudnal-HipLantern
     version: "1.1.12"
     sha256: 2e083cae67a4f37eedb1d2defcde9626abca57ea6b767ecd3fe8094cfac62ddc
