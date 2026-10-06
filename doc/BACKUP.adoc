@@ -159,7 +159,7 @@ It can be retrained, and the corpus is the restored mail: `rspamd-train-bulk` se
 [#valheim-world]
 === The Valheim world is backed up; the server's own backups of it are not
 
-`roles/valheim` runs a game server in a container, and almost none of what that container holds is worth keeping: the image is pinned and pullable, the game and BepInEx are Steam downloads, the mod is compiled from a pinned revision, and the map redraws itself. The world save is the exception and the whole of it — `/srv/valheim/config/worlds_local` is in `backup.paths` for exactly that reason.
+`roles/valheim` runs a game server in a container, and almost none of what that container holds is worth keeping: the image is pinned and pullable, the game and BepInEx are downloads, the mods are pinned Thunderstore packages, and the map redraws itself. The world save is the exception and the whole of it — `/srv/valheim/config/worlds_local` is in `backup.paths` for exactly that reason.
 
 **Its sibling `/srv/valheim/config/backups` is deliberately left out.** The container keeps hourly zips of the same world there, three days deep. Zips compress badly enough to defeat restic's deduplication, so including them would push the same world through the repository seventy times over to buy one extra day of history.
 
