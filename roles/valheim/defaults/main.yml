@@ -147,8 +147,8 @@ valheim_mods:
 
   # Server only.
   - name: ArgusMagnus-ServersideQoL
-    version: "2.2.0"
-    sha256: 4e5af72d9dadbfb4ca1028cab8d44956b80502531bc4be96b71e9f62a07829a8
+    version: "2.2.1"
+    sha256: e02d3bd81bcdff11d225b4cfa7e4fe4c0ec11728876013f869bff1f6c9fb3356
   - name: ArgusMagnus-ServersideQoL_AutoProcess
     version: "2.2.0"
     sha256: 6a1de2fb08671d42d0ec553120a0b2b7814d67bb3baa91da47b8e89a34fbfa29
@@ -165,8 +165,8 @@ valheim_mods:
     version: "1.0.5"
     sha256: 031acdd23860123a18e81e8f78ee8891309db682b6a8f0f4230e8e11b215f7ed
   - name: MidnightMods-NetworkPerformanceSystem
-    version: "1.15.0"
-    sha256: 834f443aef55de903362fab80e78d94fee5529cad5926ab665bc722cee9f779e
+    version: "1.16.0"
+    sha256: 2927cdca733483510b19bea85a82045c31cd11d67abf291b158f0fc16780e243
   # Staged as plugins/WebMap rather than under its package name, and
   # that is load bearing: the plugin keeps map_data/ - explored fog,
   # pins, renamed bases, the model cache - beside its own DLL in the
@@ -203,8 +203,8 @@ valheim_mods:
     version: "1.0.0"
     sha256: 5559667affa4da8ff108afbb90d0bc09f4e04ddfea9c4758d0e881f820bf9288
   - name: OdinPlus-OdinHorse
-    version: "1.8.6"
-    sha256: caa7c89971046eb1adbf4154794884b4d4e5bf827b48df1378091f3bc31f39d1
+    version: "1.8.8"
+    sha256: 60d66ca9b220d28f86ea4b2075ecbb120f34d39afde68d2c8b966e6c517a153a
   - name: shudnal-LongshipUpgrades
     version: "1.0.23"
     sha256: 2bfe2aaf6327b9f7e107cc8a9278aaeadf32faf9b5d1e872b999a2aaeb1eae5a
@@ -212,11 +212,11 @@ valheim_mods:
     version: "0.14.13"
     sha256: 8fd19132c46527471092ac732b71651e11862f2c0b784fc907b387b6ace3bb4f
   - name: warpalicious-More_World_Locations_AIO
-    version: "5.1.8"
-    sha256: 110ccf2b3598f207b95ece6c76b43681ebb156ddbbbe4ccc5586c9f2153d4c5a
+    version: "5.2.0"
+    sha256: ceed07c0ea2b1ed1aea7dea1116ac858890b24c4627486146301f9656a98b9c2
   - name: MidnightMods-StarLevelSystem
-    version: "1.22.0"
-    sha256: bd0486acdf2006d54f8593f45f8efcbd23912a6efe61f87a854b1e86f61611f4
+    version: "1.24.0"
+    sha256: af382d746fe64b484568007af0629cd69596b001976dfee9ea55a359200922ad
   - name: Therzie-Warfare
     version: "1.9.4"
     sha256: 2aed973693b5aa654bd88682925714e48fc33170a8b733817a5bb9c7ea8b10f5
@@ -233,8 +233,8 @@ valheim_mods:
     version: "1.10.5"
     sha256: 9d494fe48577b8efa3e8010791728825c7b05cc089b7a90b2cdee62ebfcdb0be
   - name: shudnal-HipLantern
-    version: "1.1.12"
-    sha256: 2e083cae67a4f37eedb1d2defcde9626abca57ea6b767ecd3fe8094cfac62ddc
+    version: "1.1.13"
+    sha256: 5a5eb09b002926eee75c9badef1ef60dcea3dced326950e9d870221ce4654586
   - name: BentoG-MissingPieces
     version: "2.3.2"
     sha256: f6e612664339da24f4292b4655aef33eed6f10ec410abd90618b8bac9bea84e7
@@ -245,8 +245,8 @@ valheim_mods:
     version: "2.3.2"
     sha256: 0edca12820c94fc83d429109cd4cffd5a0d29c1100e718ff87a665c83b726ccb
   - name: TastyChickenLegs-RecyclePlus
-    version: "1.3.5"
-    sha256: 54ac8a4bef7daca6b35ff70a07e59ceb479967e6850ac69c806a060c5fc3dc5c
+    version: "1.3.6"
+    sha256: b27e24610b46dd68635bb85235a0fd179d9778b4251214deb9f78a42182eca09
   - name: TastyChickenLegs-DropMoreLoot
     version: "1.2.8"
     sha256: 8069e760e2d6c0dfdecd09d96b894e564a4fbb79913775a2d65367ef37cb049f
@@ -257,5 +257,5 @@ valheim_mods:
     version: "1.0.10"
     sha256: ee8b90e41675b765bb544bd12e44f39c0d6db82be50ef79c8801c56cf18efa6f
   - name: OdinPlus-OdinArchitect
-    version: "1.8.0"
-    sha256: 84af9707fff5ebb0929b5e873a7b15fd611ea22f2a281cd66fbb9a6f9c7431c2
+    version: "1.8.2"
+    sha256: c17253a20318961406345f76fd1c24256dab73ecf99889b0d0addbee4faccb41
