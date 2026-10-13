@@ -1,4 +1,12 @@
 - name: Install dns
+  # No update_cache here, unlike the other roles that have it: this
+  # role is what repairs the resolver, so it must not need one. A
+  # refresh has to resolve the mirrors through that resolver, and on
+  # 2026-10-13 that made the resolved.conf fix undeployable - every run
+  # died on this task with "Failed to update apt cache" while the
+  # systemd-resolved stub on carcosa answered SERVFAIL. Without the
+  # refresh, a host with these packages installed needs no network to
+  # get through it. playbooks/apt.yml refreshes the cache beforehand.
   ansible.builtin.apt:
     install_recommends: false
     name:
@@ -6,7 +14,6 @@
       - unbound-anchor
       - dns-root-data
       - bind9-dnsutils
-    update_cache: true
   notify:
     - Restart unbound
 - name: Check for root.key
