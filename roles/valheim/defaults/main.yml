@@ -165,6 +165,15 @@ valheim_mods:
   - name: ArgusMagnus-ServersideQoL_TameAssist
     version: "2.1.0"
     sha256: 48b29963908bc7194eed44651ee66bd4b8e1b6f31cabcaad1653343ab455209d
+  - name: ArgusMagnus-ServersideQoL_AutoMapTables
+    version: "2.3.2"
+    sha256: 7ff92fc44e18f3c033715127953dd77b759554e5af02fc08588881fb17f8fad9
+  - name: ArgusMagnus-ServersideQoL_Signs
+    version: "2.3.0"
+    sha256: bef5208f260628b523708580aba56d500ca7669f074a51f89da60712aa5be8f4
+  - name: ArgusMagnus-ServersideQoL_Backpack
+    version: "2.4.0"
+    sha256: 73099b8a0cb6bb679b2fc5f063b8d511d2f8e593e4733578326e8dcd0906d77a
   - name: Blockheim-LetMeSleep
     version: "1.0.5"
     sha256: 031acdd23860123a18e81e8f78ee8891309db682b6a8f0f4230e8e11b215f7ed
@@ -263,3 +272,14 @@ valheim_mods:
   - name: OdinPlus-OdinArchitect
     version: "1.8.8"
     sha256: e62675780b4e3227fba32ee2ca1ce955f802283759b20f3a14ef9f37292d41dc
+  # Vanilla bug and performance fixes, no gameplay changes. Unlike
+  # the rest of this group it does not turn away a client without
+  # it - that player just misses the client-side half of the fixes.
+  # If both sides have it their versions must match, which is why it
+  # is pinned and in the profile like everything else here.
+  - name: MidnightMods-ValheimCommunityPatch
+    version: "0.37.0"
+    sha256: 403c009fc8082d4b6b3c9bcf70a4d74cc217b1998903355d1823313d26bdfa48
+  - name: MidnightMods-DvergerAutomation
+    version: "0.12.4"
+    sha256: e51972afc8a44ddcf60acf98af47be9d75f9c43ffb8986d7712fb96706e30276

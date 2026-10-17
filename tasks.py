@@ -112,6 +112,16 @@ VALHEIM_CLIENT_PROFILE_URL = (
   + VALHEIM_CLIENT_PROFILE
 )
 THUNDERSTORE_PACKAGE_PAGE = 'https://thunderstore.io/c/valheim/p'
+# Recommended to players but not installed on the server, so not
+# pinned: nothing checks their version, and r2modman's latest is fine.
+# Only mods documented as fine without the server - ConfigurationManager
+# sets `ModRequired = false`, PlantEasily says client-side only. A mod
+# that requires its server half refuses to join without it, so check
+# its README before adding one here.
+VALHEIM_CLIENT_OPTIONAL = (
+  'shudnal-ConfigurationManager',
+  'Advize-PlantEasily',
+)
 
 
 def ctx_run(
@@ -1120,6 +1130,13 @@ def valheim_client_mods(
     sections[group].append(entry(name, version, description(name, version)))
     if group in ('library', 'client'):
       profile[name] = version
+  optional = []
+  for name in VALHEIM_CLIENT_OPTIONAL:
+    info = json.loads(
+      thunderstore(f'{THUNDERSTORE_API}/{name.replace("-", "/", 1)}/')
+    )['latest']
+    text = ' '.join(info['description'].split())
+    optional.append(entry(name, 'any version', text))
 
   Path(VALHEIM_CLIENT_PROFILE).write_bytes(
     r2modman_profile('drehtuer-valheim', profile)
@@ -1168,6 +1185,14 @@ def valheim_client_mods(
         'need neither; the admin adds them to the profile by hand.',
         '',
         *sections['admin'],
+        '',
+        f'## Optional, per player ({len(optional)} mods, not in the profile)',
+        '',
+        'Purely client-side, so the server neither has nor checks them:',
+        'add any of them to your own profile in r2modman if you like, at',
+        'whatever version r2modman offers.',
+        '',
+        *optional,
         '',
         f'## Server only ({len(sections["server"])} mods, nothing to install)',
         '',

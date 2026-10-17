@@ -135,7 +135,7 @@ See link:{url-doc-backup} for what is backed up, what deliberately is not and wh
 
 `roles/valheim` runs a Valheim dedicated server as a Compose stack, with BepInEx and the mods listed in `valheim_mods` in `roles/valheim/defaults/main.yml`. Each mod is a link:{url-thunderstore} package pinned to a version and to the SHA-256 of its zip, the way every image here is pinned to a digest. One of them is the link:{url-webmap} plugin, which serves a live map of the world at `valheim.<domain>`, behind TLS and a password.
 
-*Most of those mods are not server-only.* The list is grouped by who has to install what: eight run on the server alone, two also need the admin's client, and the other 28 need every player to run the same versions, or the server turns them away.
+*Most of those mods are not server-only.* The list is grouped by who has to install what: eleven run on the server alone, two also need the admin's client, and the other 30 need every player to run the same versions, or the server turns them away.
 Players find the list, and an r2modman profile to import, in `roles/valheim/CLIENT_MODS.md`; both are generated from the pins by `invoke valheim-client-mods`.
 
 [source, bash]
