@@ -106,6 +106,8 @@ valheim:  # noqa: var-naming[no-role-prefix] - see doc/STATUS.adoc
 #
 #   invoke valheim-mods            # what is outdated, what is unmet
 #   invoke valheim-mods --update   # move every pin to the latest
+#   invoke valheim-client-mods     # rewrite CLIENT_MODS.md and the
+#                                  # r2modman profile (--update does)
 #
 # The second rewrites version and checksum in place and deploys
 # nothing; playbooks/valheim.yml does that, after a look at the diff.
@@ -118,7 +120,9 @@ valheim:  # noqa: var-naming[no-role-prefix] - see doc/STATUS.adoc
 # the image installs itself (`BEPINEX: "true"` in the compose file).
 #
 # WHO HAS TO INSTALL WHAT. Grouped below by that, because "a mod on
-# the server" covers three different things for a player:
+# the server" covers three different things for a player. The four
+# group comments are read by `invoke valheim-client-mods`, which
+# builds the players' list and r2modman profile from them:
 #
 #   server only    - vanilla clients join and play as normal.
 #   admin client   - the server side, and the admin's own client for

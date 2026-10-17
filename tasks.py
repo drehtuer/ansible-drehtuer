@@ -9,11 +9,13 @@ for complex parameters.
 """
 
 import hashlib
+import io
 import json
 import re
 import time
 import urllib.error
 import urllib.request
+import zipfile
 from pathlib import Path
 from shutil import rmtree, which
 from tempfile import mkdtemp
@@ -88,6 +90,28 @@ THUNDERSTORE_PROVIDED = ('denikson-BepInExPack_Valheim',)
 MOD_PIN = re.compile(r'- name: (?P<name>\S+)\n(?:[ \t]+\w+: .*\n?)+')
 MOD_VERSION = re.compile(r'(version: )"([^"]+)"')
 MOD_SHA256 = re.compile(r'(sha256: )([0-9a-f]{64})')
+# The comments that group `valheim_mods` by who has to install what,
+# and the group each one starts. Pins are assigned to the last heading
+# above them, so these are part of the file's format, not decoration.
+MOD_GROUPS = {
+  'Libraries.': 'library',
+  'Server only.': 'server',
+  "Server, plus the admin's client.": 'admin',
+  'Server, plus every client.': 'client',
+}
+MOD_GROUP_HEADING = re.compile(
+  r'^  # (' + '|'.join(re.escape(h) for h in MOD_GROUPS) + ')',
+  re.MULTILINE,
+)
+# What players download: the list, and an r2modman profile to import.
+# Both are generated from the pins and rewritten by `--update`.
+VALHEIM_CLIENT_MODS = 'roles/valheim/CLIENT_MODS.md'
+VALHEIM_CLIENT_PROFILE = 'roles/valheim/drehtuer-valheim.r2z'
+VALHEIM_CLIENT_PROFILE_URL = (
+  'https://github.com/drehtuer/ansible-drehtuer/raw/main/'
+  + VALHEIM_CLIENT_PROFILE
+)
+THUNDERSTORE_PACKAGE_PAGE = 'https://thunderstore.io/c/valheim/p'
 
 
 def ctx_run(
@@ -997,6 +1021,159 @@ def valheim_mods(
           )
         )
       print(f'updated {name} to {version}')
+    valheim_client_mods(ctx)
 
   if missing:
     raise Exit('Pin the missing dependencies first.', code=1)
+
+
+def valheim_mod_groups(text: str) -> dict[str, tuple[str, str]]:
+  """
+  Map each pin in `valheim_mods` to (version, group), the group being
+  the MOD_GROUPS heading above it. A pin with no heading above it, or
+  a heading that has gone missing, fails rather than guessing.
+  """
+  headings = [
+    (m.start(), MOD_GROUPS[m[1]]) for m in MOD_GROUP_HEADING.finditer(text)
+  ]
+  missing = set(MOD_GROUPS.values()) - {group for _, group in headings}
+  if missing:
+    raise Exit(f'No heading for mod group(s) {sorted(missing)}', code=1)
+  groups: dict[str, tuple[str, str]] = {}
+  for pin in MOD_PIN.finditer(text):
+    above = [group for start, group in headings if start < pin.start()]
+    if not above:
+      raise Exit(f'{pin["name"]} is above every group heading', code=1)
+    groups[pin['name']] = (MOD_VERSION.search(pin[0])[2], above[-1])
+  return groups
+
+
+def r2modman_profile(name: str, mods: dict[str, str]) -> bytes:
+  """
+  Build an r2modman profile export (.r2z): a zip holding `export.r2x`,
+  the YAML form of r2modman's ExportFormat. Written with a fixed timestamp
+  so the same pins always produce the same bytes, and a regenerated
+  file shows up in `git status` only when a pin actually changed.
+  """
+  lines = [f'profileName: {name}', 'mods:']
+  for mod, version in mods.items():
+    major, minor, patch = version.split('.')
+    lines += [
+      f'  - name: {mod}',
+      '    version:',
+      f'      major: {major}',
+      f'      minor: {minor}',
+      f'      patch: {patch}',
+      '    enabled: true',
+    ]
+  buffer = io.BytesIO()
+  with zipfile.ZipFile(buffer, 'w') as archive:
+    archive.writestr(
+      zipfile.ZipInfo('export.r2x', date_time=(1980, 1, 1, 0, 0, 0)),
+      '\n'.join(lines) + '\n',
+      compress_type=zipfile.ZIP_DEFLATED,
+    )
+  return buffer.getvalue()
+
+
+@task
+def valheim_client_mods(
+  ctx: context,  # noqa: ARG001 - invoke passes it to every task
+) -> None:
+  """
+  Write the Valheim client mod list and its r2modman profile.
+
+  Generated from the pins in `valheim_mods`, by the group comments
+  that sort them: the libraries and the every-client mods go into the
+  profile, the admin-client mods are listed for the admin to add.
+  Pulls each mod's description from Thunderstore, and the latest
+  BepInExPack_Valheim, which is what the server image installs too.
+  `valheim-mods --update` runs this itself.
+  """
+  groups = valheim_mod_groups(Path(VALHEIM_MODS_FILES[0]).read_text())
+  bepinex = THUNDERSTORE_PROVIDED[0]
+  bepinex_info = json.loads(
+    thunderstore(f'{THUNDERSTORE_API}/{bepinex.replace("-", "/", 1)}/')
+  )['latest']
+
+  def description(name: str, version: str) -> str:
+    info = json.loads(
+      thunderstore(f'{THUNDERSTORE_API}/{name.replace("-", "/", 1)}/{version}/')
+    )
+    return ' '.join(info['description'].split())
+
+  def entry(name: str, version: str, text: str) -> str:
+    namespace, package = name.split('-', 1)
+    link = f'{THUNDERSTORE_PACKAGE_PAGE}/{namespace}/{package}/'
+    return f'- [{package}]({link}) {version} by {namespace} - {text}'
+
+  profile = {bepinex: bepinex_info['version_number']}
+  sections: dict[str, list[str]] = {g: [] for g in MOD_GROUPS.values()}
+  sections['library'].append(
+    entry(
+      bepinex,
+      bepinex_info['version_number'],
+      ' '.join(bepinex_info['description'].split()),
+    )
+  )
+  for name, (version, group) in groups.items():
+    sections[group].append(entry(name, version, description(name, version)))
+    if group in ('library', 'client'):
+      profile[name] = version
+
+  Path(VALHEIM_CLIENT_PROFILE).write_bytes(
+    r2modman_profile('drehtuer-valheim', profile)
+  )
+  profile_file = Path(VALHEIM_CLIENT_PROFILE).name
+  Path(VALHEIM_CLIENT_MODS).write_text(
+    '\n'.join(
+      [
+        '# Valheim client mods',
+        '',
+        '<!-- Generated by `invoke valheim-client-mods` from `valheim_mods`',
+        '     in defaults/main.yml. Edit the pins, not this file. -->',
+        '',
+        'The Valheim server on drehtuer.net is modded, and most of its mods',
+        "have to be installed on every player's machine as well, at exactly",
+        'the versions the server runs. A client that does not match is',
+        'turned away when it connects.',
+        '',
+        '## Install with r2modman',
+        '',
+        '1. Download the profile: '
+        f'[{profile_file}]({VALHEIM_CLIENT_PROFILE_URL})',
+        f'   (or [from this directory]({profile_file})).',
+        '2. In r2modman, pick Valheim, then *Profiles* > *Import / Update* >',
+        '   *Import new profile* > *From file*, and select the file.',
+        '3. Start the game with *Start modded* and join by IP.',
+        '',
+        "When the server's mods are updated, this file and the profile are",
+        'updated with them: import the new profile again, with *Update',
+        'existing profile*, before joining.',
+        '',
+        f'## Every player ({len(profile)} mods, all in the profile)',
+        '',
+        'Libraries, needed by the mods below:',
+        '',
+        *sections['library'],
+        '',
+        'Gameplay:',
+        '',
+        *sections['client'],
+        '',
+        f'## Server admin only ({len(sections["admin"])} mods, '
+        'not in the profile)',
+        '',
+        'Console commands for whoever administers the server. Other players',
+        'need neither; the admin adds them to the profile by hand.',
+        '',
+        *sections['admin'],
+        '',
+        f'## Server only ({len(sections["server"])} mods, nothing to install)',
+        '',
+        *sections['server'],
+        '',
+      ]
+    )
+  )
+  print(f'wrote {VALHEIM_CLIENT_MODS} and {VALHEIM_CLIENT_PROFILE}')
