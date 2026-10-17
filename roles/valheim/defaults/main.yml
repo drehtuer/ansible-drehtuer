@@ -142,19 +142,19 @@ valheim_mods:
     version: "16.3.1"
     sha256: 2280480d2add7d6a7a17b882f9b755145160c852e89a14794d1493d08495d2ac
   - name: shudnal-ConditionalConfigSync
-    version: "1.0.10"
-    sha256: cfea461ac34a953b8c25fc50155143148cf313d892896d3f4c6b5b2135eed369
+    version: "1.0.11"
+    sha256: 19146ae5a25cc3c7bddf47a6d17e4b8fb2c6c29c97360abd93664ba7a4433a62
 
   # Server only.
   - name: ArgusMagnus-ServersideQoL
-    version: "2.2.1"
-    sha256: e02d3bd81bcdff11d225b4cfa7e4fe4c0ec11728876013f869bff1f6c9fb3356
+    version: "2.4.0"
+    sha256: 6f9da3d2891a232a796e97513b21602e3cf01f8f93b70304892d6ec6121f390e
   - name: ArgusMagnus-ServersideQoL_AutoProcess
-    version: "2.2.0"
-    sha256: 6a1de2fb08671d42d0ec553120a0b2b7814d67bb3baa91da47b8e89a34fbfa29
+    version: "2.3.0"
+    sha256: 63a5393056370694eabdaa2600891d433888601f9253674d4199462b463aa756
   - name: ArgusMagnus-ServersideQoL_ContainerSigns
-    version: "2.2.0"
-    sha256: 3148c46f55074c3de364961d15cdb658cfce85dfd80c03b48e74ec3f896900a8
+    version: "2.3.3"
+    sha256: ed060cb9f1f7c021e9baef3f88228dfa8848dee854b94144d26b4e25fe418490
   - name: ArgusMagnus-ServersideQoL_PortalProgression
     version: "2.0.11"
     sha256: d199e1e5cc01cfc1a4d8345f8d82564de7a3f28f70991cf4ec13590489c6cfba
@@ -165,8 +165,8 @@ valheim_mods:
     version: "1.0.5"
     sha256: 031acdd23860123a18e81e8f78ee8891309db682b6a8f0f4230e8e11b215f7ed
   - name: MidnightMods-NetworkPerformanceSystem
-    version: "1.16.0"
-    sha256: 2927cdca733483510b19bea85a82045c31cd11d67abf291b158f0fc16780e243
+    version: "1.18.0"
+    sha256: 50f6ac3dfa9d560d9ba9c8001ac5e69d0b6da5b83116349e75aa14dcbd640c61
   # Staged as plugins/WebMap rather than under its package name, and
   # that is load bearing: the plugin keeps map_data/ - explored fog,
   # pins, renamed bases, the model cache - beside its own DLL in the
@@ -183,13 +183,13 @@ valheim_mods:
     version: "1.115.0"
     sha256: b2752c18342bc9cabf4734e3480cd2cc4aa9faa8955ba503d4f7cefcfa3e4b33
   - name: JereKuusela-Upgrade_World
-    version: "1.84.0"
-    sha256: 32c5d1c21add20e2cc869f5191ecfd638150538723db3a1798f07272b2b97ac5
+    version: "1.85.0"
+    sha256: 68160e6eb18e7734957d34ed4c5718e1bbc0f37d6d20a1814ea67d4005370662
 
   # Server, plus every client.
   - name: shudnal-ExtraSlots
-    version: "1.2.17"
-    sha256: 2154b8ed7ca18ab7c019fd75fb7ca5551d266f0331ef6e1fb8ac83c5ff081b3f
+    version: "1.2.21"
+    sha256: 378a6f64cbfa31c4f9de8837e509b06b55667f7be6591d001a3ae3e12a8f3237
   - name: MSchmoecker-MultiUserChest
     version: "0.6.2"
     sha256: 822233992ec47d43b134265e57b42b89682482fb884005c3b23aba98c0352949
@@ -203,8 +203,8 @@ valheim_mods:
     version: "1.0.0"
     sha256: 5559667affa4da8ff108afbb90d0bc09f4e04ddfea9c4758d0e881f820bf9288
   - name: OdinPlus-OdinHorse
-    version: "1.8.8"
-    sha256: 60d66ca9b220d28f86ea4b2075ecbb120f34d39afde68d2c8b966e6c517a153a
+    version: "1.9.1"
+    sha256: 0a25603ec6e80dd6c305801875becbb690596b77a4df3cf2516faf9a5670bb4d
   - name: shudnal-LongshipUpgrades
     version: "1.0.23"
     sha256: 2bfe2aaf6327b9f7e107cc8a9278aaeadf32faf9b5d1e872b999a2aaeb1eae5a
@@ -212,29 +212,29 @@ valheim_mods:
     version: "0.14.13"
     sha256: 8fd19132c46527471092ac732b71651e11862f2c0b784fc907b387b6ace3bb4f
   - name: warpalicious-More_World_Locations_AIO
-    version: "5.2.0"
-    sha256: ceed07c0ea2b1ed1aea7dea1116ac858890b24c4627486146301f9656a98b9c2
+    version: "5.2.2"
+    sha256: 70d2506fdf6c400224a4dcf4905905ad707b7e3e73724acda282094b86d94d57
   - name: MidnightMods-StarLevelSystem
-    version: "1.24.0"
-    sha256: af382d746fe64b484568007af0629cd69596b001976dfee9ea55a359200922ad
+    version: "1.26.3"
+    sha256: 4eadfecbf3ff431e3396a914377090824de0c95bbc68a6287dcf4f49d408de79
   - name: Therzie-Warfare
-    version: "1.9.4"
-    sha256: 2aed973693b5aa654bd88682925714e48fc33170a8b733817a5bb9c7ea8b10f5
+    version: "1.9.5"
+    sha256: c01df3c1c9e098cc5cff3c10b30012e892b2eb83be2a03b03415959f5c63cd08
   - name: Therzie-Monstrum
-    version: "1.6.0"
-    sha256: 02e222e74109f67d4c6d89b8ef9db0e5c345d1414daeb976f3d164792a62a5f1
+    version: "1.6.1"
+    sha256: b0fa3ea82f127987f824926c8ff6386ec37c7f279b8ff8e2209cb606f885900a
   - name: Therzie-Armory
-    version: "1.4.2"
-    sha256: 812cbcfdae7909708f8955297ac7c23665e28f5783a5d3bdc3fdd0f28660331d
+    version: "1.4.3"
+    sha256: 9ec143709c7d01193c9cec69cabeffc853b35ee1777413cfb8c048427937cf3d
   - name: Therzie-Wizardry
-    version: "1.2.2"
-    sha256: 61d6220379864134021a2a234eaf82a88335914e37f247905a196d7a18337e1f
+    version: "1.2.3"
+    sha256: a8117b7bfcc2b38dff0c3bf22d1f87db25e136f413b0367571e07e671d4de39f
   - name: shudnal-Seasons
     version: "1.10.5"
     sha256: 9d494fe48577b8efa3e8010791728825c7b05cc089b7a90b2cdee62ebfcdb0be
   - name: shudnal-HipLantern
-    version: "1.1.13"
-    sha256: 5a5eb09b002926eee75c9badef1ef60dcea3dced326950e9d870221ce4654586
+    version: "1.1.14"
+    sha256: a4998a965a57e20629f6b224b85605441eece60d479b25dca3749e72a1c73835
   - name: BentoG-MissingPieces
     version: "2.3.2"
     sha256: f6e612664339da24f4292b4655aef33eed6f10ec410abd90618b8bac9bea84e7
@@ -245,11 +245,11 @@ valheim_mods:
     version: "2.3.2"
     sha256: 0edca12820c94fc83d429109cd4cffd5a0d29c1100e718ff87a665c83b726ccb
   - name: TastyChickenLegs-RecyclePlus
-    version: "1.3.6"
-    sha256: b27e24610b46dd68635bb85235a0fd179d9778b4251214deb9f78a42182eca09
+    version: "1.3.8"
+    sha256: 05c544862041b1579b0ad625c103c223f632b2dd9f0e623ca9e20a1514d2cd00
   - name: TastyChickenLegs-DropMoreLoot
-    version: "1.2.8"
-    sha256: 8069e760e2d6c0dfdecd09d96b894e564a4fbb79913775a2d65367ef37cb049f
+    version: "1.2.9"
+    sha256: 44226254d6e348c911f588599614f42efa8cc7f224c52fe373257e74b5be2d75
   - name: Mydayyy-ServerSideMap
     version: "1.3.14"
     sha256: 3167faf600619c7d3fe4a6ca7678dd2a411c41e150e4c041bc32768714bbb9d4
@@ -257,5 +257,5 @@ valheim_mods:
     version: "1.0.10"
     sha256: ee8b90e41675b765bb544bd12e44f39c0d6db82be50ef79c8801c56cf18efa6f
   - name: OdinPlus-OdinArchitect
-    version: "1.8.2"
-    sha256: c17253a20318961406345f76fd1c24256dab73ecf99889b0d0addbee4faccb41
+    version: "1.8.8"
+    sha256: e62675780b4e3227fba32ee2ca1ce955f802283759b20f3a14ef9f37292d41dc
