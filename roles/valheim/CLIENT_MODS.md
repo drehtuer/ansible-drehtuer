@@ -20,7 +20,7 @@ When the server's mods are updated, this file and the profile are
 updated with them: import the new profile again, with *Update
 existing profile*, before joining.
 
-## Every player (31 mods, all in the profile)
+## Every player (27 mods, all in the profile)
 
 Libraries, needed by the mods below:
 
@@ -42,10 +42,6 @@ Gameplay:
 - [EpicLoot](https://thunderstore.io/c/valheim/p/RandyKnapp/EpicLoot/) 0.14.13 by RandyKnapp - Adds loot drops, magic items, and enchanting to Valheim.
 - [More_World_Locations_AIO](https://thunderstore.io/c/valheim/p/warpalicious/More_World_Locations_AIO/) 5.2.2 by warpalicious - Adds 190 new POI locations including dungeons, traders, ports and much more to enhance Valheim's world exploration.
 - [StarLevelSystem](https://thunderstore.io/c/valheim/p/MidnightMods/StarLevelSystem/) 1.26.3 by MidnightMods - We have two levels yes, but why not... MORE?
-- [Warfare](https://thunderstore.io/c/valheim/p/Therzie/Warfare/) 1.9.5 by Therzie - Fills the weapon and shields gap in vanilla Valheim and with MANY new weapons and unique extras!
-- [Monstrum](https://thunderstore.io/c/valheim/p/Therzie/Monstrum/) 1.6.1 by Therzie - Adds new monsters and mini-bosses to fight and tame for original Valheim up till Mistlands.
-- [Armory](https://thunderstore.io/c/valheim/p/Therzie/Armory/) 1.4.3 by Therzie - Adds the Armory forge that offers new variants of original armors that upgrade to the next biome.
-- [Wizardry](https://thunderstore.io/c/valheim/p/Therzie/Wizardry/) 1.2.3 by Therzie - Fills the magical gap in vanilla Valheim with MANY unique extras!
 - [Seasons](https://thunderstore.io/c/valheim/p/shudnal/Seasons/) 1.10.5 by shudnal - Four customizable seasons. Different visual flavor for every season, seasonal impact on gameplay. Frozen water and ice floes in Winter. Different weather, raids, lightings and trader items. New special spring grass. Minimal impact on fps.
 - [HipLantern](https://thunderstore.io/c/valheim/p/shudnal/HipLantern/) 1.1.14 by shudnal - Craftable little lantern on your hip to cast away the darkness
 - [MissingPieces](https://thunderstore.io/c/valheim/p/BentoG/MissingPieces/) 2.3.2 by BentoG - A fix for what impedes your building fix.

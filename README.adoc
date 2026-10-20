@@ -135,7 +135,7 @@ See link:{url-doc-backup} for what is backed up, what deliberately is not and wh
 
 `roles/valheim` runs a Valheim dedicated server as a Compose stack, with BepInEx and the mods listed in `valheim_mods` in `roles/valheim/defaults/main.yml`. Each mod is a link:{url-thunderstore} package pinned to a version and to the SHA-256 of its zip, the way every image here is pinned to a digest. One of them is the link:{url-webmap} plugin, which serves a live map of the world at `valheim.<domain>`, behind TLS and a password.
 
-*Most of those mods are not server-only.* The list is grouped by who has to install what: eleven run on the server alone, two also need the admin's client, and the other 30 need every player to run the same versions, or the server turns them away.
+*Most of those mods are not server-only.* The list is grouped by who has to install what: eleven run on the server alone, two also need the admin's client, and the other 26 need every player to run the same versions, or the server turns them away.
 Players find the list, and an r2modman profile to import, in `roles/valheim/CLIENT_MODS.md`; both are generated from the pins by `invoke valheim-client-mods`.
 
 [source, bash]
@@ -144,7 +144,7 @@ Players find the list, and an r2modman profile to import, in `roles/valheim/CLIE
 invoke run-playbook --playbook=playbooks/valheim.yml --hosts=production
 ----
 
-The first run is long and mostly waiting: close to a gigabyte of mods, then the server container downloads the game. Three UDP ports have to be open in `firewall.docker.published` - 2456 for the game, 2457 for Steam's query protocol and 2458 for the RPC the map needs - and the map's own port is published to loopback, so nginx is the only route to it. See `doc/STATUS.adoc` for the rest.
+The first run is long and mostly waiting: around half a gigabyte of mods, then the server container downloads the game. Three UDP ports have to be open in `firewall.docker.published` - 2456 for the game, 2457 for Steam's query protocol and 2458 for the RPC the map needs - and the map's own port is published to loopback, so nginx is the only route to it. See `doc/STATUS.adoc` for the rest.
 
 == License
 
