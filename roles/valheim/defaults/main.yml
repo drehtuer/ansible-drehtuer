@@ -230,18 +230,6 @@ valheim_mods:
   - name: MidnightMods-StarLevelSystem
     version: "1.26.3"
     sha256: 4eadfecbf3ff431e3396a914377090824de0c95bbc68a6287dcf4f49d408de79
-  - name: Therzie-Warfare
-    version: "1.9.5"
-    sha256: c01df3c1c9e098cc5cff3c10b30012e892b2eb83be2a03b03415959f5c63cd08
-  - name: Therzie-Monstrum
-    version: "1.6.1"
-    sha256: b0fa3ea82f127987f824926c8ff6386ec37c7f279b8ff8e2209cb606f885900a
-  - name: Therzie-Armory
-    version: "1.4.3"
-    sha256: 9ec143709c7d01193c9cec69cabeffc853b35ee1777413cfb8c048427937cf3d
-  - name: Therzie-Wizardry
-    version: "1.2.3"
-    sha256: a8117b7bfcc2b38dff0c3bf22d1f87db25e136f413b0367571e07e671d4de39f
   - name: shudnal-Seasons
     version: "1.10.5"
     sha256: 9d494fe48577b8efa3e8010791728825c7b05cc089b7a90b2cdee62ebfcdb0be

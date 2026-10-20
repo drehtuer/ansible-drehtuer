@@ -51,7 +51,7 @@
   # Idempotent without touching the network: the module compares a
   # state file per package against the pin and does nothing when they
   # agree. Expect the first run to take a while; the full set is
-  # close to a gigabyte, most of it the Therzie and MWL asset bundles.
+  # around half a gigabyte, most of it the MWL asset bundles.
   thunderstore_package:
     name: "{{ item.name }}"
     version: "{{ item.version }}"
