@@ -35,7 +35,7 @@ Gameplay:
 - [ExtraSlots](https://thunderstore.io/c/valheim/p/shudnal/ExtraSlots/) 1.2.21 by shudnal - More inventory slots dedicated for equipment, food, ammo and misc items. Extra utility slots. Quick slots. Custom slots API. Player inventory resize. Gamepad friendly. Slot obtaining progression.
 - [MultiUserChest](https://thunderstore.io/c/valheim/p/MSchmoecker/MultiUserChest/) 0.6.2 by MSchmoecker - Allows multiple players to interact with the same chest at the same time
 - [ItemStacksItemWeights](https://thunderstore.io/c/valheim/p/shudnal/ItemStacksItemWeights/) 1.1.1 by shudnal - Control item stack sizes and weights. Dynamic server-to-client synchronization. Works globally or per item.
-- [PlantEverything](https://thunderstore.io/c/valheim/p/Advize/PlantEverything/) 1.21.3 by Advize - Allows your cultivator to plant berry bushes, thistle, dandelions, mushrooms, previously unavailable tree types, and other decorative flora. Includes many other miscellaneous features (see description). Highly configurable with localization support.
+- [PlantEverything](https://thunderstore.io/c/valheim/p/Advize/PlantEverything/) 1.21.4 by Advize - Allows your cultivator to plant berry bushes, thistle, dandelions, mushrooms, previously unavailable tree types, and other decorative flora. Includes many other miscellaneous features (see description). Highly configurable with localization support.
 - [Need_For_Speed](https://thunderstore.io/c/valheim/p/VentureValheim/Need_For_Speed/) 1.0.0 by VentureValheim - Detects when the player is on cleared ground (a path) and applies a speed boost multiplier. Separate configuration values for jogging and running.
 - [OdinHorse](https://thunderstore.io/c/valheim/p/OdinPlus/OdinHorse/) 1.9.1 by OdinPlus - Horse mount and new items! You can tame it, You can ride it, You can attach the Horse Cart, You can breed it, Add armor to your horse!
 - [LongshipUpgrades](https://thunderstore.io/c/valheim/p/shudnal/LongshipUpgrades/) 1.0.23 by shudnal - Upgrade your vanilla Longship piece by piece with lantern, changeable sails, tent, shields, extended storage and more.
@@ -51,7 +51,7 @@ Gameplay:
 - [MissingPieces](https://thunderstore.io/c/valheim/p/BentoG/MissingPieces/) 2.3.2 by BentoG - A fix for what impedes your building fix.
 - [Spearfishing](https://thunderstore.io/c/valheim/p/Korppis/Spearfishing/) 1.0.5 by Korppis - Catch fish with projectile weapons such as spear, harpoon and bow.
 - [ValheimCuisine](https://thunderstore.io/c/valheim/p/Xutz/ValheimCuisine/) 2.3.2 by Xutz - Adds more than 300 food recipes inspired on cultural nordic delicacies, with norse mythology references to fit the game.
-- [RecyclePlus](https://thunderstore.io/c/valheim/p/TastyChickenLegs/RecyclePlus/) 1.3.8 by TastyChickenLegs - Deletes or Recycles items in inventory. Add trashcan to inventory. Works with Forge of Potential!! Configurable key or new custom trash can
+- [RecyclePlus](https://thunderstore.io/c/valheim/p/TastyChickenLegs/RecyclePlus/) 1.3.9 by TastyChickenLegs - Deletes or Recycles items in inventory. Add trashcan to inventory. Works with Forge of Potential!! Configurable key or new custom trash can
 - [DropMoreLoot](https://thunderstore.io/c/valheim/p/TastyChickenLegs/DropMoreLoot/) 1.2.9 by TastyChickenLegs - Configure drops, item weight, pickup distance, make things float and item stacking. Configure drops, from mobs, animals, bosses, dungeons, ore.. plus more
 - [ServerSideMap](https://thunderstore.io/c/valheim/p/Mydayyy/ServerSideMap/) 1.3.14 by Mydayyy - Shares the Map between all players, synchronizes map when connecting
 - [GammaOfNightLights](https://thunderstore.io/c/valheim/p/shudnal/GammaOfNightLights/) 1.0.10 by shudnal - Control luminance, moonlight and sunlight intensity, fog density and day/night length. Ambient light tweaks.
@@ -65,7 +65,7 @@ Console commands for whoever administers the server. Other players
 need neither; the admin adds them to the profile by hand.
 
 - [Server_devcommands](https://thunderstore.io/c/valheim/p/JereKuusela/Server_devcommands/) 1.115.0 by JereKuusela - Enables devcommands and utilities for server admins.
-- [Upgrade_World](https://thunderstore.io/c/valheim/p/JereKuusela/Upgrade_World/) 1.85.0 by JereKuusela - A tool which can add new content to already explored areas.
+- [Upgrade_World](https://thunderstore.io/c/valheim/p/JereKuusela/Upgrade_World/) 1.86.0 by JereKuusela - A tool which can add new content to already explored areas.
 
 ## Optional, per player (2 mods, not in the profile)
 
