@@ -107,6 +107,9 @@ MOD_GROUP_HEADING = re.compile(
 # Both are generated from the pins and rewritten by `--update`.
 VALHEIM_CLIENT_MODS = 'roles/valheim/CLIENT_MODS.md'
 VALHEIM_CLIENT_PROFILE = 'roles/valheim/drehtuer-valheim.r2z'
+# Hand-written, unlike the two above: the mod settings the admin
+# changes on the server and each player on their own client.
+VALHEIM_SETTINGS = 'roles/valheim/SETTINGS.md'
 VALHEIM_CLIENT_PROFILE_URL = (
   'https://github.com/drehtuer/ansible-drehtuer/raw/main/'
   + VALHEIM_CLIENT_PROFILE
@@ -115,12 +118,13 @@ THUNDERSTORE_PACKAGE_PAGE = 'https://thunderstore.io/c/valheim/p'
 # Recommended to players but not installed on the server, so not
 # pinned: nothing checks their version, and r2modman's latest is fine.
 # Only mods documented as fine without the server - ConfigurationManager
-# sets `ModRequired = false`, PlantEasily says client-side only. A mod
-# that requires its server half refuses to join without it, so check
-# its README before adding one here.
+# sets `ModRequired = false`, PlantEasily and PortalPeek say client-side
+# only. A mod that requires its server half refuses to join without it,
+# so check its README before adding one here.
 VALHEIM_CLIENT_OPTIONAL = (
   'shudnal-ConfigurationManager',
   'Advize-PlantEasily',
+  'tboods-PortalPeek',
 )
 
 
@@ -1167,6 +1171,10 @@ def valheim_client_mods(
         "When the server's mods are updated, this file and the profile are",
         'updated with them: import the new profile again, with *Update',
         'existing profile*, before joining.',
+        '',
+        'A few settings are worth changing on your own client once the',
+        f'mods are installed - see [{Path(VALHEIM_SETTINGS).name}]'
+        f'({Path(VALHEIM_SETTINGS).name}).',
         '',
         f'## Every player ({len(profile)} mods, all in the profile)',
         '',
