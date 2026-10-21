@@ -20,6 +20,9 @@ When the server's mods are updated, this file and the profile are
 updated with them: import the new profile again, with *Update
 existing profile*, before joining.
 
+A few settings are worth changing on your own client once the
+mods are installed - see [SETTINGS.md](SETTINGS.md).
+
 ## Every player (27 mods, all in the profile)
 
 Libraries, needed by the mods below:
@@ -63,7 +66,7 @@ need neither; the admin adds them to the profile by hand.
 - [Server_devcommands](https://thunderstore.io/c/valheim/p/JereKuusela/Server_devcommands/) 1.115.0 by JereKuusela - Enables devcommands and utilities for server admins.
 - [Upgrade_World](https://thunderstore.io/c/valheim/p/JereKuusela/Upgrade_World/) 1.86.0 by JereKuusela - A tool which can add new content to already explored areas.
 
-## Optional, per player (2 mods, not in the profile)
+## Optional, per player (3 mods, not in the profile)
 
 Purely client-side, so the server neither has nor checks them:
 add any of them to your own profile in r2modman if you like, at
@@ -71,6 +74,7 @@ whatever version r2modman offers.
 
 - [ConfigurationManager](https://thunderstore.io/c/valheim/p/shudnal/ConfigurationManager/) any version by shudnal - Localized, recolored, refined. Split view mode. Config files editor. Setting edit window. Changed values are highlighted. Prevent user input or pause the game while window is open. Window scale depends on game scale.
 - [PlantEasily](https://thunderstore.io/c/valheim/p/Advize/PlantEasily/) any version by Advize - Allows you to plant evenly spaced crops, either one at a time or in any amount of rows and columns, with grid snapping features and invalid crop placement prevention. Harvest in bulk and optionally auto replant crops. Configurable and supports gamepad.
+- [PortalPeek](https://thunderstore.io/c/valheim/p/tboods/PortalPeek/) any version by tboods - See what is on the other side of every portal with a 3D, animated snapshot of the destination. Client-side mod.
 
 ## Server only (11 mods, nothing to install)
 
