@@ -1,0 +1,34 @@
+{{ ansible_managed | comment }}
+# fail2ban filter for SMTP-AUTH attempts with a username that cannot
+# log in here at all.
+#
+# Mail logins are system accounts checked through PAM (roles/imap,
+# `passdb { driver = pam }`), so the names that can ever succeed are
+# exactly the accounts with a usable password - fail2ban.sasl_usernames,
+# derived from the users role. A failure under any other name is a
+# guess by definition, and needs no second chance: the jail bans on the
+# first one. A failure under a real name is left to postfix-auth, which
+# tolerates typos.
+#
+# The domain part is accepted with any value, mirroring Dovecot's
+# `auth_username_format = %n`, which drops it before the lookup.
+# Case is not folded, and neither is it by Dovecot: `%n` keeps it, so a
+# differently cased name fails at PAM all the same.
+#
+# Matches Postfix's own line, which carries the name the client sent:
+#   warning: unknown[192.0.2.1]: SASL LOGIN authentication failed:
+#   (reason unavailable), sasl_username=office
+
+[INCLUDES]
+
+before = common.conf
+
+[Definition]
+
+_daemon = postfix(-\w+)?/\w+(?:/smtp[ds])?
+
+failregex = ^%(__prefix_line)swarning: [^[]*\[<HOST>\](?::\d+)?: SASL (?:LOGIN|PLAIN|(?:CRAM|DIGEST)-MD5) authentication failed:.*, sasl_username=(?!(?:{{ fail2ban.sasl_usernames | map('regex_escape') | join('|') }})(?:@\S*)?$).*$
+
+ignoreregex =
+
+journalmatch =
