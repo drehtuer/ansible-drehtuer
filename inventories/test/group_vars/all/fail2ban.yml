@@ -3,6 +3,12 @@ fail2ban:
     bantime: 1h
     findtime: 10m
     maxretry: 5
+  # The same derivation as the role default, so the static test renders
+  # the filter from the test users rather than from a literal list.
+  sasl_usernames: >-
+    {{ (users | default({})).users | default([])
+       | rejectattr('password', 'match', '[!*]')
+       | map(attribute='name') | list }}
   jails:
     - name: recidive
       port: all
@@ -35,6 +41,14 @@ fail2ban:
       port: smtp,submission
       filter: "postfix[mode=auth]"
       backend: systemd
+      options:
+        journalmatch: _SYSTEMD_UNIT=postfix@-.service
+    - name: postfix-auth-unknown-user
+      port: smtp,submission
+      filter: postfix-auth-unknown-user
+      backend: systemd
+      maxretry: 1
+      bantime: 4w
       options:
         journalmatch: _SYSTEMD_UNIT=postfix@-.service
     - name: nginx-404

@@ -27,6 +27,15 @@ argument_specs:
                 type: int
                 required: true
                 description: Failures tolerated within findtime.
+          sasl_usernames:
+            type: list
+            elements: str
+            required: true
+            description:
+              - The only usernames an SMTP-AUTH login can succeed with.
+                Any other name is banned on the first failure by the
+                postfix-auth-unknown-user jail. Derived from the users
+                role by default.
           jails:
             type: list
             elements: dict

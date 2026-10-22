@@ -54,6 +54,19 @@
     mode: "0644"
   notify:
     - Reload fail2ban
+- name: Deploy templated filters
+  # Filters whose patterns depend on the inventory, so they cannot be
+  # static files above. Same ordering constraint: before jail.local.
+  ansible.builtin.template:
+    src: "templates/{{ item }}.conf.j2"
+    dest: "/etc/fail2ban/filter.d/{{ item }}.conf"
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - postfix-auth-unknown-user
+  notify:
+    - Reload fail2ban
 - name: Configure fail2ban
   ansible.builtin.template:
     src: templates/jail.local.j2

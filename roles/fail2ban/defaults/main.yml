@@ -5,6 +5,17 @@ fail2ban:  # noqa: var-naming[no-role-prefix] - see doc/STATUS.adoc
     bantime: 1h
     findtime: 10m
     maxretry: 5
+  # The only names an SMTP-AUTH login can succeed with, read by the
+  # postfix-auth-unknown-user filter. Mail logins are system accounts
+  # checked through PAM, so these are the users role's accounts that
+  # have a usable password - not `*`, and not locked with a leading
+  # `!`. Derived rather than listed, so an account added there is never
+  # banned here for logging in, and so the names stay in the vaulted
+  # inventory instead of being repeated in plain text.
+  sasl_usernames: >-
+    {{ (users | default({})).users | default([])
+       | rejectattr('password', 'match', '[!*]')
+       | map(attribute='name') | list }}
   jails:
     # `backend` decides where fail2ban looks for failures, and it has
     # to match how the service actually logs. sshd and postfix go to
@@ -89,6 +100,34 @@ fail2ban:  # noqa: var-naming[no-role-prefix] - see doc/STATUS.adoc
         # Same correction as the jail above: Debian and Ubuntu run
         # Postfix as the instantiated template unit, and the packaged
         # `postfix.service` says almost nothing.
+        journalmatch: _SYSTEMD_UNIT=postfix@-.service
+    # The part of that brute force postfix-auth cannot reach: failures
+    # under a name no account here has. The filter is this role's own
+    # (templates/postfix-auth-unknown-user.conf.j2), built from
+    # `sasl_usernames` above. One attempt is proof enough, so there is
+    # no threshold to stay under and the ban is long.
+    #
+    # Measured against a fortnight of the real journal on carcosa
+    # (2026-10-09 to 10-23): 4842 failures from 1992 addresses, 37 % of
+    # them under names that cannot exist. Replayed against this jail,
+    # 32 % of all attempts would have been refused. postfix-auth, at
+    # 5 in 10m, would have banned nobody. The other two thirds use the
+    # real name from ~1665 addresses at under two tries each, which no
+    # per-address threshold catches.
+    #
+    # The one way to ban yourself is a mail client configured with a
+    # wrong username: that address is then refused SMTP for the ban's
+    # length. `fail2ban-client set postfix-auth-unknown-user unbanip`
+    # or the fail2ban UI lifts it.
+    - name: postfix-auth-unknown-user
+      port: smtp,submission
+      filter: postfix-auth-unknown-user
+      backend: systemd
+      maxretry: 1
+      bantime: 4w
+      options:
+        # The filter is ours, but sets no journalmatch, and without one
+        # the systemd backend reads the whole journal.
         journalmatch: _SYSTEMD_UNIT=postfix@-.service
     - name: dovecot
       port: imaps
