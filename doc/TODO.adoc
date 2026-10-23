@@ -67,6 +67,15 @@ Two smaller things worth doing while there: confirm the map redraws after the fi
 
 == Verify / likely bugs
 
+* *Nextcloud's code integrity check is red, and an upgrade that unpacks over the old release is one of the two reasons.* Rescanned on 2026-10-23 after the `podcast` app was removed, and still failing, so that app was not the cause. Two separate faults:
++
+--
+. *Files left behind by upgrades* (`EXTRA_FILE`): several hundred old JS chunks and translations in bundled apps such as `photos`, `text`, `viewer`, `logreader` and `notifications`, and four PHP files in `cloud_federation_api`. The PHP files were checked: genuine Nextcloud code from the previous release (2026-08-13), with no `eval`, `base64_decode` or shell calls - leftovers, not tampering. They exist because `roles/cloud` extracts the new tarball over the installation, which adds and replaces files but never removes the ones a release dropped. The fix belongs in the role: unpack into a fresh directory and move `config/`, `data/` and the app-store apps across, or delete what the new release's `core/signature.json` and each app's `appinfo/signature.json` do not list. Either way, the next upgrade is the time to do it.
+. *Icons damaged by the PNG cron job of August* (`INVALID_HASH`): four in `news`, three in `tasks`, one in `audioplayer`. Core and `files_archive` were repaired at the time; these app-store apps were not. Updating them replaces the files - `news` and `audioplayer` have updates waiting - and `tasks` can be reinstalled from the store.
+--
++
+Rescan afterwards (`Checker::runInstanceVerification()`, or the *Rescan* link in the admin overview) and confirm it is green. A check that is always red hides the tampering it exists to catch.
+
 * *The SPF reject path is proven; the DKIM one is not.* `roles/spam/files/rspamd/force_actions.conf` rejects on `R_SPF_FAIL` and `R_DKIM_REJECT`. The SPF half was confirmed against real inbound mail on 2026-08-16: two messages carrying `R_SPF_FAIL` were answered `T (reject)`, and one of them scored *3.80 against a required 6.00* - below the spam threshold, so score-based logic would have taken no action and something must have forced it, which is exactly what that file does. `R_DKIM_REJECT` has never appeared on a real message, only in RSpamd's startup lines registering the symbol, so that half remains unexercised.
 +
 Note the evidence is perishable: RSpamd's log rotates daily keeping four generations, and the lines above had already rotated away hours later. Anyone re-checking should not read an empty log as an absence of rejections - capture the evidence when it appears, or lengthen the retention first.
