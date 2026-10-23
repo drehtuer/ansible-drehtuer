@@ -110,10 +110,10 @@ cloud:  # noqa: var-naming[no-role-prefix] - see doc/STATUS.adoc
         - db:add-missing-primary-keys
   # Client Push (the notify_push app). Without it every connected
   # client polls Nextcloud every 30 seconds, which is most of the idle
-  # load a quiet instance carries and means a Talk call can ring up to
-  # half a minute late; with it, clients hold one WebSocket open and
-  # Nextcloud pushes. Served at /push/ on the Nextcloud vhost, which is
-  # the path `occ notify_push:setup` expects.
+  # load a quiet instance carries and means a change or a notification
+  # can reach a client up to half a minute late; with it, clients hold
+  # one WebSocket open and Nextcloud pushes. Served at /push/ on the
+  # Nextcloud vhost, which is the path `occ notify_push:setup` expects.
   push:
     port: 7867
   # What a working installation here has, beyond what the release

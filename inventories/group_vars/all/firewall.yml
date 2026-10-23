@@ -72,8 +72,6 @@ firewall:
         comment: "SMTP(s) Submission"
       - port: 993
         comment: "IMAPS"
-      - port: 3478
-        comment: "TURN for Nextcloud Talk (roles/talk)"
       # DNS over TCP, which is not optional for an authoritative
       # server: AXFR is TCP-only, so without this Hetzner's
       # secondaries cannot transfer the zone at all, and any answer
@@ -83,8 +81,6 @@ firewall:
     udp:
       - port: 53
         comment: "DNS"
-      - port: 3478
-        comment: "TURN for Nextcloud Talk (roles/talk) - the media path"
       # The tunnel itself. udp/443 is not listed: it is redirected to
       # this port in the nat table, and the redirect happens before
       # the filter table sees the packet, so a rule for 443 would

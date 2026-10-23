@@ -30,10 +30,6 @@ http:
       - mail
       - spam
       - status
-      # roles/talk serves the signaling WebSocket here. Must match
-      # talk.subdomain or the vhost gets a certificate that does not
-      # cover it.
-      - talk
       # The Valheim web map vhost, see roles/valheim. The role builds
       # server_name from its own `webmap.subdomain`, so the two must
       # agree or the vhost is served with a mismatched certificate.

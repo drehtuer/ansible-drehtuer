@@ -168,8 +168,9 @@
   # A `map` is only valid in the http context, so it lives in conf.d
   # rather than in the vhosts that use it - and it is owned here rather
   # than by either consumer, because defining the same map twice is an
-  # nginx startup error. Both roles/fail2ban_ui and roles/talk proxy
-  # WebSockets and simply use $connection_upgrade.
+  # nginx startup error. roles/cloud, roles/fail2ban_ui,
+  # roles/monitoring and roles/valheim all proxy WebSockets and simply
+  # use $connection_upgrade.
   ansible.builtin.copy:
     src: files/nginx/websocket_upgrade_map.conf
     dest: /etc/nginx/conf.d/websocket_upgrade_map.conf

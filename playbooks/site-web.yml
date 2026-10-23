@@ -6,10 +6,6 @@
 # vhost before the TLS vhosts are written, so nginx can start without
 # a certificate that cannot be issued without nginx.
 #
-# `cloud` before `talk`, because the Talk backend registers itself with
-# Nextcloud through `occ` and there has to be a Nextcloud to register
-# with.
-#
 # `analytics` last, and only because it is cheapest there: it needs
 # nginx and the certificate, and nothing needs it.
 #
@@ -20,7 +16,5 @@
   ansible.builtin.import_playbook: http.yml
 - name: Nextcloud
   ansible.builtin.import_playbook: cloud.yml
-- name: Talk backend
-  ansible.builtin.import_playbook: talk.yml
 - name: Web traffic report
   ansible.builtin.import_playbook: analytics.yml

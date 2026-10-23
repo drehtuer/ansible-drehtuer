@@ -585,7 +585,7 @@
 
     - name: Start grafana
       # docker_compose_v2 rather than docker_container, as roles/fail2ban_ui
-      # and roles/talk do: it drives the `docker compose` CLI the docker
+      # and roles/valheim do: it drives the `docker compose` CLI the docker
       # role installs, so nothing needs the Python docker SDK on the
       # target and the compose file stays the readable description.
       community.docker.docker_compose_v2:
