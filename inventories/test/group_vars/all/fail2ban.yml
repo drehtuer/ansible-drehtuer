@@ -20,7 +20,7 @@ fail2ban:
       maxretry: 3
     - name: sshd
       port: ssh
-      filter: sshd
+      filter: "sshd[mode=aggressive]"
       backend: systemd
     # Carries `options` deliberately: it is the only jail here that
     # does, and without one the template's options loop is never
