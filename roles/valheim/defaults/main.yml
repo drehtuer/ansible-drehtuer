@@ -5,8 +5,8 @@ valheim:  # noqa: var-naming[no-role-prefix] - see doc/STATUS.adoc
   # which is worth something here: the plugin path this role uses is
   # the one both upstreams agree on.
   #
-  # Pinned by tag *and* digest, the stance `fail2ban_ui` and `talk`
-  # take. This is the multi-arch *index* digest rather than one
+  # Pinned by tag *and* digest, the stance `fail2ban_ui` and
+  # `monitoring` take. This is the multi-arch *index* digest rather than one
   # platform's, so the pin survives a host of another architecture.
   image: ghcr.io/community-valheim-tools/valheim-server
   tag: "1.4.0"
@@ -66,8 +66,8 @@ valheim:  # noqa: var-naming[no-role-prefix] - see doc/STATUS.adoc
     # 127.0.0.1, so a container publishing 3000 there fails to start
     # with "address already in use". That is what happened on the
     # first deploy to carcosa. 8091 continues the block this host
-    # already uses for loopback web services - 8080 stub_status, 8081
-    # talk, 8090 fail2ban_ui.
+    # already uses for loopback web services - 8080 stub_status, 8090
+    # fail2ban_ui.
     #
     # Because this is not the mod's default, the seeded config in
     # templates/webmap.cfg.j2 is the only thing that tells the mod

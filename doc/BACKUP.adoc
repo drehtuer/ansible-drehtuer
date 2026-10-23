@@ -127,7 +127,7 @@ The desktop clients hold a current copy of the synced files, so the 104 GB does 
 
 **What that covers and what it does not** is the part worth being precise about, because "the clients have it" is true of the file *content* and of almost nothing else:
 
-* **Not covered by the clients, and therefore load-bearing on the database dump:** calendars and contacts (CalDAV/CardDAV live in the database, not the data directory), shares and share links, tags and comments, per-user settings, Talk history, and app data.
+* **Not covered by the clients, and therefore load-bearing on the database dump:** calendars and contacts (CalDAV/CardDAV live in the database, not the data directory), shares and share links, tags and comments, per-user settings, and app data.
 * **Not covered by anything:** file versions and the trash, which exist only in the data directory. A restore from the clients returns the current state of each file and no history.
 * **Not covered at any client:** anything a user excluded from sync, or holds as a virtual/online-only file rather than a downloaded one. This is worth auditing once rather than assuming, since a selectively-synced folder looks identical in the client to one that is fully present.
 * **Deletions and encryption propagate.** The client is a *replica*, not a backup: it answers loss of the host and answers nothing else. That is precisely why the local snapshot tier exists below it.
@@ -293,7 +293,7 @@ The repository's own doctrine applies here more sharply than anywhere else: *sch
 
 The ordering is the part that will cost time under pressure if it is not written down, and three of these steps are traps rather than merely sequence — a role that finds its artefact missing does not fail, it generates a *new* one and reports success.
 
-. **Provision from the repository at the recorded commit.** `git checkout <hash>` from the deploy stamp, then run the playbooks in the order `.claude/skills/testlab/lab.sh` carries in its `PLAYBOOKS` array — which is a tested order, not a guess. Note it omits `nsd`, `fail2ban_ui` and `talk`.
+. **Provision from the repository at the recorded commit.** `git checkout <hash>` from the deploy stamp, then run the playbooks in the order `.claude/skills/testlab/lab.sh` carries in its `PLAYBOOKS` array — which is a tested order, not a guess. Note it omits `nsd` and `fail2ban_ui`.
 . **Restore `/etc/letsencrypt/` before `http.yml`.** Otherwise certbot issues a fresh certificate, against rate limits, and only after DNS already points at the new host.
 . **Restore the DKIM keys before `spam.yml`.** `dkim_keygen.sh` skips a key that exists and generates one that does not — so running the role first silently rotates the keys under a published selector, and mail signs against records that no longer match.
 . **Restore `config/config.php` before `cloud.yml`.** The role runs `occ maintenance:install` on a host with no `config.php`. Running it first gives a *fresh instance*, and restoring the file afterwards is too late — the `instanceid` and `secret` will not match the database being restored.

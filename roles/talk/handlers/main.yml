@@ -1,8 +1,0 @@
-- name: Restart talk
-  community.docker.docker_compose_v2:
-    project_src: "{{ talk.compose_dir }}"
-    state: restarted
-- name: Reload nginx
-  ansible.builtin.systemd_service:
-    name: nginx
-    state: reloaded

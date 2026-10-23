@@ -294,7 +294,7 @@ monitoring:  # noqa: var-naming[no-role-prefix] - see doc/STATUS.adoc
     # which is the whole reason it is a container while Prometheus,
     # Alertmanager and node_exporter are packages. Pinned by tag *and*
     # multi-arch index digest, the stance roles/fail2ban_ui and
-    # roles/talk take: a tag can be moved under you, a digest cannot.
+    # roles/valheim take: a tag can be moved under you, a digest cannot.
     # Bumping the version means editing both, which is the point.
     image: grafana/grafana-oss
     tag: "13.0.2"

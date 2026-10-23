@@ -5,8 +5,8 @@
 # WHAT IT REPLACES. Without it, every connected client polls Nextcloud
 # every 30 seconds asking whether anything changed - which is most of
 # the idle load an otherwise quiet instance carries, and which means a
-# Talk call can ring up to half a minute late. With it, clients hold one
-# WebSocket open and Nextcloud pushes.
+# change or a notification can reach a client up to half a minute late.
+# With it, clients hold one WebSocket open and Nextcloud pushes.
 #
 # It reads Nextcloud's own config.php for the database and Redis
 # details rather than being configured separately, so there is nothing

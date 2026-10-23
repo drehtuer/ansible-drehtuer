@@ -16,9 +16,9 @@
 #     `roles/http` and `roles/imap`. Running it eighth, as the tested
 #     array did, reliably left the service dead on a fresh host -
 #     which is exactly what happened on the lab on 2026-08-22.
-#   * **nsd, fail2ban_ui and talk are included.** The array omitted all
-#     three, so "every playbook, in order" meant seventeen of the
-#     twenty roles a rebuild needs.
+#   * **nsd and fail2ban_ui are included.** The array omitted both
+#     (and the since-removed `talk`), so "every playbook, in order"
+#     meant seventeen of the twenty roles a rebuild then needed.
 #
 # `upgrade` is deliberately absent: it performs an Ubuntu release
 # upgrade and reboots, its tasks are tagged `never`, and it is not part
