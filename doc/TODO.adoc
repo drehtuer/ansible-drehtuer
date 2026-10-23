@@ -68,9 +68,6 @@ Two smaller things worth doing while there: confirm the map redraws after the fi
 
 == Verify / likely bugs
 
-* *`podcast` fails the code integrity check and cannot be repaired.* Its two `dist/screenshot*.png` were re-encoded by the PNG cron job removed on 2026-08-16, and one was truncated to zero bytes. Re-downloading is not possible: the app store gives the release's download URL as a GitLab CI artifact which now returns 404, and `app:update` offers nothing newer, so version 0.3.1 cannot be fetched again. The affected files are screenshots - cosmetic, unused at run time - and the app is disabled. So this is a choice rather than a fault to fix: leave the warning, or `occ app:remove podcast`, which is defensible given the app is disabled and its upstream source has gone. Nothing else is affected; core and `files_archive` were both repaired and check clean.
-
-
 * *The SPF reject path is proven; the DKIM one is not.* `roles/spam/files/rspamd/force_actions.conf` rejects on `R_SPF_FAIL` and `R_DKIM_REJECT`. The SPF half was confirmed against real inbound mail on 2026-08-16: two messages carrying `R_SPF_FAIL` were answered `T (reject)`, and one of them scored *3.80 against a required 6.00* - below the spam threshold, so score-based logic would have taken no action and something must have forced it, which is exactly what that file does. `R_DKIM_REJECT` has never appeared on a real message, only in RSpamd's startup lines registering the symbol, so that half remains unexercised.
 +
 Note the evidence is perishable: RSpamd's log rotates daily keeping four generations, and the lines above had already rotated away hours later. Anyone re-checking should not read an empty log as an absence of rejections - capture the evidence when it appears, or lengthen the retention first.
