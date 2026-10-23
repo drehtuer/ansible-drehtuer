@@ -40,7 +40,20 @@ fail2ban:  # noqa: var-naming[no-role-prefix] - see doc/STATUS.adoc
       maxretry: 3
     - name: sshd
       port: ssh
-      filter: sshd
+      # `aggressive` rather than the default `normal`, which counts
+      # little beyond "Invalid user". SSH is key-only here, so the bulk
+      # of the scanning never gets that far: it probes a real name
+      # (`root`, `ubuntu`) and gives up before authenticating, or fails
+      # the key exchange outright, and `normal` sees neither. Measured
+      # with `fail2ban-regex` against carcosa's journal on 2026-10-23:
+      # `normal` matched 4218 lines, `aggressive` 16730, leaving 236.
+      #
+      # It cannot catch a legitimate login, which never produces these
+      # lines, and the mode's own rule for `Accepted` resets an
+      # address's count once it logs in. The same check found the
+      # owner's address once in the whole journal, a connection closed
+      # before authenticating - one of the five needed.
+      filter: "sshd[mode=aggressive]"
       backend: systemd
     - name: postfix
       port: smtp,submission
