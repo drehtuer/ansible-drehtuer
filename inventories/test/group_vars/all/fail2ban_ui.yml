@@ -7,9 +7,9 @@
 # example of what the role expects.
 fail2ban_ui:
   image: swissmakers/fail2ban-ui
-  tag: v1.5.3
+  tag: v1.6.1
   digest: >-
-    sha256:a9bcc7db6a59d5497f693cbba3983b016981b97c0df1b248a64cfb0fe85ddb09
+    sha256:078fb35fcf0c4b946c79e220bde2727f5bc48a7ec8fb29d565a678c856204fcd
   compose_dir: /etc/fail2ban-ui
   config_dir: /opt/fail2ban-ui
   port: 8090
