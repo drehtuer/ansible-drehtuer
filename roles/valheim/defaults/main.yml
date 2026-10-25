@@ -159,9 +159,6 @@ valheim_mods:
   - name: ArgusMagnus-ServersideQoL_ContainerSigns
     version: "2.3.3"
     sha256: ed060cb9f1f7c021e9baef3f88228dfa8848dee854b94144d26b4e25fe418490
-  - name: ArgusMagnus-ServersideQoL_PortalProgression
-    version: "2.4.1"
-    sha256: 5c73837bb7498e7c5e09633ff03a24e873c2498c411b0dc27e6ed9bb2822b8bd
   - name: ArgusMagnus-ServersideQoL_TameAssist
     version: "2.1.0"
     sha256: 48b29963908bc7194eed44651ee66bd4b8e1b6f31cabcaad1653343ab455209d
