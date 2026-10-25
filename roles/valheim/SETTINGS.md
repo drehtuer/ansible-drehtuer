@@ -22,7 +22,10 @@ r2modman profile (*Config editor* in r2modman) and restart the game.
 ### Shared map markers (ServerSideMap)
 
 The explored map is shared automatically. Markers (pins) are **not**:
-every player has to switch that on for themselves.
+every player has to switch that on for themselves, and the server has
+to allow it too (see *Allowing shared map markers* below - as of
+2026-10-25 it does not yet, so this setting has no effect until it
+does).
 
 - File: `eu.mydayyy.plugins.serversidemap.cfg`, section `[General]`
 - `EnableMarkerShare = true` (default `false`)
@@ -85,6 +88,12 @@ The server pushes these values to every client.
 DropMoreLoot can change item weights as well. Set weights in only one
 of the two mods and leave the other at its defaults: if both change
 them, whichever loads last wins.
+
+**This server currently uses DropMoreLoot for it**, not
+ItemStacksItemWeights: `TastyChickenLegs.DropMoreLoot.cfg` has
+`percentofweight = 0.197` (default `0.5`), and ItemStacksItemWeights
+is at its defaults. Change the weight there, or move it to
+ItemStacksItemWeights and put DropMoreLoot's value back to `0.5`.
 
 ### Larger stacks (ItemStacksItemWeights)
 
@@ -155,10 +164,53 @@ With Epic Loot, magic items stay in the deposit box unless
 
 - `-modifier portals casual` in `valheim.server.args` already lets
   everything through portals, ore and metal included. While that is
-  set, **ServersideQoL_PortalProgression** has nothing left to do.
+  set, **ServersideQoL_PortalProgression** has nothing left to do
+  (its config is untouched as well, checked 2026-10-25), so it is a
+  candidate for removal.
 - **ServersideQoL_AutoMapTables** puts portals, ships, ore deposits
   and dungeons players have found on map tables. That is the quickest
   way to see where portals are, and it needs nothing from players.
+
+### Allowing shared map markers (ServerSideMap)
+
+The server has the final say on marker sharing: with it off there,
+no player's pins are shared, whatever their own setting says.
+
+- File: `eu.mydayyy.plugins.serversidemap.cfg`, section `[General]`
+- `EnableMarkerShare = true` (default `false`, and still `false` on
+  this server as of 2026-10-25)
+
+### Container sizes (ServersideQoL_ContainerSizes)
+
+- File: `ArgusMagnus.ServersideQoL.ContainerSizes.cfg`, one
+  `InventorySize_<prefab>` setting per container type, e.g.
+  `InventorySize_piece_chest_wood = 8x4` (default `5x2`).
+- Every default is that container's own size, so nothing changes
+  until a value is set.
+- A trailing `+` (`5x2+`) lets a container keep growing as long as it
+  holds only one kind of item.
+- Sizes are only changed on **empty** containers, so items are never
+  lost. A full chest takes its new size once it has been emptied.
+
+**Set `InventorySize_VikingShip = 7x4`.** LongshipUpgrades stores an
+upgraded longship's bigger storage (7x4, its default) on that ship.
+With ContainerSizes left at `6x3`, the two keep undoing each other on
+every empty upgraded longship. At `7x4` every longship gets the big
+storage straight away, which makes LongshipUpgrades' storage upgrade
+redundant but ends the tug of war. If its `Upgrade - Lvl 1 - Container
+Width` or `Lvl 2 - Container Height` is changed, change this to match.
+
+Not tested together with MultiUserChest, which also deals with open
+containers: check that two players can still use a resized chest at
+once.
+
+### The other new server mods
+
+**ServersideQoL_Treesurrection** (tree stumps regrow),
+**ServersideQoL_SuperWishbone** (the wishbone also finds dungeons,
+vegvisirs and more) and **ServersideQoL_SmartDefense** (ballistae
+spare players and tames, and reload from nearby containers) work at
+their defaults. Each has its own `ArgusMagnus.ServersideQoL.*.cfg`.
 
 ## Not installed yet
 
@@ -166,12 +218,8 @@ These would need a new server-only mod added to `valheim_mods`.
 Players would install nothing for them.
 
 | Wish | Mod | Setting |
-|---|---|---|
+| --- | --- | --- |
 | Raise the carry limit itself | ServersideQoL_ControlCenter | `CarryWeightRate` (vanilla `100`; `150` is +50 %) |
 | Keep a Megingjord's carry bonus permanently | ServersideQoL_Player | `CanSacrificeMegingjord = true`, then put a Megingjord in an obliterator |
-| Bigger chests | ServersideQoL_ContainerSizes | e.g. `InventorySize_piece_chest_wood = 8x4` (default `5x2`). A trailing `+` (`5x2+`) lets a chest keep growing as long as it holds only one kind of item. |
 | Link unpaired portals to a hub | ServersideQoL_AutoPortalHub | `Enabled = true`. `AutoNameNewPortals = true` names new portals after their biome. |
-| Put items into nearby chests automatically | ServersideQoL_AutoStore | see its config |
-
-ContainerSizes has not been tested together with MultiUserChest. Try
-it on the test machine first.
+| Put items into nearby chests automatically | ServersideQoL_AutoStore | see its config. Overlaps DvergerAutomation's Autosorter. |

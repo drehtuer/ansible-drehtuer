@@ -119,12 +119,14 @@ THUNDERSTORE_PACKAGE_PAGE = 'https://thunderstore.io/c/valheim/p'
 # pinned: nothing checks their version, and r2modman's latest is fine.
 # Only mods documented as fine without the server - ConfigurationManager
 # sets `ModRequired = false`, PlantEasily and PortalPeek say client-side
-# only. A mod that requires its server half refuses to join without it,
-# so check its README before adding one here.
+# only, and AutoRemoveDeathPin's source has no version check or RPC at
+# all. A mod that requires its server half refuses to join without it,
+# so check its README (or source) before adding one here.
 VALHEIM_CLIENT_OPTIONAL = (
   'shudnal-ConfigurationManager',
   'Advize-PlantEasily',
   'tboods-PortalPeek',
+  'yudi7ll-AutoRemoveDeathPin',
 )
 
 

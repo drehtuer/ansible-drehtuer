@@ -151,8 +151,8 @@ valheim_mods:
 
   # Server only.
   - name: ArgusMagnus-ServersideQoL
-    version: "2.4.0"
-    sha256: 6f9da3d2891a232a796e97513b21602e3cf01f8f93b70304892d6ec6121f390e
+    version: "2.4.3"
+    sha256: 9bd5160da5ca4aa9dfe1c828f5019bd1e955a19feba397dfd7124a5314c71514
   - name: ArgusMagnus-ServersideQoL_AutoProcess
     version: "2.3.0"
     sha256: 63a5393056370694eabdaa2600891d433888601f9253674d4199462b463aa756
@@ -160,20 +160,45 @@ valheim_mods:
     version: "2.3.3"
     sha256: ed060cb9f1f7c021e9baef3f88228dfa8848dee854b94144d26b4e25fe418490
   - name: ArgusMagnus-ServersideQoL_PortalProgression
-    version: "2.0.11"
-    sha256: d199e1e5cc01cfc1a4d8345f8d82564de7a3f28f70991cf4ec13590489c6cfba
+    version: "2.4.1"
+    sha256: 5c73837bb7498e7c5e09633ff03a24e873c2498c411b0dc27e6ed9bb2822b8bd
   - name: ArgusMagnus-ServersideQoL_TameAssist
     version: "2.1.0"
     sha256: 48b29963908bc7194eed44651ee66bd4b8e1b6f31cabcaad1653343ab455209d
   - name: ArgusMagnus-ServersideQoL_AutoMapTables
-    version: "2.3.2"
-    sha256: 7ff92fc44e18f3c033715127953dd77b759554e5af02fc08588881fb17f8fad9
+    version: "2.4.1"
+    sha256: 69c334200bf308d13134d4a3cc22a5d51df9b142e9cdc5e9b623c7e4a9573ded
   - name: ArgusMagnus-ServersideQoL_Signs
     version: "2.3.0"
     sha256: bef5208f260628b523708580aba56d500ca7669f074a51f89da60712aa5be8f4
   - name: ArgusMagnus-ServersideQoL_Backpack
-    version: "2.4.0"
-    sha256: 73099b8a0cb6bb679b2fc5f063b8d511d2f8e593e4733578326e8dcd0906d77a
+    version: "2.4.1"
+    sha256: bf91e631a748c9dae81e900e10153551d898525f12cca0def24a3691edcf9db6
+  # Tree stumps regrow into trees.
+  - name: ArgusMagnus-ServersideQoL_Treesurrection
+    version: "2.1.1"
+    sha256: 1b7d3590dfe4f7ea379fdeab3a4b13f045674ac26cea1cbb7f32ad6dbc82827e
+  # The wishbone also finds dungeons, vegvisirs and more.
+  - name: ArgusMagnus-ServersideQoL_SuperWishbone
+    version: "2.3.0"
+    sha256: af82eaa692a0d23264dca1a64027dadb32cde4d38176bbd4d76e89b7004098b2
+  # Ballistae spare players and tames, and reload from nearby
+  # containers. Needs core 2.4.1 or later.
+  - name: ArgusMagnus-ServersideQoL_SmartDefense
+    version: "2.4.1"
+    sha256: 71f70d5fd5d0cc28cab07ae38248ae90dd0387d4e55d2e21d688524c7424cbef
+  # Every container's size becomes configurable. Settings default to
+  # each container's own size, so nothing changes until one is set.
+  #
+  # One known clash: an *empty* container whose size differs from
+  # its setting is resized to the setting. LongshipUpgrades stores the
+  # upgraded longship's bigger size (7x4) on that ship, so with the
+  # default `InventorySize_VikingShip = 6x3` the two would undo each
+  # other on every empty upgraded longship. Never loses items - it
+  # only resizes empty ones - but see SETTINGS.md for the setting.
+  - name: ArgusMagnus-ServersideQoL_ContainerSizes
+    version: "2.0.11"
+    sha256: a115a6eb875576772496d89a8b02a8f9554ec5aee2e042575ae561dd8072fabc
   - name: Blockheim-LetMeSleep
     version: "1.0.5"
     sha256: 031acdd23860123a18e81e8f78ee8891309db682b6a8f0f4230e8e11b215f7ed
@@ -193,11 +218,11 @@ valheim_mods:
 
   # Server, plus the admin's client.
   - name: JereKuusela-Server_devcommands
-    version: "1.115.0"
-    sha256: b2752c18342bc9cabf4734e3480cd2cc4aa9faa8955ba503d4f7cefcfa3e4b33
+    version: "1.116.0"
+    sha256: 3782b6d83922af5e40473e884beca0ac3fcc41c89848a2ae68773a0868f5fb97
   - name: JereKuusela-Upgrade_World
-    version: "1.86.0"
-    sha256: 61033d960d9465f68ffd6057e49c63eaac37a400b59063a60b36ad573994a5da
+    version: "1.87.0"
+    sha256: 48469359a4a5b31a27cd8f09f1bd1273c76d19e3ec0c104f318164e9a7263fd8
 
   # Server, plus every client.
   - name: shudnal-ExtraSlots
@@ -216,20 +241,20 @@ valheim_mods:
     version: "1.0.0"
     sha256: 5559667affa4da8ff108afbb90d0bc09f4e04ddfea9c4758d0e881f820bf9288
   - name: OdinPlus-OdinHorse
-    version: "1.9.1"
-    sha256: 0a25603ec6e80dd6c305801875becbb690596b77a4df3cf2516faf9a5670bb4d
+    version: "1.9.2"
+    sha256: 5a0b3d59f00aaf42ce085761dad1d2f5841745bcb408049c3c1aebf47c50da06
   - name: shudnal-LongshipUpgrades
-    version: "1.0.23"
-    sha256: 2bfe2aaf6327b9f7e107cc8a9278aaeadf32faf9b5d1e872b999a2aaeb1eae5a
+    version: "1.0.24"
+    sha256: b4aee2f70cf33ad2df5fe227f0293f9edab60ccf7bef0f588aa63cbe2973eba2
   - name: RandyKnapp-EpicLoot
-    version: "0.14.13"
-    sha256: 8fd19132c46527471092ac732b71651e11862f2c0b784fc907b387b6ace3bb4f
+    version: "0.15.1"
+    sha256: bb42e85124ed7dc2f075ae6d0d534c7c97a300f0c99a651fc2e40a49a38dd4bc
   - name: warpalicious-More_World_Locations_AIO
     version: "5.2.2"
     sha256: 70d2506fdf6c400224a4dcf4905905ad707b7e3e73724acda282094b86d94d57
   - name: MidnightMods-StarLevelSystem
-    version: "1.26.3"
-    sha256: 4eadfecbf3ff431e3396a914377090824de0c95bbc68a6287dcf4f49d408de79
+    version: "1.27.0"
+    sha256: 44ea55fae6563fcd49db21c9b1a17c87dc604e33752710d026e2811258c35202
   - name: shudnal-Seasons
     version: "1.10.5"
     sha256: 9d494fe48577b8efa3e8010791728825c7b05cc089b7a90b2cdee62ebfcdb0be
@@ -258,16 +283,16 @@ valheim_mods:
     version: "1.0.10"
     sha256: ee8b90e41675b765bb544bd12e44f39c0d6db82be50ef79c8801c56cf18efa6f
   - name: OdinPlus-OdinArchitect
-    version: "1.8.8"
-    sha256: e62675780b4e3227fba32ee2ca1ce955f802283759b20f3a14ef9f37292d41dc
+    version: "1.9.3"
+    sha256: 6694e06829b4ea0e25ae1e076925a5c0723e8d93ecbd34cac59d1b3c1cee85f4
   # Vanilla bug and performance fixes, no gameplay changes. Unlike
   # the rest of this group it does not turn away a client without
   # it - that player just misses the client-side half of the fixes.
   # If both sides have it their versions must match, which is why it
   # is pinned and in the profile like everything else here.
   - name: MidnightMods-ValheimCommunityPatch
-    version: "0.37.0"
-    sha256: 403c009fc8082d4b6b3c9bcf70a4d74cc217b1998903355d1823313d26bdfa48
+    version: "0.38.0"
+    sha256: 36cdf9a3eca4495f9ed63a34c79adcc74e2b4ccfdcc0444b9231787d9f1b068d
   - name: MidnightMods-DvergerAutomation
     version: "0.12.4"
     sha256: e51972afc8a44ddcf60acf98af47be9d75f9c43ffb8986d7712fb96706e30276
