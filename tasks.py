@@ -126,7 +126,8 @@ THUNDERSTORE_PACKAGE_PAGE = 'https://thunderstore.io/c/valheim/p'
 # Only mods documented as fine without the server belong here or in
 # the list below - ConfigurationManager sets `ModRequired = false`,
 # PlantEasily and PortalPeek say client-side only, and
-# AutoRemoveDeathPin's source has no version check or RPC at all. A mod
+# AutoRemoveDeathPin's and Unshamed's code has no version check or RPC
+# at all. A mod
 # that requires its server half refuses to join without it, so check
 # its README (or source) before adding one.
 VALHEIM_CLIENT_PROFILE_EXTRA = (
@@ -139,6 +140,12 @@ VALHEIM_CLIENT_PROFILE_EXTRA = (
   'tboods-PortalPeek',
   # Removes the death pin once the tombstone is looted.
   'yudi7ll-AutoRemoveDeathPin',
+  # Valheim 1.0 blocks achievements for modded clients; this lifts the
+  # block. Deprecated on Thunderstore, because Azumatt publishes on
+  # Hexium now (1.0.8 there), so the profile gets the last Thunderstore
+  # build, 1.0.5. Client-only - no version check, no RPC - so an old
+  # build can at worst not restore achievements, never lock anyone out.
+  'Azumatt-Unshamed',
 )
 # Recommended to players but left out of the profile, so not pinned
 # either: nothing checks their version, and r2modman's latest is fine.

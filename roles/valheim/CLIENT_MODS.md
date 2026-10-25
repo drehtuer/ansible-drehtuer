@@ -23,7 +23,7 @@ existing profile*, before joining.
 A few settings are worth changing on your own client once the
 mods are installed - see [SETTINGS.md](SETTINGS.md).
 
-## Every player (31 mods, all in the profile)
+## Every player (32 mods, all in the profile)
 
 Libraries, needed by the mods below:
 
@@ -66,6 +66,7 @@ made:
 - [PlantEasily](https://thunderstore.io/c/valheim/p/Advize/PlantEasily/) 2.3.1 by Advize - Allows you to plant evenly spaced crops, either one at a time or in any amount of rows and columns, with grid snapping features and invalid crop placement prevention. Harvest in bulk and optionally auto replant crops. Configurable and supports gamepad.
 - [PortalPeek](https://thunderstore.io/c/valheim/p/tboods/PortalPeek/) 1.0.0 by tboods - See what is on the other side of every portal with a 3D, animated snapshot of the destination. Client-side mod.
 - [AutoRemoveDeathPin](https://thunderstore.io/c/valheim/p/yudi7ll/AutoRemoveDeathPin/) 1.1.3 by yudi7ll - Auto remove death pin from minimap after your tombstone is destroyed or fully looted
+- [Unshamed](https://thunderstore.io/c/valheim/p/Azumatt/Unshamed/) 1.0.5 by Azumatt - Valheim 1.0 blocks achievements for anyone running mods. This unblocks them, and gives back the ones you already earned. No free unlocks.
 
 ## Server admin only (2 mods, not in the profile)
 
