@@ -200,3 +200,31 @@ argument_specs:
                 is staged into. Defaults to the package name. Matters
                 for a plugin that keeps runtime data beside its DLL,
                 as WebMap does.
+      valheim_mod_settings:
+        type: list
+        elements: dict
+        # Not required, like valheim_mods: the role defaults carry it.
+        required: false
+        description:
+          - Single keys in mods' BepInEx config files that this
+            repository owns. Everything else in those files is left
+            to the host.
+        options:
+          file:
+            type: str
+            required: true
+            description: Config file name under BepInEx/config.
+          section:
+            type: str
+            required: true
+            description:
+              - Section the mod binds the key under. Any other section
+                is ignored by the mod, and its default wins.
+          key:
+            type: str
+            required: true
+            description: Setting name.
+          value:
+            type: str
+            required: true
+            description: Value as BepInEx writes it, e.g. true or 8x4.

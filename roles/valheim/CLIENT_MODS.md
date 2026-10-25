@@ -40,11 +40,11 @@ Gameplay:
 - [ItemStacksItemWeights](https://thunderstore.io/c/valheim/p/shudnal/ItemStacksItemWeights/) 1.1.1 by shudnal - Control item stack sizes and weights. Dynamic server-to-client synchronization. Works globally or per item.
 - [PlantEverything](https://thunderstore.io/c/valheim/p/Advize/PlantEverything/) 1.21.4 by Advize - Allows your cultivator to plant berry bushes, thistle, dandelions, mushrooms, previously unavailable tree types, and other decorative flora. Includes many other miscellaneous features (see description). Highly configurable with localization support.
 - [Need_For_Speed](https://thunderstore.io/c/valheim/p/VentureValheim/Need_For_Speed/) 1.0.0 by VentureValheim - Detects when the player is on cleared ground (a path) and applies a speed boost multiplier. Separate configuration values for jogging and running.
-- [OdinHorse](https://thunderstore.io/c/valheim/p/OdinPlus/OdinHorse/) 1.9.1 by OdinPlus - Horse mount and new items! You can tame it, You can ride it, You can attach the Horse Cart, You can breed it, Add armor to your horse!
-- [LongshipUpgrades](https://thunderstore.io/c/valheim/p/shudnal/LongshipUpgrades/) 1.0.23 by shudnal - Upgrade your vanilla Longship piece by piece with lantern, changeable sails, tent, shields, extended storage and more.
-- [EpicLoot](https://thunderstore.io/c/valheim/p/RandyKnapp/EpicLoot/) 0.14.13 by RandyKnapp - Adds loot drops, magic items, and enchanting to Valheim.
+- [OdinHorse](https://thunderstore.io/c/valheim/p/OdinPlus/OdinHorse/) 1.9.2 by OdinPlus - Horse mount and new items! You can tame it, You can ride it, You can attach the Horse Cart, You can breed it, Add armor to your horse!
+- [LongshipUpgrades](https://thunderstore.io/c/valheim/p/shudnal/LongshipUpgrades/) 1.0.24 by shudnal - Upgrade your vanilla Longship piece by piece with lantern, changeable sails, tent, shields, extended storage and more.
+- [EpicLoot](https://thunderstore.io/c/valheim/p/RandyKnapp/EpicLoot/) 0.15.1 by RandyKnapp - Adds loot drops, magic items, and enchanting to Valheim.
 - [More_World_Locations_AIO](https://thunderstore.io/c/valheim/p/warpalicious/More_World_Locations_AIO/) 5.2.2 by warpalicious - Adds 190 new POI locations including dungeons, traders, ports and much more to enhance Valheim's world exploration.
-- [StarLevelSystem](https://thunderstore.io/c/valheim/p/MidnightMods/StarLevelSystem/) 1.26.3 by MidnightMods - We have two levels yes, but why not... MORE?
+- [StarLevelSystem](https://thunderstore.io/c/valheim/p/MidnightMods/StarLevelSystem/) 1.27.0 by MidnightMods - We have two levels yes, but why not... MORE?
 - [Seasons](https://thunderstore.io/c/valheim/p/shudnal/Seasons/) 1.10.5 by shudnal - Four customizable seasons. Different visual flavor for every season, seasonal impact on gameplay. Frozen water and ice floes in Winter. Different weather, raids, lightings and trader items. New special spring grass. Minimal impact on fps.
 - [HipLantern](https://thunderstore.io/c/valheim/p/shudnal/HipLantern/) 1.1.14 by shudnal - Craftable little lantern on your hip to cast away the darkness
 - [MissingPieces](https://thunderstore.io/c/valheim/p/BentoG/MissingPieces/) 2.3.2 by BentoG - A fix for what impedes your building fix.
@@ -54,8 +54,8 @@ Gameplay:
 - [DropMoreLoot](https://thunderstore.io/c/valheim/p/TastyChickenLegs/DropMoreLoot/) 1.2.9 by TastyChickenLegs - Configure drops, item weight, pickup distance, make things float and item stacking. Configure drops, from mobs, animals, bosses, dungeons, ore.. plus more
 - [ServerSideMap](https://thunderstore.io/c/valheim/p/Mydayyy/ServerSideMap/) 1.3.14 by Mydayyy - Shares the Map between all players, synchronizes map when connecting
 - [GammaOfNightLights](https://thunderstore.io/c/valheim/p/shudnal/GammaOfNightLights/) 1.0.10 by shudnal - Control luminance, moonlight and sunlight intensity, fog density and day/night length. Ambient light tweaks.
-- [OdinArchitect](https://thunderstore.io/c/valheim/p/OdinPlus/OdinArchitect/) 1.8.8 by OdinPlus - Odin Architect is a mod that will allow you to build more with more structures and on a larger scale. You will find here not only larger counterparts of basic buildings but also completely new ones
-- [ValheimCommunityPatch](https://thunderstore.io/c/valheim/p/MidnightMods/ValheimCommunityPatch/) 0.37.0 by MidnightMods - Vanilla bug fixes and performance fixes for Valheim. No gameplay changes.
+- [OdinArchitect](https://thunderstore.io/c/valheim/p/OdinPlus/OdinArchitect/) 1.9.3 by OdinPlus - Odin Architect is a mod that will allow you to build more with more structures and on a larger scale. You will find here not only larger counterparts of basic buildings but also completely new ones
+- [ValheimCommunityPatch](https://thunderstore.io/c/valheim/p/MidnightMods/ValheimCommunityPatch/) 0.38.0 by MidnightMods - Vanilla bug fixes and performance fixes for Valheim. No gameplay changes.
 - [DvergerAutomation](https://thunderstore.io/c/valheim/p/MidnightMods/DvergerAutomation/) 0.12.4 by MidnightMods - Lore friendly craft from containers, and auto-sort them back in.
 
 ## Server admin only (2 mods, not in the profile)
@@ -63,10 +63,10 @@ Gameplay:
 Console commands for whoever administers the server. Other players
 need neither; the admin adds them to the profile by hand.
 
-- [Server_devcommands](https://thunderstore.io/c/valheim/p/JereKuusela/Server_devcommands/) 1.115.0 by JereKuusela - Enables devcommands and utilities for server admins.
-- [Upgrade_World](https://thunderstore.io/c/valheim/p/JereKuusela/Upgrade_World/) 1.86.0 by JereKuusela - A tool which can add new content to already explored areas.
+- [Server_devcommands](https://thunderstore.io/c/valheim/p/JereKuusela/Server_devcommands/) 1.116.0 by JereKuusela - Enables devcommands and utilities for server admins.
+- [Upgrade_World](https://thunderstore.io/c/valheim/p/JereKuusela/Upgrade_World/) 1.87.0 by JereKuusela - A tool which can add new content to already explored areas.
 
-## Optional, per player (3 mods, not in the profile)
+## Optional, per player (4 mods, not in the profile)
 
 Purely client-side, so the server neither has nor checks them:
 add any of them to your own profile in r2modman if you like, at
@@ -75,17 +75,23 @@ whatever version r2modman offers.
 - [ConfigurationManager](https://thunderstore.io/c/valheim/p/shudnal/ConfigurationManager/) any version by shudnal - Localized, recolored, refined. Split view mode. Config files editor. Setting edit window. Changed values are highlighted. Prevent user input or pause the game while window is open. Window scale depends on game scale.
 - [PlantEasily](https://thunderstore.io/c/valheim/p/Advize/PlantEasily/) any version by Advize - Allows you to plant evenly spaced crops, either one at a time or in any amount of rows and columns, with grid snapping features and invalid crop placement prevention. Harvest in bulk and optionally auto replant crops. Configurable and supports gamepad.
 - [PortalPeek](https://thunderstore.io/c/valheim/p/tboods/PortalPeek/) any version by tboods - See what is on the other side of every portal with a 3D, animated snapshot of the destination. Client-side mod.
+- [AutoRemoveDeathPin](https://thunderstore.io/c/valheim/p/yudi7ll/AutoRemoveDeathPin/) any version by yudi7ll - Auto remove death pin from minimap after your tombstone is destroyed or fully looted
 
-## Server only (11 mods, nothing to install)
+## Server only (16 mods, nothing to install)
 
-- [ServersideQoL](https://thunderstore.io/c/valheim/p/ArgusMagnus/ServersideQoL/) 2.4.0 by ArgusMagnus - Serverside-only QoL mod, compatible with vanilla/console (e.g. XBox, PS, Switch) clients. Stack player inventories into chests, generated portal hub, auto-sort chests, refuel smelters from containers, infinite building/farming stamina and much more
+- [ServersideQoL](https://thunderstore.io/c/valheim/p/ArgusMagnus/ServersideQoL/) 2.4.3 by ArgusMagnus - Serverside-only QoL mod, compatible with vanilla/console (e.g. XBox, PS, Switch) clients. Stack player inventories into chests, generated portal hub, auto-sort chests, refuel smelters from containers, infinite building/farming stamina and much more
 - [ServersideQoL_AutoProcess](https://thunderstore.io/c/valheim/p/ArgusMagnus/ServersideQoL_AutoProcess/) 2.3.0 by ArgusMagnus - Automatically feeds processing stations such as smelters, kilns, windmills, shield generators, etc. from nearby containers
 - [ServersideQoL_ContainerSigns](https://thunderstore.io/c/valheim/p/ArgusMagnus/ServersideQoL_ContainerSigns/) 2.3.3 by ArgusMagnus - Adds signs to chests and barrels. Optionally show automated content list and configure the container for other SQoL mods.
-- [ServersideQoL_PortalProgression](https://thunderstore.io/c/valheim/p/ArgusMagnus/ServersideQoL_PortalProgression/) 2.0.11 by ArgusMagnus - Allows progressively more ores/metals to be taken through portals after bosses are defeated
+- [ServersideQoL_PortalProgression](https://thunderstore.io/c/valheim/p/ArgusMagnus/ServersideQoL_PortalProgression/) 2.4.1 by ArgusMagnus - Allows progressively more ores/metals to be taken through portals after bosses are defeated
 - [ServersideQoL_TameAssist](https://thunderstore.io/c/valheim/p/ArgusMagnus/ServersideQoL_TameAssist/) 2.1.0 by ArgusMagnus - Configure various aspects around tameable creatures. Allow all tames to follow you, even through portals and into dungeons. Show taming and growing up/hatching progress to nearby players.
-- [ServersideQoL_AutoMapTables](https://thunderstore.io/c/valheim/p/ArgusMagnus/ServersideQoL_AutoMapTables/) 2.3.2 by ArgusMagnus - Automatically update map tables with icons for portals, ships, ore deposits and more.
+- [ServersideQoL_AutoMapTables](https://thunderstore.io/c/valheim/p/ArgusMagnus/ServersideQoL_AutoMapTables/) 2.4.1 by ArgusMagnus - Automatically update map tables with icons for portals, ships, ore deposits and more.
 - [ServersideQoL_Signs](https://thunderstore.io/c/valheim/p/ArgusMagnus/ServersideQoL_Signs/) 2.3.0 by ArgusMagnus - Show in-game time on signs, set default sign color and put signs showing the remaining fermentation time on fermenters
-- [ServersideQoL_Backpack](https://thunderstore.io/c/valheim/p/ArgusMagnus/ServersideQoL_Backpack/) 2.4.0 by ArgusMagnus - Adds a backpack with progressively larger storage capacity
+- [ServersideQoL_Backpack](https://thunderstore.io/c/valheim/p/ArgusMagnus/ServersideQoL_Backpack/) 2.4.1 by ArgusMagnus - Adds a backpack with progressively larger storage capacity
+- [ServersideQoL_Treesurrection](https://thunderstore.io/c/valheim/p/ArgusMagnus/ServersideQoL_Treesurrection/) 2.1.1 by ArgusMagnus - Lets tree stumps regrow
+- [ServersideQoL_SuperWishbone](https://thunderstore.io/c/valheim/p/ArgusMagnus/ServersideQoL_SuperWishbone/) 2.3.0 by ArgusMagnus - Supercharges the wishbone so it can find dungeons, vegvisirs and configurably more.
+- [ServersideQoL_SmartDefense](https://thunderstore.io/c/valheim/p/ArgusMagnus/ServersideQoL_SmartDefense/) 2.4.1 by ArgusMagnus - Ballista don't target players or tames and reload from nearby containers.
+- [ServersideQoL_ContainerSizes](https://thunderstore.io/c/valheim/p/ArgusMagnus/ServersideQoL_ContainerSizes/) 2.0.11 by ArgusMagnus - Make all container inventory sizes configurable and optionally let the grow infinitely if the contain only one item type
+- [ServersideQoL_ControlCenter](https://thunderstore.io/c/valheim/p/ArgusMagnus/ServersideQoL_ControlCenter/) 2.2.0 by ArgusMagnus - Lets you configure all available vanilla global keys such as skill loss/gain rate, carry weight multiplier, food constumption rate, etc.
 - [LetMeSleep](https://thunderstore.io/c/valheim/p/Blockheim/LetMeSleep/) 1.0.5 by Blockheim - Skip the night with only some players in bed.
 - [NetworkPerformanceSystem](https://thunderstore.io/c/valheim/p/MidnightMods/NetworkPerformanceSystem/) 1.18.0 by MidnightMods - General Network Performance overhaul. What if it felt like singleplayer for everyone?
 - [ValheimWebMap](https://thunderstore.io/c/valheim/p/f00d4tehg0dz/ValheimWebMap/) 2.1.6 by f00d4tehg0dz - Live web map for your dedicated server. 3D/2D view with the game's own models, fog of war, players, bases, portals, stats.
