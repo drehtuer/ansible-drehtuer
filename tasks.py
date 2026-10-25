@@ -115,19 +115,35 @@ VALHEIM_CLIENT_PROFILE_URL = (
   + VALHEIM_CLIENT_PROFILE
 )
 THUNDERSTORE_PACKAGE_PAGE = 'https://thunderstore.io/c/valheim/p'
-# Recommended to players but not installed on the server, so not
-# pinned: nothing checks their version, and r2modman's latest is fine.
-# Only mods documented as fine without the server - ConfigurationManager
-# sets `ModRequired = false`, PlantEasily and PortalPeek say client-side
-# only, and AutoRemoveDeathPin's source has no version check or RPC at
-# all. A mod that requires its server half refuses to join without it,
-# so check its README (or source) before adding one here.
-VALHEIM_CLIENT_OPTIONAL = (
+# Client-only mods every player should have, so they go into the
+# profile - but not onto the server, where they would do nothing. Not
+# pinned, like BepInExPack: the profile takes the latest release each
+# time it is generated, since the server checks none of them. Their
+# dependencies are checked against the profile instead, so a release
+# that needs something the profile lacks fails here rather than in a
+# player's r2modman.
+#
+# Only mods documented as fine without the server belong here or in
+# the list below - ConfigurationManager sets `ModRequired = false`,
+# PlantEasily and PortalPeek say client-side only, and
+# AutoRemoveDeathPin's source has no version check or RPC at all. A mod
+# that requires its server half refuses to join without it, so check
+# its README (or source) before adding one.
+VALHEIM_CLIENT_PROFILE_EXTRA = (
+  # The F1 settings window, which is how a player sets their own client
+  # options (SETTINGS.md).
   'shudnal-ConfigurationManager',
+  # Rows and grids of crops with the cultivator, bulk harvest.
   'Advize-PlantEasily',
+  # A snapshot of what is on the other side of a portal.
   'tboods-PortalPeek',
+  # Removes the death pin once the tombstone is looted.
   'yudi7ll-AutoRemoveDeathPin',
 )
+# Recommended to players but left out of the profile, so not pinned
+# either: nothing checks their version, and r2modman's latest is fine.
+# The section is left out of CLIENT_MODS.md while this is empty.
+VALHEIM_CLIENT_OPTIONAL: tuple[str, ...] = ()
 
 
 def ctx_run(
@@ -1136,6 +1152,27 @@ def valheim_client_mods(
     sections[group].append(entry(name, version, description(name, version)))
     if group in ('library', 'client'):
       profile[name] = version
+  extras = []
+  for name in VALHEIM_CLIENT_PROFILE_EXTRA:
+    info = json.loads(
+      thunderstore(f'{THUNDERSTORE_API}/{name.replace("-", "/", 1)}/')
+    )['latest']
+    missing = []
+    for dep in info['dependencies']:
+      dep_name, _, dep_version = dep.rpartition('-')
+      if dep_name not in profile or version_tuple(
+        profile[dep_name]
+      ) < version_tuple(dep_version):
+        missing.append(dep)
+    if missing:
+      raise Exit(
+        f'{name} {info["version_number"]} needs {", ".join(missing)}, '
+        'which the profile does not carry at that version.',
+        code=1,
+      )
+    profile[name] = info['version_number']
+    text = ' '.join(info['description'].split())
+    extras.append(entry(name, info['version_number'], text))
   optional = []
   for name in VALHEIM_CLIENT_OPTIONAL:
     info = json.loads(
@@ -1188,6 +1225,12 @@ def valheim_client_mods(
         '',
         *sections['client'],
         '',
+        'Client-only, so not on the server - in the profile so that',
+        'everyone has them, at the latest version when the profile was',
+        'made:',
+        '',
+        *extras,
+        '',
         f'## Server admin only ({len(sections["admin"])} mods, '
         'not in the profile)',
         '',
@@ -1196,14 +1239,21 @@ def valheim_client_mods(
         '',
         *sections['admin'],
         '',
-        f'## Optional, per player ({len(optional)} mods, not in the profile)',
-        '',
-        'Purely client-side, so the server neither has nor checks them:',
-        'add any of them to your own profile in r2modman if you like, at',
-        'whatever version r2modman offers.',
-        '',
-        *optional,
-        '',
+        *(
+          [
+            f'## Optional, per player ({len(optional)} mods, '
+            'not in the profile)',
+            '',
+            'Purely client-side, so the server neither has nor checks',
+            'them: add any of them to your own profile in r2modman if you',
+            'like, at whatever version r2modman offers.',
+            '',
+            *optional,
+            '',
+          ]
+          if optional
+          else []
+        ),
         f'## Server only ({len(sections["server"])} mods, nothing to install)',
         '',
         *sections['server'],

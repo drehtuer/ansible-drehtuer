@@ -16,8 +16,9 @@ section is short.
 ## Every player
 
 Change these in game with [ConfigurationManager](https://thunderstore.io/c/valheim/p/shudnal/ConfigurationManager/)
-(press `F1`), or edit the file under `BepInEx/config/` in your
-r2modman profile (*Config editor* in r2modman) and restart the game.
+(press `F1`), which comes with the profile, or edit the file under
+`BepInEx/config/` in your r2modman profile (*Config editor* in
+r2modman) and restart the game.
 
 ### Shared map markers (ServerSideMap)
 
@@ -35,11 +36,12 @@ to skip any that already have a shared pin within 15 m.
 `/deletealllocalpins` deletes your local pins and **cannot be
 undone**.
 
-### Portal previews (PortalPeek, optional)
+### Portal previews (PortalPeek)
 
-Only if you added [PortalPeek](https://thunderstore.io/c/valheim/p/tboods/PortalPeek/)
-to your own profile. It shows a snapshot of what is on the other side
-of a portal, not a live view.
+[PortalPeek](https://thunderstore.io/c/valheim/p/tboods/PortalPeek/)
+comes with the profile. It shows a snapshot of what is on the other
+side of a portal, not a live view. The server does not check for it,
+so you can disable it in r2modman if you would rather not have it.
 
 - A snapshot is taken when two portals are linked. Stand within about
   12 m of the portal for about 5 seconds.

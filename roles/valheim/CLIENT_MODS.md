@@ -23,7 +23,7 @@ existing profile*, before joining.
 A few settings are worth changing on your own client once the
 mods are installed - see [SETTINGS.md](SETTINGS.md).
 
-## Every player (27 mods, all in the profile)
+## Every player (31 mods, all in the profile)
 
 Libraries, needed by the mods below:
 
@@ -58,6 +58,15 @@ Gameplay:
 - [ValheimCommunityPatch](https://thunderstore.io/c/valheim/p/MidnightMods/ValheimCommunityPatch/) 0.38.0 by MidnightMods - Vanilla bug fixes and performance fixes for Valheim. No gameplay changes.
 - [DvergerAutomation](https://thunderstore.io/c/valheim/p/MidnightMods/DvergerAutomation/) 0.12.4 by MidnightMods - Lore friendly craft from containers, and auto-sort them back in.
 
+Client-only, so not on the server - in the profile so that
+everyone has them, at the latest version when the profile was
+made:
+
+- [ConfigurationManager](https://thunderstore.io/c/valheim/p/shudnal/ConfigurationManager/) 1.1.27 by shudnal - Localized, recolored, refined. Split view mode. Config files editor. Setting edit window. Changed values are highlighted. Prevent user input or pause the game while window is open. Window scale depends on game scale.
+- [PlantEasily](https://thunderstore.io/c/valheim/p/Advize/PlantEasily/) 2.3.1 by Advize - Allows you to plant evenly spaced crops, either one at a time or in any amount of rows and columns, with grid snapping features and invalid crop placement prevention. Harvest in bulk and optionally auto replant crops. Configurable and supports gamepad.
+- [PortalPeek](https://thunderstore.io/c/valheim/p/tboods/PortalPeek/) 1.0.0 by tboods - See what is on the other side of every portal with a 3D, animated snapshot of the destination. Client-side mod.
+- [AutoRemoveDeathPin](https://thunderstore.io/c/valheim/p/yudi7ll/AutoRemoveDeathPin/) 1.1.3 by yudi7ll - Auto remove death pin from minimap after your tombstone is destroyed or fully looted
+
 ## Server admin only (2 mods, not in the profile)
 
 Console commands for whoever administers the server. Other players
@@ -65,17 +74,6 @@ need neither; the admin adds them to the profile by hand.
 
 - [Server_devcommands](https://thunderstore.io/c/valheim/p/JereKuusela/Server_devcommands/) 1.116.0 by JereKuusela - Enables devcommands and utilities for server admins.
 - [Upgrade_World](https://thunderstore.io/c/valheim/p/JereKuusela/Upgrade_World/) 1.87.0 by JereKuusela - A tool which can add new content to already explored areas.
-
-## Optional, per player (4 mods, not in the profile)
-
-Purely client-side, so the server neither has nor checks them:
-add any of them to your own profile in r2modman if you like, at
-whatever version r2modman offers.
-
-- [ConfigurationManager](https://thunderstore.io/c/valheim/p/shudnal/ConfigurationManager/) any version by shudnal - Localized, recolored, refined. Split view mode. Config files editor. Setting edit window. Changed values are highlighted. Prevent user input or pause the game while window is open. Window scale depends on game scale.
-- [PlantEasily](https://thunderstore.io/c/valheim/p/Advize/PlantEasily/) any version by Advize - Allows you to plant evenly spaced crops, either one at a time or in any amount of rows and columns, with grid snapping features and invalid crop placement prevention. Harvest in bulk and optionally auto replant crops. Configurable and supports gamepad.
-- [PortalPeek](https://thunderstore.io/c/valheim/p/tboods/PortalPeek/) any version by tboods - See what is on the other side of every portal with a 3D, animated snapshot of the destination. Client-side mod.
-- [AutoRemoveDeathPin](https://thunderstore.io/c/valheim/p/yudi7ll/AutoRemoveDeathPin/) any version by yudi7ll - Auto remove death pin from minimap after your tombstone is destroyed or fully looted
 
 ## Server only (16 mods, nothing to install)
 
