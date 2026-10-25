@@ -16,8 +16,9 @@ section is short.
 ## Every player
 
 Change these in game with [ConfigurationManager](https://thunderstore.io/c/valheim/p/shudnal/ConfigurationManager/)
-(press `F1`), or edit the file under `BepInEx/config/` in your
-r2modman profile (*Config editor* in r2modman) and restart the game.
+(press `F1`), which comes with the profile, or edit the file under
+`BepInEx/config/` in your r2modman profile (*Config editor* in
+r2modman) and restart the game.
 
 ### Shared map markers (ServerSideMap)
 
