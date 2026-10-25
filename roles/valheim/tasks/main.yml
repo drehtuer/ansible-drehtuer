@@ -101,6 +101,24 @@
     group: root
     mode: "0644"
 
+- name: Apply the mod settings this repository owns
+  # One key at a time, never whole files - see valheim_mod_settings in
+  # the role defaults for why. Before the server starts, so a mod added
+  # in the same run comes up with its settings on its first start.
+  community.general.ini_file:
+    path: "{{ valheim.config_dir }}/bepinex/{{ item.file }}"
+    section: "{{ item.section }}"
+    option: "{{ item.key }}"
+    value: "{{ item.value }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop: "{{ valheim_mod_settings }}"
+  loop_control:
+    label: "{{ item.file }} [{{ item.section }}] {{ item.key }}"
+  notify:
+    - Restart valheim
+
 - name: Configure the valheim server environment
   # The join password and the admin list, and nothing else. no_log
   # because the diff would otherwise print both; the compose file

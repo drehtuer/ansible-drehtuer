@@ -22,10 +22,8 @@ r2modman profile (*Config editor* in r2modman) and restart the game.
 ### Shared map markers (ServerSideMap)
 
 The explored map is shared automatically. Markers (pins) are **not**:
-every player has to switch that on for themselves, and the server has
-to allow it too (see *Allowing shared map markers* below - as of
-2026-10-25 it does not yet, so this setting has no effect until it
-does).
+every player has to switch that on for themselves. The server allows
+it (see *Allowing shared map markers* below).
 
 - File: `eu.mydayyy.plugins.serversidemap.cfg`, section `[General]`
 - `EnableMarkerShare = true` (default `false`)
@@ -57,8 +55,11 @@ of a portal, not a live view.
 Only the admin can change these. They live on the server, in
 `/srv/valheim/config/bepinex/` on carcosa. This directory is the live
 `BepInEx/config` and is edited there by hand: the repository installs
-the mods, but it does not manage their settings (apart from the
-WebMap file it creates once).
+the mods, but it does not manage their settings - apart from the
+WebMap file it creates once, and the few single keys listed in
+`valheim_mod_settings` in `roles/valheim/defaults/main.yml`. **Change
+those in the repository, not on the host**: the next deploy writes
+them back. They are marked *(set by the repository)* below.
 
 Restart the server after editing, which drops anyone who is
 connected:
@@ -72,10 +73,22 @@ repository, in `valheim.server.args` in
 `inventories/group_vars/production/valheim.yml`, and deployed with
 the `valheim` playbook.
 
-### Carry weight (ItemStacksItemWeights)
+### Carry limit (ServersideQoL_ControlCenter)
 
-There is no mod on the server that raises the carry limit itself.
-Making items lighter has the same effect:
+- File: `ArgusMagnus.ServersideQoL.ControlCenter.cfg`, section
+  `[GlobalKeys]`
+- `CarryWeightRate = 150` *(set by the repository)*: the carry limit
+  is 150 % of vanilla's (vanilla `100`, default `NotSet` = vanilla).
+
+ControlCenter writes it into the world as a global key, and the server
+sends that to every player, so nobody installs anything for it. The
+key stays in the world save even if the mod is removed: set it back
+to `NotSet` and restart once before removing the mod.
+
+### Item weights (ItemStacksItemWeights)
+
+Making items lighter raises what players can carry as well, on top
+of the carry limit above:
 
 - File: `shudnal.ItemStacksItemWeights.yml`
 - `WeightMultiplier` → `Global: 0.5` halves every item's weight, so
@@ -177,28 +190,34 @@ The server has the final say on marker sharing: with it off there,
 no player's pins are shared, whatever their own setting says.
 
 - File: `eu.mydayyy.plugins.serversidemap.cfg`, section `[General]`
-- `EnableMarkerShare = true` (default `false`, and still `false` on
-  this server as of 2026-10-25)
+- `EnableMarkerShare = true` *(set by the repository; default
+  `false`)*
 
 ### Container sizes (ServersideQoL_ContainerSizes)
 
-- File: `ArgusMagnus.ServersideQoL.ContainerSizes.cfg`, one
-  `InventorySize_<prefab>` setting per container type, e.g.
-  `InventorySize_piece_chest_wood = 8x4` (default `5x2`).
-- Every default is that container's own size, so nothing changes
-  until a value is set.
+- File: `ArgusMagnus.ServersideQoL.ContainerSizes.cfg`, section
+  `[ContainerSizes]`, one `InventorySize_<prefab>` setting per
+  container type.
+- `InventorySize_piece_chest_wood = 8x4` *(set by the repository;
+  default `5x2`)*: the wood chest.
+- `InventorySize_VikingShip = 8x4` *(set by the repository; default
+  `6x3`)*: the longship, see below.
+- Every other default is that container's own size, so nothing
+  changes until a value is set.
 - A trailing `+` (`5x2+`) lets a container keep growing as long as it
   holds only one kind of item.
 - Sizes are only changed on **empty** containers, so items are never
   lost. A full chest takes its new size once it has been emptied.
 
-**Set `InventorySize_VikingShip = 7x4`.** LongshipUpgrades stores an
-upgraded longship's bigger storage (7x4, its default) on that ship.
-With ContainerSizes left at `6x3`, the two keep undoing each other on
-every empty upgraded longship. At `7x4` every longship gets the big
-storage straight away, which makes LongshipUpgrades' storage upgrade
-redundant but ends the tug of war. If its `Upgrade - Lvl 1 - Container
-Width` or `Lvl 2 - Container Height` is changed, change this to match.
+**Keep the longship at least 7x4.** LongshipUpgrades stores an
+upgraded longship's bigger storage (7x4, its default) on that ship,
+and only ever grows a container, never shrinks it. Below 7x4 here,
+the two keep undoing each other on every empty upgraded longship; at
+or above it LongshipUpgrades has nothing left to do. At 8x4 every
+longship gets more storage than the upgrade would give, which makes
+LongshipUpgrades' storage upgrade redundant. If its `Upgrade - Lvl 1 -
+Container Width` or `Lvl 2 - Container Height` is raised above 8 or
+4, raise this to match.
 
 Not tested together with MultiUserChest, which also deals with open
 containers: check that two players can still use a resized chest at
@@ -219,7 +238,6 @@ Players would install nothing for them.
 
 | Wish | Mod | Setting |
 | --- | --- | --- |
-| Raise the carry limit itself | ServersideQoL_ControlCenter | `CarryWeightRate` (vanilla `100`; `150` is +50 %) |
 | Keep a Megingjord's carry bonus permanently | ServersideQoL_Player | `CanSacrificeMegingjord = true`, then put a Megingjord in an obliterator |
 | Link unpaired portals to a hub | ServersideQoL_AutoPortalHub | `Enabled = true`. `AutoNameNewPortals = true` names new portals after their biome. |
 | Put items into nearby chests automatically | ServersideQoL_AutoStore | see its config. Overlaps DvergerAutomation's Autosorter. |

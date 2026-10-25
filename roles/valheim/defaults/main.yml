@@ -199,6 +199,14 @@ valheim_mods:
   - name: ArgusMagnus-ServersideQoL_ContainerSizes
     version: "2.0.11"
     sha256: a115a6eb875576772496d89a8b02a8f9554ec5aee2e042575ae561dd8072fabc
+  # Sets vanilla global keys and world modifiers from its config. Here
+  # only for `CarryWeightRate`, see valheim_mod_settings below. A key it
+  # sets is written into the world save and stays there if the mod is
+  # removed - set it back to `NotSet` first. Its world-modifier options
+  # default to "not set", so they leave `valheim.server.args` alone.
+  - name: ArgusMagnus-ServersideQoL_ControlCenter
+    version: "2.2.0"
+    sha256: 97acda4d9d957a367ca5022189f15e1b6d73211956def05b69dc46a05aee6f85
   - name: Blockheim-LetMeSleep
     version: "1.0.5"
     sha256: 031acdd23860123a18e81e8f78ee8891309db682b6a8f0f4230e8e11b215f7ed
@@ -296,3 +304,47 @@ valheim_mods:
   - name: MidnightMods-DvergerAutomation
     version: "0.12.4"
     sha256: e51972afc8a44ddcf60acf98af47be9d75f9c43ffb8986d7712fb96706e30276
+
+# Mod settings this repository owns, one entry per key. Everything else
+# in a mod's config file belongs to the host and is tuned there by hand
+# (see SETTINGS.md); these are the values a rebuild must not lose.
+#
+# Written with ini_file, key by key, rather than as whole files.
+# BepInEx rewrites each config on every start - comments, order, every
+# other key - but keeps the values it finds, so owning single keys is
+# the only way to own anything here without a permanent diff in
+# `invoke check-drift`. A key in a file that does not exist yet (a mod
+# being added in the same run) creates the file with just that key;
+# BepInEx adds the rest on the first start.
+#
+# The section has to be the one the mod binds the key under, exactly:
+# a key under any other section is ignored and the default wins. Read
+# it from the mod's generated .cfg, or its source.
+valheim_mod_settings:
+  # Lets players' pins reach the shared map. Off by default, and a
+  # server with it off overrides every player's own setting.
+  - file: eu.mydayyy.plugins.serversidemap.cfg
+    section: General
+    key: EnableMarkerShare
+    value: "true"
+  # Wood chest 5x2 -> 8x4. Only empty containers are resized, so a
+  # full chest takes the new size once it has been emptied.
+  - file: ArgusMagnus.ServersideQoL.ContainerSizes.cfg
+    section: ContainerSizes
+    key: InventorySize_piece_chest_wood
+    value: 8x4
+  # Longship 6x3 -> 8x4. Must stay at least LongshipUpgrades' upgraded
+  # size (7x4, its `Upgrade - Lvl 1 - Container Width` and `Lvl 2 -
+  # Container Height`): below that the two mods resize every empty
+  # upgraded longship back and forth. At or above it LongshipUpgrades
+  # leaves the ship alone, since it only ever grows the container.
+  - file: ArgusMagnus.ServersideQoL.ContainerSizes.cfg
+    section: ContainerSizes
+    key: InventorySize_VikingShip
+    value: 8x4
+  # Carry limit +50 % (vanilla 100). On top of DropMoreLoot's
+  # `percentofweight = 0.197`, which makes items lighter.
+  - file: ArgusMagnus.ServersideQoL.ControlCenter.cfg
+    section: GlobalKeys
+    key: CarryWeightRate
+    value: "150"

@@ -77,7 +77,7 @@ whatever version r2modman offers.
 - [PortalPeek](https://thunderstore.io/c/valheim/p/tboods/PortalPeek/) any version by tboods - See what is on the other side of every portal with a 3D, animated snapshot of the destination. Client-side mod.
 - [AutoRemoveDeathPin](https://thunderstore.io/c/valheim/p/yudi7ll/AutoRemoveDeathPin/) any version by yudi7ll - Auto remove death pin from minimap after your tombstone is destroyed or fully looted
 
-## Server only (15 mods, nothing to install)
+## Server only (16 mods, nothing to install)
 
 - [ServersideQoL](https://thunderstore.io/c/valheim/p/ArgusMagnus/ServersideQoL/) 2.4.3 by ArgusMagnus - Serverside-only QoL mod, compatible with vanilla/console (e.g. XBox, PS, Switch) clients. Stack player inventories into chests, generated portal hub, auto-sort chests, refuel smelters from containers, infinite building/farming stamina and much more
 - [ServersideQoL_AutoProcess](https://thunderstore.io/c/valheim/p/ArgusMagnus/ServersideQoL_AutoProcess/) 2.3.0 by ArgusMagnus - Automatically feeds processing stations such as smelters, kilns, windmills, shield generators, etc. from nearby containers
@@ -91,6 +91,7 @@ whatever version r2modman offers.
 - [ServersideQoL_SuperWishbone](https://thunderstore.io/c/valheim/p/ArgusMagnus/ServersideQoL_SuperWishbone/) 2.3.0 by ArgusMagnus - Supercharges the wishbone so it can find dungeons, vegvisirs and configurably more.
 - [ServersideQoL_SmartDefense](https://thunderstore.io/c/valheim/p/ArgusMagnus/ServersideQoL_SmartDefense/) 2.4.1 by ArgusMagnus - Ballista don't target players or tames and reload from nearby containers.
 - [ServersideQoL_ContainerSizes](https://thunderstore.io/c/valheim/p/ArgusMagnus/ServersideQoL_ContainerSizes/) 2.0.11 by ArgusMagnus - Make all container inventory sizes configurable and optionally let the grow infinitely if the contain only one item type
+- [ServersideQoL_ControlCenter](https://thunderstore.io/c/valheim/p/ArgusMagnus/ServersideQoL_ControlCenter/) 2.2.0 by ArgusMagnus - Lets you configure all available vanilla global keys such as skill loss/gain rate, carry weight multiplier, food constumption rate, etc.
 - [LetMeSleep](https://thunderstore.io/c/valheim/p/Blockheim/LetMeSleep/) 1.0.5 by Blockheim - Skip the night with only some players in bed.
 - [NetworkPerformanceSystem](https://thunderstore.io/c/valheim/p/MidnightMods/NetworkPerformanceSystem/) 1.18.0 by MidnightMods - General Network Performance overhaul. What if it felt like singleplayer for everyone?
 - [ValheimWebMap](https://thunderstore.io/c/valheim/p/f00d4tehg0dz/ValheimWebMap/) 2.1.6 by f00d4tehg0dz - Live web map for your dedicated server. 3D/2D view with the game's own models, fog of war, players, bases, portals, stats.

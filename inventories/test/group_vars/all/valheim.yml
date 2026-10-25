@@ -53,3 +53,10 @@ valheim_mods:
     version: "2.1.6"
     sha256: 1ce6e3ac26b1b39e9be05d88db32efb454c273d544ced696f631476794052ef2
     directory: WebMap
+
+# One entry, enough for the argument spec to validate the shape.
+valheim_mod_settings:
+  - file: eu.mydayyy.plugins.serversidemap.cfg
+    section: General
+    key: EnableMarkerShare
+    value: "true"
