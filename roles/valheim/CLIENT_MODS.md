@@ -23,7 +23,7 @@ existing profile*, before joining.
 A few settings are worth changing on your own client once the
 mods are installed - see [SETTINGS.md](SETTINGS.md).
 
-## Every player (31 mods, all in the profile)
+## Every player (32 mods, all in the profile)
 
 Libraries, needed by the mods below:
 
@@ -66,6 +66,7 @@ made:
 - [PlantEasily](https://thunderstore.io/c/valheim/p/Advize/PlantEasily/) 2.3.1 by Advize - Allows you to plant evenly spaced crops, either one at a time or in any amount of rows and columns, with grid snapping features and invalid crop placement prevention. Harvest in bulk and optionally auto replant crops. Configurable and supports gamepad.
 - [PortalPeek](https://thunderstore.io/c/valheim/p/tboods/PortalPeek/) 1.0.0 by tboods - See what is on the other side of every portal with a 3D, animated snapshot of the destination. Client-side mod.
 - [AutoRemoveDeathPin](https://thunderstore.io/c/valheim/p/yudi7ll/AutoRemoveDeathPin/) 1.1.3 by yudi7ll - Auto remove death pin from minimap after your tombstone is destroyed or fully looted
+- [Unshamed](https://thunderstore.io/c/valheim/p/Azumatt/Unshamed/) 1.0.5 by Azumatt - Valheim 1.0 blocks achievements for anyone running mods. This unblocks them, and gives back the ones you already earned. No free unlocks.
 
 ## Server admin only (2 mods, not in the profile)
 
@@ -75,12 +76,11 @@ need neither; the admin adds them to the profile by hand.
 - [Server_devcommands](https://thunderstore.io/c/valheim/p/JereKuusela/Server_devcommands/) 1.116.0 by JereKuusela - Enables devcommands and utilities for server admins.
 - [Upgrade_World](https://thunderstore.io/c/valheim/p/JereKuusela/Upgrade_World/) 1.87.0 by JereKuusela - A tool which can add new content to already explored areas.
 
-## Server only (16 mods, nothing to install)
+## Server only (15 mods, nothing to install)
 
 - [ServersideQoL](https://thunderstore.io/c/valheim/p/ArgusMagnus/ServersideQoL/) 2.4.3 by ArgusMagnus - Serverside-only QoL mod, compatible with vanilla/console (e.g. XBox, PS, Switch) clients. Stack player inventories into chests, generated portal hub, auto-sort chests, refuel smelters from containers, infinite building/farming stamina and much more
 - [ServersideQoL_AutoProcess](https://thunderstore.io/c/valheim/p/ArgusMagnus/ServersideQoL_AutoProcess/) 2.3.0 by ArgusMagnus - Automatically feeds processing stations such as smelters, kilns, windmills, shield generators, etc. from nearby containers
 - [ServersideQoL_ContainerSigns](https://thunderstore.io/c/valheim/p/ArgusMagnus/ServersideQoL_ContainerSigns/) 2.3.3 by ArgusMagnus - Adds signs to chests and barrels. Optionally show automated content list and configure the container for other SQoL mods.
-- [ServersideQoL_PortalProgression](https://thunderstore.io/c/valheim/p/ArgusMagnus/ServersideQoL_PortalProgression/) 2.4.1 by ArgusMagnus - Allows progressively more ores/metals to be taken through portals after bosses are defeated
 - [ServersideQoL_TameAssist](https://thunderstore.io/c/valheim/p/ArgusMagnus/ServersideQoL_TameAssist/) 2.1.0 by ArgusMagnus - Configure various aspects around tameable creatures. Allow all tames to follow you, even through portals and into dungeons. Show taming and growing up/hatching progress to nearby players.
 - [ServersideQoL_AutoMapTables](https://thunderstore.io/c/valheim/p/ArgusMagnus/ServersideQoL_AutoMapTables/) 2.4.1 by ArgusMagnus - Automatically update map tables with icons for portals, ships, ore deposits and more.
 - [ServersideQoL_Signs](https://thunderstore.io/c/valheim/p/ArgusMagnus/ServersideQoL_Signs/) 2.3.0 by ArgusMagnus - Show in-game time on signs, set default sign color and put signs showing the remaining fermentation time on fermenters

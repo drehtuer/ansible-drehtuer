@@ -177,11 +177,11 @@ With Epic Loot, magic items stay in the deposit box unless
 
 ### Portals
 
-- `-modifier portals casual` in `valheim.server.args` already lets
-  everything through portals, ore and metal included. While that is
-  set, **ServersideQoL_PortalProgression** has nothing left to do
-  (its config is untouched as well, checked 2026-10-25), so it is a
-  candidate for removal.
+- `-modifier portals casual` in `valheim.server.args` lets everything
+  through portals, ore and metal included. ServersideQoL_PortalProgression,
+  which used to unlock that step by step per boss, had nothing left to
+  do with it set and was removed on 2026-10-25. To go back to
+  progression, set `portals` to `default` and add that mod again.
 - **ServersideQoL_AutoMapTables** puts portals, ships, ore deposits
   and dungeons players have found on map tables. That is the quickest
   way to see where portals are, and it needs nothing from players.
