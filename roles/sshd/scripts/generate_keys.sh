@@ -9,7 +9,7 @@ set -euo pipefail
 # vault-encrypted private keys into files/, where the role picks them
 # up. Plaintext keys stay in keys/, which is gitignored.
 
-if [ "${#}" -ne "1" ]; then
+if [[ "${#}" -ne "1" ]]; then
   echo "Hostname as argument needed" >&2
   exit 1
 fi
@@ -25,7 +25,7 @@ generate() {
   shift
   local key="${KEY_DIR}/ssh_${HOSTNAME}_${type}_key"
 
-  if [ ! -e "${key}" ]; then
+  if [[ ! -e "${key}" ]]; then
     ssh-keygen -q -t "${type}" "${@}" -N "" -C "sshd@${HOSTNAME}" -f "${key}"
   fi
   ansible-vault encrypt "${key}" \

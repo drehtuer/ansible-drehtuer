@@ -137,7 +137,7 @@ RUN   \
     # GitHub CLI apt repo, added below,
     # needs its keyring dir to exist first
     && install -d -m 755 /etc/apt/keyrings \
-    && curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+    && curl --proto '=https' -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
     -o /etc/apt/keyrings/githubcli-archive-keyring.gpg \
     && chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg \
     && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
@@ -161,14 +161,14 @@ RUN   \
     --create-home \
     --user-group \
     --shell /usr/bin/bash \
-    ${ARG_USER} \
+    "${ARG_USER}" \
     # Passwordless sudo: this is a single-user dev environment, not a
     # multi-user host, and fix-docker-gid.sh (run every container
     # start, see devcontainer.json) needs it to fix up group
     # membership for the bind-mounted host docker socket.
     && echo "${ARG_USER} ALL=(ALL) NOPASSWD:ALL" \
-    > /etc/sudoers.d/${ARG_USER} \
-    && chmod 440 /etc/sudoers.d/${ARG_USER} \
+    > "/etc/sudoers.d/${ARG_USER}" \
+    && chmod 440 "/etc/sudoers.d/${ARG_USER}" \
     && inv \
     --print-completion-script=bash \
     > /etc/bash_completion.d/invoke \
@@ -223,6 +223,7 @@ RUN   \
     # binary. uname -m maps to the x86_64/aarch64
     # build names used by upstream.
     curl \
+    --proto '=https' \
     --location \
     --fail \
     --silent \
@@ -261,6 +262,7 @@ ARG   ANTORA_VERSION=3.1.15
 
 RUN   npm install \
     --global \
+    --ignore-scripts \
     --no-fund \
     --no-audit \
     "@antora/cli@${ANTORA_VERSION}" \
@@ -308,6 +310,7 @@ RUN   \
     arch="$(dpkg --print-architecture | sed 's/amd64/x64/')" \
     && base="https://downloads.claude.ai/claude-code-releases/${CLAUDE_CODE_VERSION}" \
     && curl \
+    --proto '=https' \
     --location \
     --fail \
     --silent \
@@ -319,14 +322,17 @@ RUN   \
     # pinning a hash here that would have to be updated in
     # lockstep with the version above.
     && curl \
+    --proto '=https' \
     --location \
     --fail \
     --silent \
     --show-error \
     "${base}/manifest.json" \
-    | python3 -c \
-    "import json,sys;print(json.load(sys.stdin)['platforms']['linux-${arch}']['checksum'] + '  /usr/local/bin/claude')" \
+    -o /tmp/claude-manifest.json \
+    && python3 -c \
+    "import json;print(json.load(open('/tmp/claude-manifest.json'))['platforms']['linux-${arch}']['checksum'] + '  /usr/local/bin/claude')" \
     | sha256sum --check - \
+    && rm /tmp/claude-manifest.json \
     && chmod 755 /usr/local/bin/claude
 
 COPY \

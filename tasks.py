@@ -189,7 +189,7 @@ def check_ask_pass(
 
 
 def check_host(
-  cmd: str,
+  cmd: list[str],
   hosts: str,
 ) -> None:
   """
@@ -966,6 +966,68 @@ def version_tuple(version: str) -> tuple[int, ...]:
   return tuple(int(part) for part in re.findall(r'\d+', version))
 
 
+def fetch_latest(pins: dict[str, str]) -> dict[str, dict]:
+  """Latest Thunderstore release of each pinned mod, with its deprecation."""
+  latest: dict[str, dict] = {}
+  for name in pins:
+    namespace, package = name.split('-', 1)
+    data = json.loads(
+      thunderstore(f'{THUNDERSTORE_API}/{namespace}/{package}/')
+    )
+    latest[name] = data['latest'] | {'deprecated': data['is_deprecated']}
+  return latest
+
+
+def unmet_dependencies(
+  target: dict[str, str],
+  latest: dict[str, dict],
+) -> list[str]:
+  """Each dependency of `target` that it does not pin high enough."""
+  missing: list[str] = []
+  for name, version in target.items():
+    deps = (
+      latest[name]['dependencies']
+      if version == latest[name]['version_number']
+      else json.loads(
+        thunderstore(
+          f'{THUNDERSTORE_API}/{name.replace("-", "/", 1)}/{version}/'
+        )
+      )['dependencies']
+    )
+    for dep in deps:
+      dep_name, _, dep_version = dep.rpartition('-')
+      if dep_name in THUNDERSTORE_PROVIDED:
+        continue
+      if dep_name not in target or version_tuple(
+        target[dep_name]
+      ) < version_tuple(dep_version):
+        missing.append(f'{name} needs {dep}')
+  return missing
+
+
+def update_mod_pin(name: str, version: str) -> None:
+  """Rewrite the version and checksum of one pin in every mod file."""
+  namespace, package = name.split('-', 1)
+  digest = hashlib.sha256(
+    thunderstore(
+      f'https://thunderstore.io/package/download/'
+      f'{namespace}/{package}/{version}/'
+    )
+  ).hexdigest()
+
+  def rewrite(match: re.Match) -> str:
+    if match['name'] != name:
+      return match[0]
+    return MOD_SHA256.sub(
+      rf'\g<1>{digest}',
+      MOD_VERSION.sub(rf'\g<1>"{version}"', match[0]),
+    )
+
+  for path in VALHEIM_MODS_FILES:
+    file = Path(path)
+    file.write_text(MOD_PIN.sub(rewrite, file.read_text()))
+
+
 @task
 def valheim_mods(
   ctx: context,
@@ -991,14 +1053,7 @@ def valheim_mods(
   if not pins:
     raise Exit(f'No mod pins found in {VALHEIM_MODS_FILES[0]}', code=1)
 
-  latest: dict[str, dict] = {}
-  for name in pins:
-    namespace, package = name.split('-', 1)
-    data = json.loads(
-      thunderstore(f'{THUNDERSTORE_API}/{namespace}/{package}/')
-    )
-    latest[name] = data['latest'] | {'deprecated': data['is_deprecated']}
-
+  latest = fetch_latest(pins)
   outdated = {
     name: info['version_number']
     for name, info in latest.items()
@@ -1012,53 +1067,13 @@ def valheim_mods(
   print(f'{len(outdated)} of {len(pins)} pinned mods have a newer release.')
 
   # Dependencies of what will be pinned once this run is done.
-  target = pins | (outdated if update else {})
-  missing: list[str] = []
-  for name in target:
-    deps = (
-      latest[name]['dependencies']
-      if target[name] == latest[name]['version_number']
-      else json.loads(
-        thunderstore(
-          f'{THUNDERSTORE_API}/{name.replace("-", "/", 1)}/{target[name]}/'
-        )
-      )['dependencies']
-    )
-    for dep in deps:
-      dep_name, _, dep_version = dep.rpartition('-')
-      if dep_name in THUNDERSTORE_PROVIDED:
-        continue
-      if dep_name not in target or version_tuple(
-        target[dep_name]
-      ) < version_tuple(dep_version):
-        missing.append(f'{name} needs {dep}')
+  missing = unmet_dependencies(pins | (outdated if update else {}), latest)
   for line in missing:
     print(f'unmet dependency: {line}')
 
   if update and outdated and not missing:
     for name, version in outdated.items():
-      namespace, package = name.split('-', 1)
-      digest = hashlib.sha256(
-        thunderstore(
-          f'https://thunderstore.io/package/download/'
-          f'{namespace}/{package}/{version}/'
-        )
-      ).hexdigest()
-      for path in VALHEIM_MODS_FILES:
-        file = Path(path)
-        file.write_text(
-          MOD_PIN.sub(
-            lambda m, name=name, version=version, digest=digest: (
-              MOD_SHA256.sub(
-                rf'\g<1>{digest}',
-                MOD_VERSION.sub(rf'\g<1>"{version}"', m[0]),
-              )
-              if m['name'] == name
-              else m[0]
-            ),
-            file.read_text(),
-          )
-        )
+      update_mod_pin(name, version)
       print(f'updated {name} to {version}')
     valheim_client_mods(ctx)
 

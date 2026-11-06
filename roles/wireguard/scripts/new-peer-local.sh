@@ -36,7 +36,7 @@
 # the vault password.
 set -euo pipefail
 
-if [ "$#" -ne 4 ]; then
+if [[ "$#" -ne 4 ]]; then
   sed -n '2,10p' "$0" | sed 's/^# \{0,1\}//' >&2
   exit 1
 fi
@@ -46,7 +46,7 @@ name="$2"
 ip4="$3"
 ip6="$4"
 
-[ -f ansible.cfg ] || {
+[[ -f ansible.cfg ]] || {
   echo "Run this from the repository root." >&2
   exit 1
 }
@@ -58,7 +58,7 @@ for tool in wg ansible python3; do
 done
 
 out="roles/wireguard/keys/${name}.conf"
-[ -e "${out}" ] && {
+[[ -e "${out}" ]] && {
   echo "${out} exists. Delete it first to re-key ${name}." >&2
   exit 1
 }
@@ -81,6 +81,7 @@ settings="$(
 # One key of that result, dotted. Lists come back joined, which is the
 # form both `DNS =` and `Address =` want.
 get() {
+  local key_path="$1"
   printf '%s' "${settings}" | python3 -c '
 import json
 import sys
@@ -92,7 +93,7 @@ value = json.loads(json.loads(result[result.index("{"):])["msg"])
 for key in sys.argv[1].split("."):
   value = value[key]
 print(", ".join(value) if isinstance(value, list) else value)
-' "$1"
+' "${key_path}"
 }
 
 # The public half is what peers need; the private half stays in the

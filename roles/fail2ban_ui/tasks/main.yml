@@ -47,8 +47,9 @@
     dest: /etc/nginx/sites-available/fail2ban_ui.htpasswd
     decrypt: true
     owner: root
-    group: root
-    mode: "0644"
+    group: www-data
+    # Password hashes: nginx workers read this as www-data per request.
+    mode: "0640"
 - name: Enable fail2ban-ui htpasswd in nginx
   ansible.builtin.file:
     src: /etc/nginx/sites-available/fail2ban_ui.htpasswd

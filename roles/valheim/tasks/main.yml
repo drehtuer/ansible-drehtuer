@@ -169,8 +169,9 @@
     dest: /etc/nginx/sites-available/valheim.htpasswd
     decrypt: true
     owner: root
-    group: root
-    mode: "0644"
+    group: www-data
+    # Password hashes: nginx workers read this as www-data per request.
+    mode: "0640"
 
 - name: Enable valheim htpasswd in nginx
   ansible.builtin.file:

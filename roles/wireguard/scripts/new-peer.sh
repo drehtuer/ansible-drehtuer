@@ -20,7 +20,7 @@
 # inventory side.
 set -euo pipefail
 
-if [ "$#" -ne 3 ]; then
+if [[ "$#" -ne 3 ]]; then
   sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//' >&2
   exit 1
 fi

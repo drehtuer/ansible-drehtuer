@@ -20,7 +20,7 @@
 # terminal is closed.
 set -euo pipefail
 
-if [ "$#" -lt 1 ] || [ "$#" -gt 2 ]; then
+if [[ "$#" -lt 1 ]] || [[ "$#" -gt 2 ]]; then
   sed -n '2,8p' "$0" | sed 's/^# \{0,1\}//' >&2
   exit 1
 fi
@@ -29,7 +29,7 @@ name="$1"
 mode="${2:-}"
 
 config="roles/wireguard/keys/${name}.conf"
-[ -e "${config}" ] || {
+[[ -e "${config}" ]] || {
   echo "No such peer: ${config}" >&2
   echo "Known peers:" >&2
   ls -1 roles/wireguard/keys/*.conf >&2 2>/dev/null || true

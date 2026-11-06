@@ -58,7 +58,7 @@ nsd:
       tsig:
         name: "{{ domain }}.{{ ip_v4 }}."
         algorithm: hmac-sha256
-        secret: dGVzdC10c2lnLXNlY3JldC1ub3QtdXNlZC1hbnl3aGVyZQ==
+        secret: dGVzdC10c2lnLXNlY3JldC1ub3QtdXNlZC1hbnl3aGVyZQ==  # NOSONAR
       soa:
         primary: "{{ hostname_fqdn }}."
         contact: "postmaster.{{ domain }}."
@@ -81,7 +81,7 @@ nsd:
       tsig:
         name: "{{ domain_aliases[0] }}.{{ ip_v4 }}."
         algorithm: hmac-sha256
-        secret: bGFiLWFsaWFzLXRzaWctc2VjcmV0LW5vdC1yZWFsLWVpdGhlcg==
+        secret: bGFiLWFsaWFzLXRzaWctc2VjcmV0LW5vdC1yZWFsLWVpdGhlcg==  # NOSONAR
       soa:
         primary: "{{ hostname_fqdn }}."
         contact: "postmaster.{{ domain_aliases[0] }}."
