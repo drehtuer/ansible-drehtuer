@@ -51,6 +51,8 @@
     owner: root
     group: root
     mode: "0644"  # NOSONAR
+  notify:
+    - Reload rspamd
 - name: Configure rspamd (force_actions.conf)
   ansible.builtin.copy:
     src: files/rspamd/force_actions.conf
@@ -79,6 +81,8 @@
     owner: root
     group: root
     mode: "0644"  # NOSONAR
+  notify:
+    - Reload rspamd
 - name: Remove the old local.d controller config
   # It was merged with the packaged defaults rather than replacing
   # them; leaving it behind would reintroduce secure_ip.
