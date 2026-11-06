@@ -94,6 +94,14 @@ monitoring:  # noqa: var-naming[no-role-prefix] - see doc/STATUS.adoc
     wireguard:
       enabled: false
       interval: 1min
+    # Whether Spamhaus lists this host's addresses or domains. Needs
+    # spam_dqs_key as well as this switch, because that key is what it
+    # queries with. Hourly, since listings change slowly and each run
+    # spends ten lookups of the key's daily allowance.
+    spamhaus:
+      enabled: false
+      interval: 1h
+      key_file: /etc/prometheus/spamhaus-dqs.key
   # Per-service exporters. Everything here binds loopback, is scraped
   # over loopback, and is opened in no firewall - the same stance as
   # the servers above.

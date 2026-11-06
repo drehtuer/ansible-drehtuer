@@ -1,0 +1,116 @@
+#!/usr/bin/env bash
+{{ ansible_managed | comment }}
+#
+# Whether Spamhaus lists this host's own addresses or domains. Nothing
+# else here would notice: a listing does nothing to this host, and the
+# first sign would otherwise be other servers refusing its mail.
+#
+# Asks the same keyed zones roles/spam uses, through the local resolver,
+# and only ever writes the public target into a label. The key comes
+# from a root-only file, and reaches dig through a file descriptor
+# rather than its command line, so it stays out of `ps`.
+set -euo pipefail
+
+OUT="{{ monitoring.node_exporter.textfile_dir }}/spamhaus.prom"
+KEY_FILE="{{ monitoring.textfile.spamhaus.key_file }}"
+TMP="$(mktemp "${OUT}.XXXXXX")"
+trap 'rm -f "$TMP"' EXIT
+
+emit() { printf '%s\n' "$*" >> "$TMP"; }
+
+finish() {
+  chmod 0644 "$TMP"
+  mv "$TMP" "$OUT"
+  trap - EXIT
+  exit 0
+}
+
+emit "# HELP spamhaus_canary_up Whether a Spamhaus test record answered as documented, which proves the key works."
+emit "# TYPE spamhaus_canary_up gauge"
+emit "# HELP spamhaus_lookup_up Whether the lookup for this target got a usable answer."
+emit "# TYPE spamhaus_lookup_up gauge"
+emit "# HELP spamhaus_listed Whether Spamhaus lists this target."
+emit "# TYPE spamhaus_listed gauge"
+emit "# HELP spamhaus_listing_code A return code Spamhaus gave for a listed target, which says why."
+emit "# TYPE spamhaus_listing_code gauge"
+
+if [ ! -r "${KEY_FILE}" ]; then
+  emit "spamhaus_canary_up{list=\"zen\"} 0"
+  emit "spamhaus_canary_up{list=\"dbl\"} 0"
+  finish
+fi
+KEY="$(<"${KEY_FILE}")"
+
+# Sets `status` and `codes`. Explicitly the local resolver, like RSpamd:
+# Spamhaus refuses queries arriving through public ones.
+lookup() {
+  local answer
+  answer="$(dig @127.0.0.1 +time=3 +tries=2 +noall +comments +answer \
+            -f <(printf '%s.%s.%s.dq.spamhaus.net A\n' "$1" "${KEY}" "$2") \
+            2>/dev/null || true)"
+  status="$(sed -n 's/.*status: \([A-Z]*\).*/\1/p' <<<"${answer}")"
+  codes="$(awk '$4 == "A" { print $5 }' <<<"${answer}" | sort -u)"
+}
+
+canary() {
+  lookup "$1" "$2"
+  if grep -qxF "$3" <<<"${codes}"; then
+    emit "spamhaus_canary_up{list=\"$2\"} 1"
+  else
+    emit "spamhaus_canary_up{list=\"$2\"} 0"
+  fi
+}
+
+# $1 is what is queried, $2 the zone, $3 the target as it should read in
+# a label. A failed lookup emits no spamhaus_listed at all: a zero would
+# claim the target is clean, which nobody has established.
+check() {
+  lookup "$1" "$2"
+  case "${status}" in
+    NXDOMAIN)
+      emit "spamhaus_lookup_up{list=\"$2\",target=\"$3\"} 1"
+      emit "spamhaus_listed{list=\"$2\",target=\"$3\"} 0"
+      return
+      ;;
+    NOERROR) ;;
+    *)
+      emit "spamhaus_lookup_up{list=\"$2\",target=\"$3\"} 0"
+      return
+      ;;
+  esac
+
+  # 127.255.255.x and x.x.x.255 are Spamhaus reporting a problem with
+  # the query, not a listing.
+  if [ -z "${codes}" ] || grep -qE '^127\.255\.|\.255$' <<<"${codes}"; then
+    emit "spamhaus_lookup_up{list=\"$2\",target=\"$3\"} 0"
+    return
+  fi
+
+  emit "spamhaus_lookup_up{list=\"$2\",target=\"$3\"} 1"
+  emit "spamhaus_listed{list=\"$2\",target=\"$3\"} 1"
+  local code
+  while read -r code; do
+    emit "spamhaus_listing_code{list=\"$2\",target=\"$3\",code=\"${code}\"} 1"
+  done <<<"${codes}"
+}
+
+# 17.12.198.88 for an IPv4 address, and the 32 reversed nibbles for IPv6.
+reversed() {
+  python3 -I -c 'import ipaddress, sys
+print(ipaddress.ip_address(sys.argv[1]).reverse_pointer.rsplit(".", 2)[0])' "$1"
+}
+
+canary "2.0.0.127" zen 127.0.0.2
+canary "dbltest.com" dbl 127.0.1.2
+{% for address in [ip_v4, ip_v6] %}
+
+check "$(reversed '{{ address }}')" zen '{{ address }}'
+check "$(reversed '{{ address }}')" authbl '{{ address }}'
+{% endfor %}
+{% for name in [domain] + (domain_aliases | default([])) %}
+
+check '{{ name }}' dbl '{{ name }}'
+check '{{ name }}' zrd '{{ name }}'
+{% endfor %}
+
+finish
