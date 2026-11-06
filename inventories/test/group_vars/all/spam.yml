@@ -7,3 +7,4 @@ spam:
   http_port: 11334
   fuzzy_port: 11335
   fuzzy_flag: 11
+spam_dqs_key: test-dqs-key
