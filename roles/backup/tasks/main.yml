@@ -100,7 +100,7 @@
     dest: "{{ backup.exclude_file }}"
     owner: root
     group: root
-    mode: "0644"
+    mode: "0644"  # NOSONAR
 
 - name: Deploy the backup scripts
   ansible.builtin.template:
@@ -108,7 +108,7 @@
     dest: /usr/local/bin/{{ item }}
     owner: root
     group: root
-    mode: "0755"
+    mode: "0755"  # NOSONAR
     # Caught before it is installed rather than at 02:30, the same
     # stance as `nginx -t` and `iptables-restore --test` elsewhere
     # here. bash -n parses without running: it finds the unbalanced
@@ -125,7 +125,7 @@
     dest: /etc/systemd/system/{{ item }}
     owner: root
     group: root
-    mode: "0644"
+    mode: "0644"  # NOSONAR
   loop: "{{ backup_units }}"
   notify:
     - Reload systemd

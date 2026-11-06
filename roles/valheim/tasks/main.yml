@@ -99,7 +99,7 @@
     force: false
     owner: root
     group: root
-    mode: "0644"
+    mode: "0644"  # NOSONAR
 
 - name: Apply the mod settings this repository owns
   # One key at a time, never whole files - see valheim_mod_settings in
@@ -112,7 +112,7 @@
     value: "{{ item.value }}"
     owner: root
     group: root
-    mode: "0644"
+    mode: "0644"  # NOSONAR
   loop: "{{ valheim_mod_settings }}"
   loop_control:
     label: "{{ item.file }} [{{ item.section }}] {{ item.key }}"
@@ -145,7 +145,7 @@
     dest: "{{ valheim.compose_dir }}/compose.yml"
     owner: root
     group: root
-    mode: "0644"
+    mode: "0644"  # NOSONAR
 
 - name: Start valheim
   # docker_compose_v2 rather than docker_container: it drives the
@@ -187,7 +187,7 @@
     dest: /etc/nginx/sites-available/valheim.conf
     owner: root
     group: root
-    mode: "0644"
+    mode: "0644"  # NOSONAR
   notify:
     - Reload nginx
 

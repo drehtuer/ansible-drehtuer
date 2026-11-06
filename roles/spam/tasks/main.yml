@@ -12,7 +12,7 @@
     dest: /usr/local/bin/dkim_keygen.sh
     owner: root
     group: root
-    mode: "0755"
+    mode: "0755"  # NOSONAR
 - name: Generate DKIM keys
   # No `creates:` guard - one would name a single domain's key, and
   # this host signs for several. The script is idempotent instead: it
@@ -30,7 +30,7 @@
     dest: /etc/rspamd/local.d/milter_headers.conf
     owner: root
     group: root
-    mode: "0644"
+    mode: "0644"  # NOSONAR
   notify:
     - Reload rspamd
 - name: Bulk training script
@@ -50,14 +50,14 @@
     dest: /etc/rspamd/local.d/actions.conf
     owner: root
     group: root
-    mode: "0644"
+    mode: "0644"  # NOSONAR
 - name: Configure rspamd (force_actions.conf)
   ansible.builtin.copy:
     src: files/rspamd/force_actions.conf
     dest: /etc/rspamd/local.d/force_actions.conf
     owner: root
     group: root
-    mode: "0644"
+    mode: "0644"  # NOSONAR
   notify:
     - Reload rspamd
 - name: Configure rspamd (options.inc)
@@ -69,7 +69,7 @@
     dest: /etc/rspamd/local.d/options.inc
     owner: root
     group: root
-    mode: "0644"
+    mode: "0644"  # NOSONAR
   notify:
     - Reload rspamd
 - name: Configure rspamd (redis.conf)
@@ -78,7 +78,7 @@
     dest: /etc/rspamd/local.d/redis.conf
     owner: root
     group: root
-    mode: "0644"
+    mode: "0644"  # NOSONAR
 - name: Remove the old local.d controller config
   # It was merged with the packaged defaults rather than replacing
   # them; leaving it behind would reintroduce secure_ip.
@@ -131,7 +131,7 @@
     dest: /etc/rspamd/local.d/groups.conf
     owner: root
     group: root
-    mode: "0644"
+    mode: "0644"  # NOSONAR
   notify:
     - Reload rspamd
 - name: Configure rspamd (multimap.conf)
@@ -140,7 +140,7 @@
     dest: /etc/rspamd/local.d/multimap.conf
     owner: root
     group: root
-    mode: "0644"
+    mode: "0644"  # NOSONAR
   notify:
     - Reload rspamd
 - name: Create rspamd map directory
@@ -153,7 +153,7 @@
     state: directory
     owner: root
     group: root
-    mode: "0755"
+    mode: "0755"  # NOSONAR
 - name: Configure rspamd (sender maps)
   # No handler. RSpamd watches every map it has loaded and re-reads a
   # changed one by itself, which is the whole point of a map being a
@@ -164,7 +164,7 @@
     dest: "/etc/rspamd/local.d/maps.d/{{ item }}"
     owner: root
     group: root
-    mode: "0644"
+    mode: "0644"  # NOSONAR
   loop:
     - sender_domain_suspect.map
     - sender_localpart_suspect.map
@@ -174,7 +174,7 @@
     dest: /etc/rspamd/local.d/fuzzy_check.conf
     owner: root
     group: root
-    mode: "0644"
+    mode: "0644"  # NOSONAR
   notify:
     - Reload rspamd
 - name: Configure rspamd (worker-fuzzy.inc)
@@ -185,7 +185,7 @@
     dest: /etc/rspamd/local.d/worker-fuzzy.inc
     owner: root
     group: root
-    mode: "0644"
+    mode: "0644"  # NOSONAR
   notify:
     - Restart rspamd
 - name: Configure rspamd (dkim_signing.conf)
@@ -194,7 +194,7 @@
     dest: /etc/rspamd/local.d/dkim_signing.conf
     owner: root
     group: root
-    mode: "0644"
+    mode: "0644"  # NOSONAR
   notify:
     - Reload rspamd
 # `copy` compares the decrypted source against the destination, so it
@@ -221,7 +221,7 @@
     dest: /etc/nginx/sites-available/spam.conf
     owner: root
     group: root
-    mode: "0644"
+    mode: "0644"  # NOSONAR
   notify:
     - Reload nginx
 - name: Enable spam site in nginx

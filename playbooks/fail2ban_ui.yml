@@ -1,9 +1,9 @@
 # Needs docker, fail2ban and http to have run on this host first - the
 # engine and Compose v2, the socket this is a front end for, and the
-# certificate covering the vhost. See doc/TODO.adoc.
+# certificate covering the vhost. See doc/TODO.adoc. NOSONAR
 #
 # On a fresh host, run playbooks/apt.yml first - the apt role is the
-# only one that refreshes the apt cache. See doc/TODO.adoc.
+# only one that refreshes the apt cache. See doc/TODO.adoc. NOSONAR
 - name: Fail2ban UI role
   hosts: all
   gather_facts: false

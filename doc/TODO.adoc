@@ -101,7 +101,7 @@ Note the evidence is perishable: RSpamd's log rotates daily keeping four generat
 
 == Process / quality
 
-* *SonarQube Cloud still lists its false positives.* Automatic analysis reads no `sonar.issue.ignore.*` settings from the repo, so `ansible:S2612` on non-secret files, `S1135` on `doc/TODO.adoc` and `docker:S7018` (the Dockerfile's `apt` list is grouped by purpose on purpose) have to be accepted or ignored in the SonarQube Cloud project settings.
+* *One SonarQube Cloud finding has to be dismissed in its UI.* `docker:S7018` wants the Dockerfile's `apt` list sorted, but the list is grouped by purpose on purpose. It is reported on a `\` continuation line, where a trailing `# NOSONAR` would break the `RUN`, so it can only be accepted in the project itself.
 
 * *The alert rules are only validated on the host, not in CI — and the case for fixing that is now demonstrated rather than argued.* `roles/monitoring` runs `promtool check rules`, `promtool check config` and `amtool check-config` as `validate:` steps, so a bad file is never installed — but that happens at deploy time, on the target. The static tests already render every template; running promtool over the rendered output would move the check earlier at almost no cost, and `promtool test rules` goes further still, unit-testing an alert expression against synthetic series with no host involved.
 +

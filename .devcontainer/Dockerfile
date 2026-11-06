@@ -181,8 +181,8 @@ RUN   \
 # Container lint with the same ansible-lint.
 # Ubuntu's own ansible-lint package has no version
 # pin, which previously let it drift out from under
-# the repo silently - see doc/TODO.adoc. yamllint is
-# pinned alongside it: Ubuntu only ships it as a
+# the repo silently - see doc/TODO.adoc. NOSONAR
+# yamllint is pinned alongside it: Ubuntu only ships it as a
 # dependency of the (now unused) ansible-lint
 # package, and ansible-lint itself requires a newer
 # yamllint than Ubuntu 26.04 packages.
