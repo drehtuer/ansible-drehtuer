@@ -310,6 +310,27 @@
   ansible.builtin.set_fact:
     monitoring_collectors_wanted: >-
       {{ monitoring_collectors | selectattr('enabled') | list }}
+    monitoring_spamhaus_wanted: >-
+      {{ monitoring.textfile.spamhaus.enabled
+         and (spam_dqs_key | default('') | length > 0) }}
+
+- name: Deploy the Spamhaus key for its collector
+  # A file of its own, because the collector scripts below are 0755 and
+  # appear in --diff. no_log keeps the key out of that diff here too.
+  ansible.builtin.copy:
+    content: "{{ spam_dqs_key | trim }}\n"
+    dest: "{{ monitoring.textfile.spamhaus.key_file }}"
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+  when: monitoring_spamhaus_wanted
+
+- name: Remove the Spamhaus key on a host with no collector
+  ansible.builtin.file:
+    path: "{{ monitoring.textfile.spamhaus.key_file }}"
+    state: absent
+  when: not monitoring_spamhaus_wanted
 
 - name: Deploy the textfile collectors
   ansible.builtin.template:
@@ -378,6 +399,7 @@
     {{ ['node', 'monitoring', 'services']
        + (['probes'] if monitoring.blackbox.enabled else [])
        + (['zones'] if monitoring.textfile.nsd.enabled else [])
+       + (['spamhaus'] if monitoring_spamhaus_wanted else [])
        + (['backup'] if monitoring.alerts.backup.enabled else []) }}
   notify:
     - Reload prometheus
@@ -390,6 +412,15 @@
     path: "{{ monitoring.prometheus.rules_dir }}/zones.rules.yml"
     state: absent
   when: not monitoring.textfile.nsd.enabled
+  notify:
+    - Reload prometheus
+
+- name: Remove the Spamhaus rules on a host with no collector
+  # Same reasoning as the zone rules above.
+  ansible.builtin.file:
+    path: "{{ monitoring.prometheus.rules_dir }}/spamhaus.rules.yml"
+    state: absent
+  when: not monitoring_spamhaus_wanted
   notify:
     - Reload prometheus
 

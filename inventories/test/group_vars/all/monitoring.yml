@@ -44,6 +44,11 @@ monitoring:
     wireguard:
       enabled: true
       interval: 1min
+    # Whether Spamhaus lists this host's addresses or domains.
+    spamhaus:
+      enabled: true
+      interval: 1h
+      key_file: /etc/prometheus/spamhaus-dqs.key
   # Per-service exporters, all on loopback. Ports are the exporters'
   # own defaults; what is wired here is which ones this host runs and
   # the two secrets that come from elsewhere rather than being

@@ -66,3 +66,10 @@ monitoring_collectors:
   - name: wireguard
     enabled: "{{ monitoring.textfile.wireguard.enabled }}"
     interval: "{{ monitoring.textfile.wireguard.interval }}"
+  - name: spamhaus
+    # Both, because the switch is shared by every host and the key is
+    # not.
+    enabled: >-
+      {{ monitoring.textfile.spamhaus.enabled
+         and (spam_dqs_key | default('') | length > 0) }}
+    interval: "{{ monitoring.textfile.spamhaus.interval }}"

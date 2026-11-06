@@ -296,6 +296,8 @@ The one thing this cannot show is whether the retuning is *right* for real mail,
 
 That run missed a real fault because its dummy key had no trailing newline and the vaulted one did, see `doc/STATUS.adoc`. Rendering both template versions with a newline in the key reproduced the production error on the same line, and the trimmed template passes `rspamadm configtest`. Note that a Python-style `$` matches before a final newline, which is why the check made on the key beforehand passed.
 
+*The `spamhaus` collector and its alerts were checked offline, not on a host.* The rendered script ran in a throwaway `ubuntu:24.04` container against a local Unbound answering for the keyed zones: all clean, listed on each of the four lists including IPv6, Spamhaus error codes, resolver down, and no key file. Each produced the expected series, the key never reached the `.prom` file, and sampling `/proc` during repeated runs is the check that it stays off `dig`'s command line. `promtool check rules` and `promtool test rules` pass for all three alerts, including their `for` durations and that the staleness rule ignores other collectors' files. Real Spamhaus answers and the Ansible tasks on a host are not covered by this.
+
 *This is not a substitute for a from-scratch provision.* The metal machine is not pristine — several services predate the skill — so a green run proves the roles converge and the services come up, not that a bare Ubuntu install would reach the same place. That gap is the *No cross-role or full-stack testing* item in `doc/TODO.adoc`.
 
 == Drift check

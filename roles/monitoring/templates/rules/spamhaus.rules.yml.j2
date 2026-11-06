@@ -1,0 +1,63 @@
+{{ ansible_managed | comment }}
+# Alerts over the spamhaus textfile collector: whether this host's own
+# addresses and domains are listed, and whether that can still be told.
+#
+# As elsewhere in this directory, annotations use Prometheus's own Go
+# templating - hence the raw blocks - and none may *begin* with one of
+# those expressions.
+groups:
+  - name: spamhaus
+    rules:
+      # Nothing about this host looks wrong while this is true. Other
+      # servers refuse or misfile its mail, and senders find out first.
+      - alert: SpamhausListed
+        expr: spamhaus_listed == 1
+        for: 5m
+        labels:
+          severity: critical
+{% raw %}        annotations:
+          summary: Spamhaus lists {{ $labels.target }} on {{ $labels.list }}
+          description: >-
+            Mail from this host may be refused or filed as spam. The
+            spamhaus_listing_code series for this target says why, and
+            check.spamhaus.org gives the details and the removal route.
+            A listing can also mean the host is compromised, so read the
+            mail queue and the auth logs before asking for removal.
+{% endraw %}
+
+      # Lost lookups must not read as "not listed". The key stopping
+      # working produces no error anywhere else, in this collector or in
+      # RSpamd, whose Spamhaus rules would simply stop firing. Three
+      # hours because the collector runs hourly and a lookup can fail
+      # once for no lasting reason.
+      - alert: SpamhausChecksFailing
+        expr: spamhaus_canary_up == 0 or spamhaus_lookup_up == 0
+        for: 3h
+        labels:
+          severity: warning
+{% raw %}        annotations:
+          summary: Spamhaus lookups are failing
+          description: >-
+            Either a test record stopped answering as documented or a
+            lookup got no usable answer, so listings may be going
+            unnoticed. Check the key's status in the Spamhaus portal and
+            that unbound is resolving. RSpamd's Spamhaus rules depend on
+            the same key.
+{% endraw %}
+
+      # node_exporter serves whatever is in the file whatever its age,
+      # so a collector that stopped goes on reporting "not listed".
+      - alert: SpamhausCollectorStale
+        expr: >-
+          time() - node_textfile_mtime_seconds{file=~".*/spamhaus[.]prom"}
+          > 10800
+        for: 30m
+        labels:
+          severity: warning
+{% raw %}        annotations:
+          summary: The Spamhaus collector has stopped updating
+          description: >-
+            Its last result is over three hours old, so the listing
+            status is out of date. Check
+            prometheus-textfile-spamhaus.timer and its journal.
+{% endraw %}

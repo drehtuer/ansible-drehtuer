@@ -187,6 +187,28 @@ argument_specs:
                     type: str
                     required: true
                     description: systemd timer interval.
+              spamhaus:
+                type: dict
+                required: true
+                description:
+                  - Whether Spamhaus lists this host's addresses or domains,
+                    and whether the key still works. Only runs where
+                    spam_dqs_key is also set.
+                options:
+                  enabled:
+                    type: bool
+                    required: true
+                    description: Whether to run it where a key exists.
+                  interval:
+                    type: str
+                    required: true
+                    description: systemd timer interval.
+                  key_file:
+                    type: str
+                    required: true
+                    description:
+                      - Root-only file holding the key, so that the
+                        collector script itself carries no secret.
           exporters:
             type: dict
             required: true
