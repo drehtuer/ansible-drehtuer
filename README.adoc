@@ -1,6 +1,17 @@
 = README
 include::doc/.attributes-page.adoc[]
 
+// GitHub only: this page is also the index of the published site, which
+// references no third party (see Documentation below).
+ifdef::env-github[]
+:url-sonar-badge: https://sonarcloud.io/api/project_badges/measure?project=drehtuer_ansible-drehtuer
+:url-sonar-summary: https://sonarcloud.io/summary/overall?id=drehtuer_ansible-drehtuer
+
+image:https://github.com/drehtuer/ansible-drehtuer/actions/workflows/test.yml/badge.svg?branch=main[Test status,link="https://github.com/drehtuer/ansible-drehtuer/actions/workflows/test.yml"]
+image:{url-sonar-badge}&metric=alert_status[Quality gate status,link="{url-sonar-summary}"]
+image:{url-sonar-badge}&metric=security_rating[Security rating,link="{url-sonar-summary}"]
+endif::[]
+
 == Overview
 
 :url-drehtuer-de: https://drehtuer.de[drehtuer.de^]
