@@ -1,0 +1,40 @@
+# SonarQube Cloud analysis of `main` and of every pull request. The
+# project key, organization and ignore rules are in
+# sonar-project.properties. Automatic analysis has to stay off in the
+# project: SonarQube Cloud fails a CI analysis while it is on.
+name: SonarQube Cloud
+
+"on":
+  push:
+    branches:
+      - main
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    name: Scan
+    # GitHub does not give a fork's pull request the token, so the scan
+    # could only fail there.
+    if: >-
+      github.event_name != 'pull_request'
+      || github.event.pull_request.head.repo.fork == false
+    runs-on: ubuntu-24.04
+    steps:
+      # Full history, which the new-code comparison and blame need.
+      - name: Check out the repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Run the scan
+        uses: SonarSource/sonarqube-scan-action@v8.4.1
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
