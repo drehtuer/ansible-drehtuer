@@ -101,8 +101,6 @@ Note the evidence is perishable: RSpamd's log rotates daily keeping four generat
 
 == Process / quality
 
-* *One SonarQube Cloud finding has to be dismissed in its UI.* `docker:S7018` wants the Dockerfile's `apt` list sorted, but the list is grouped by purpose on purpose. It is reported on a `\` continuation line, where a trailing `# NOSONAR` would break the `RUN`, so it can only be accepted in the project itself.
-
 * *The alert rules are only validated on the host, not in CI — and the case for fixing that is now demonstrated rather than argued.* `roles/monitoring` runs `promtool check rules`, `promtool check config` and `amtool check-config` as `validate:` steps, so a bad file is never installed — but that happens at deploy time, on the target. The static tests already render every template; running promtool over the rendered output would move the check earlier at almost no cost, and `promtool test rules` goes further still, unit-testing an alert expression against synthetic series with no host involved.
 +
 Both were done *by hand* for the probe and zone rules added on 2026-08-20, and both earned their keep immediately: a draft rule named a blackbox metric that does not exist, and `NsdZoneNotPropagated` depends on PromQL vector matching that would have produced no result at all, silently, had it been wrong. Neither is detectable by any check this repo runs today. That is the argument in one sentence — an alert rule that can never fire is exactly the silent failure the `postfix` fail2ban jail turned out to be, and this is the one part of the stack where it can be caught offline.
