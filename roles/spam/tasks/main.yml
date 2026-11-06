@@ -234,6 +234,13 @@
     mode: "0644"  # NOSONAR
   notify:
     - Reload rspamd
+- name: Check the rspamd configuration
+  # Before the handlers, which do not run after a failed task. A reload
+  # reports success even when the configuration cannot be parsed, and
+  # the next restart is when RSpamd fails to start.
+  ansible.builtin.command:
+    cmd: rspamadm configtest
+  changed_when: false
 # `copy` compares the decrypted source against the destination, so it
 # is already idempotent - no separate checksum probe is needed.
 - name: Add htaccess for spam web ui
