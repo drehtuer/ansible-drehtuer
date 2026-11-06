@@ -79,6 +79,14 @@ argument_specs:
                 scripts too, which post it to /fuzzyadd and /fuzzydel;
                 a value disagreeing with the fuzzy_check rule stores
                 hashes nothing looks up, without any error.
+      spam_dqs_key:
+        type: str
+        required: false
+        default: ""
+        description:
+          - Spamhaus DQS key. When set, rbl.conf and rbl_group.conf are
+            deployed and RSpamd queries the keyed zones, including ZRD.
+            Empty keeps the packaged rules and removes those two files.
       database:
         type: dict
         required: true

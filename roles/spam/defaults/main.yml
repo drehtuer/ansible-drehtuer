@@ -24,3 +24,7 @@ spam:  # noqa: var-naming[no-role-prefix] - see doc/STATUS.adoc
   # the 1/2/3 the public rspamd.com rule uses so the two are never
   # confused in a log line.
   fuzzy_flag: 11
+# Spamhaus DQS key. A separate variable rather than part of `spam`, which
+# group_vars/all replaces wholesale: it is set for production only. Empty
+# leaves RSpamd on its packaged rules and the public zones.
+spam_dqs_key: ""

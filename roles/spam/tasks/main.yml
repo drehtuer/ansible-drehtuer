@@ -168,6 +168,43 @@
   loop:
     - sender_domain_suspect.map
     - sender_localpart_suspect.map
+- name: Configure rspamd (rbl.conf, Spamhaus DQS)
+  # Only with a key. Without one RSpamd keeps its packaged rules and the
+  # public zones, which is what the lab runs on.
+  ansible.builtin.template:
+    src: templates/rspamd/rbl.conf.j2
+    dest: /etc/rspamd/local.d/rbl.conf
+    owner: root
+    group: _rspamd
+    # The key is in every zone name.
+    mode: "0640"
+  # Also suppresses --diff, which would otherwise print the key to the
+  # terminal and to log/ansible.log.
+  no_log: true
+  when: spam_dqs_key | length > 0
+  notify:
+    - Reload rspamd
+- name: Configure rspamd (rbl_group.conf, Spamhaus DQS)
+  ansible.builtin.copy:
+    src: files/rspamd/rbl_group.conf
+    dest: /etc/rspamd/local.d/rbl_group.conf
+    owner: root
+    group: root
+    mode: "0644"  # NOSONAR
+  when: spam_dqs_key | length > 0
+  notify:
+    - Reload rspamd
+- name: Remove the Spamhaus DQS configuration when there is no key
+  # rbl.conf would otherwise go on querying with a key that was removed.
+  ansible.builtin.file:
+    path: "/etc/rspamd/local.d/{{ item }}"
+    state: absent
+  loop:
+    - rbl.conf
+    - rbl_group.conf
+  when: spam_dqs_key | length == 0
+  notify:
+    - Reload rspamd
 - name: Configure rspamd (fuzzy_check.conf)
   ansible.builtin.template:
     src: templates/rspamd/fuzzy_check.conf.j2
