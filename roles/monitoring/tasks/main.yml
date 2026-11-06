@@ -89,7 +89,7 @@
       sha256:{{ monitoring.prometheus.checksums[monitoring_arch] }}
     owner: root
     group: root
-    mode: "0644"
+    mode: "0644"  # NOSONAR
   when: not monitoring_prometheus_release.stat.exists
 
 - name: Unpack the prometheus release
@@ -145,7 +145,7 @@
     dest: /etc/systemd/system/prometheus.service
     owner: root
     group: root
-    mode: "0644"
+    mode: "0644"  # NOSONAR
   notify:
     - Reload systemd
     - Restart prometheus
@@ -226,7 +226,7 @@
     dest: /etc/default/prometheus-{{ item.name }}-exporter
     owner: root
     group: root
-    mode: "0644"
+    mode: "0644"  # NOSONAR
   loop: "{{ monitoring_wanted }}"
   loop_control:
     label: "{{ item.name }}"
@@ -264,7 +264,7 @@
     dest: "{{ monitoring.blackbox.config_file }}"
     owner: root
     group: root
-    mode: "0644"
+    mode: "0644"  # NOSONAR
     validate: prometheus-blackbox-exporter --config.check --config.file %s
   when: monitoring.blackbox.enabled
   notify:
@@ -276,7 +276,7 @@
     dest: /etc/default/prometheus-blackbox-exporter
     owner: root
     group: root
-    mode: "0644"
+    mode: "0644"  # NOSONAR
   when: monitoring.blackbox.enabled
   notify:
     - Restart blackbox exporter
@@ -294,7 +294,7 @@
     state: directory
     owner: root
     group: root
-    mode: "0755"
+    mode: "0755"  # NOSONAR
 
 - name: Create the textfile collector directory
   # Nothing writes here in phase 1. It exists so the collector does
@@ -304,7 +304,7 @@
     state: directory
     owner: root
     group: prometheus
-    mode: "0755"
+    mode: "0755"  # NOSONAR
 
 - name: Note which textfile collectors this host wants
   ansible.builtin.set_fact:
@@ -317,7 +317,7 @@
     dest: /usr/local/bin/prometheus-textfile-{{ item.name }}
     owner: root
     group: root
-    mode: "0755"
+    mode: "0755"  # NOSONAR
   loop: "{{ monitoring_collectors_wanted }}"
   loop_control:
     label: "{{ item.name }}"
@@ -328,7 +328,7 @@
     dest: /etc/systemd/system/prometheus-textfile-{{ item.0.name }}.{{ item.1 }}
     owner: root
     group: root
-    mode: "0644"
+    mode: "0644"  # NOSONAR
   loop: "{{ monitoring_collectors_wanted | product(['service', 'timer']) }}"
   loop_control:
     label: "{{ item.0.name }}.{{ item.1 }}"
@@ -372,7 +372,7 @@
     dest: "{{ monitoring.prometheus.rules_dir }}/{{ item }}.rules.yml"
     owner: root
     group: root
-    mode: "0644"
+    mode: "0644"  # NOSONAR
     validate: promtool check rules %s
   loop: >-
     {{ ['node', 'monitoring', 'services']
@@ -412,8 +412,9 @@
     src: templates/prometheus.yml.j2
     dest: "{{ monitoring.prometheus.config_file }}"
     owner: root
-    group: root
-    mode: "0644"
+    group: prometheus
+    # Carries the rspamd controller password for the scrape job.
+    mode: "0640"
     validate: promtool check config %s
   notify:
     - Reload prometheus
@@ -424,7 +425,7 @@
     dest: "{{ monitoring.alertmanager.config_file }}"
     owner: root
     group: root
-    mode: "0644"
+    mode: "0644"  # NOSONAR
     validate: amtool check-config %s
   notify:
     - Reload alertmanager
@@ -438,7 +439,7 @@
     dest: /etc/default/prometheus-alertmanager
     owner: root
     group: root
-    mode: "0644"
+    mode: "0644"  # NOSONAR
   notify:
     - Restart alertmanager
 
@@ -448,7 +449,7 @@
     dest: /etc/default/prometheus-node-exporter
     owner: root
     group: root
-    mode: "0644"
+    mode: "0644"  # NOSONAR
   notify:
     - Restart node exporter
 
@@ -620,8 +621,9 @@
         dest: /etc/nginx/sites-available/monitoring.htpasswd
         decrypt: true
         owner: root
-        group: root
-        mode: "0644"
+        group: www-data
+        # Password hashes: nginx workers read this as www-data per request.
+        mode: "0640"
 
     - name: Enable the monitoring htpasswd in nginx
       ansible.builtin.file:

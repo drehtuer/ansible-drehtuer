@@ -29,7 +29,7 @@
     dest: /etc/unbound/unbound.conf
     owner: root
     group: root
-    mode: "0644"
+    mode: "0644"  # NOSONAR
     # unbound refuses to start on a bad configuration, and it is the
     # host's only resolver - so a syntax error here takes name
     # resolution with it. Checked before it is installed instead.
@@ -90,6 +90,6 @@
     dest: /etc/systemd/resolved.conf
     owner: root
     group: root
-    mode: "0644"
+    mode: "0644"  # NOSONAR
   notify:
     - Restart systemd-resolved

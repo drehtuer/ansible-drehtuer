@@ -76,11 +76,14 @@ jobs:
       # `ansible` rather than `ansible-core`: the roles need
       # ansible.posix and community.general, which ansible-core does
       # not ship. Keep the molecule versions in sync with
-      # .devcontainer/Dockerfile.
+      # .devcontainer/Dockerfile. `ansible` itself is pinned to what CI
+      # last passed with: the Dev Container's comes from Ubuntu's
+      # package instead, so there is no version to keep it in step with.
       - name: Install molecule and ansible
         run: |
           pip install \
-            ansible \
+            --only-binary :all: \
+            'ansible==14.5.0' \
             'molecule==26.8.0' \
             'molecule-plugins[docker]==26.7.15'
           ansible-galaxy collection install \

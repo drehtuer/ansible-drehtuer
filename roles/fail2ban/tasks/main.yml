@@ -11,7 +11,7 @@
     state: directory
     owner: root
     group: root
-    mode: "0755"
+    mode: "0755"  # NOSONAR
 - name: Preserve the fail2ban runtime directory across restarts
   # fail2ban.service declares `RuntimeDirectory=fail2ban`, so systemd
   # *deletes and recreates* /run/fail2ban every time the service
@@ -40,7 +40,7 @@
     dest: /etc/systemd/system/fail2ban.service.d/10-runtime-dir.conf
     owner: root
     group: root
-    mode: "0644"
+    mode: "0644"  # NOSONAR
   notify:
     - Reload systemd
 - name: Deploy custom filters
@@ -51,7 +51,7 @@
     dest: /etc/fail2ban/filter.d/
     owner: root
     group: root
-    mode: "0644"
+    mode: "0644"  # NOSONAR
   notify:
     - Reload fail2ban
 - name: Deploy templated filters
@@ -62,7 +62,7 @@
     dest: "/etc/fail2ban/filter.d/{{ item }}.conf"
     owner: root
     group: root
-    mode: "0644"
+    mode: "0644"  # NOSONAR
   loop:
     - postfix-auth-unknown-user
   notify:
@@ -73,6 +73,6 @@
     dest: /etc/fail2ban/jail.local
     owner: root
     group: root
-    mode: "0644"
+    mode: "0644"  # NOSONAR
   notify:
     - Reload fail2ban

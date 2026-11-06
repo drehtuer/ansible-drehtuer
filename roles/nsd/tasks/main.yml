@@ -20,7 +20,7 @@
     state: directory
     owner: root
     group: root
-    mode: "0755"
+    mode: "0755"  # NOSONAR
 - name: Start nsd only once an address exists, and keep trying if one is late
   # The packaged unit is ordered after network.target, which is reached
   # before any address is configured, and gives up after five attempts
@@ -33,7 +33,7 @@
     dest: /etc/systemd/system/nsd.service.d/10-boot-order.conf
     owner: root
     group: root
-    mode: "0644"
+    mode: "0644"  # NOSONAR
   notify:
     - Reload systemd
 - name: Create zone directory
@@ -150,7 +150,7 @@
     dest: /usr/local/bin/nsd-sign-zone
     owner: root
     group: root
-    mode: "0755"
+    mode: "0755"  # NOSONAR
   when: nsd.dnssec.enabled
 
 - name: Find zones that are not signed yet
@@ -259,7 +259,7 @@
     dest: /etc/systemd/system/nsd-resign.service
     owner: root
     group: root
-    mode: "0644"
+    mode: "0644"  # NOSONAR
   when: nsd.dnssec.enabled
   notify:
     - Reload systemd
@@ -270,7 +270,7 @@
     dest: /etc/systemd/system/nsd-resign.timer
     owner: root
     group: root
-    mode: "0644"
+    mode: "0644"  # NOSONAR
   when: nsd.dnssec.enabled
   notify:
     - Reload systemd

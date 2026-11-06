@@ -19,13 +19,11 @@ name: Documentation
   # enabling Pages for the first time.
   workflow_dispatch:
 
-# Least privilege: `pages` and `id-token` are what deploy-pages needs,
-# and `contents: read` is what checkout needs. Nothing here writes to
-# the repository.
+# Least privilege: `contents: read` is what checkout needs. Nothing
+# here writes to the repository; the deploy job alone gets what
+# deploy-pages needs.
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 # One publish at a time, and never cancel one in flight - a cancelled
 # deployment can leave Pages serving a half-uploaded artefact.
@@ -55,7 +53,7 @@ jobs:
       # "generator not found".
       - name: Install Antora
         run: |
-          npm install --global --no-fund --no-audit \
+          npm install --global --no-fund --no-audit --ignore-scripts \
             @antora/cli@3.1.15 @antora/site-generator@3.1.15
 
       # kramdoc converts the Markdown skill definitions to AsciiDoc,
@@ -85,6 +83,9 @@ jobs:
     name: Publish
     needs: build
     runs-on: ubuntu-24.04
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

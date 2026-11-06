@@ -5,7 +5,7 @@
 # reach it. See doc/STATUS.adoc.
 #
 # On a fresh host, run playbooks/apt.yml first - the apt role is the
-# only one that refreshes the apt cache. See doc/TODO.adoc.
+# only one that refreshes the apt cache. See doc/TODO.adoc. NOSONAR
 #
 # DELIBERATELY NOT PART OF playbooks/site.yml. Every other role there
 # builds the host; this one runs a game on it, and the first run costs

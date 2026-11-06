@@ -24,7 +24,7 @@
     state: directory
     owner: ntpsec
     group: ntpsec
-    mode: "0755"
+    mode: "0755"  # NOSONAR
 - name: Config for ntpd
   ansible.builtin.template:
     src: templates/ntp.conf.j2
@@ -32,7 +32,7 @@
     dest: /etc/ntpsec/ntp.conf
     owner: root
     group: root
-    mode: "0644"
+    mode: "0644"  # NOSONAR
   notify:
     - Restart ntpd
     - Set HW clock

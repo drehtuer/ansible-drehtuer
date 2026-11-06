@@ -34,7 +34,7 @@
     dest: /usr/local/bin/maildir-import
     owner: root
     group: root
-    mode: '0755'
+    mode: '0755'  # NOSONAR
 
 - name: Rotate the dovecot log
   # dovecot.conf's `log_path` takes Dovecot off syslog and onto its own
@@ -48,7 +48,7 @@
     group: root
     # logrotate refuses to act on a config that is group- or
     # world-writable, and silently skips it.
-    mode: '0644'
+    mode: '0644'  # NOSONAR
 
 - name: Create sieve-pipe directory
   ansible.builtin.file:
@@ -56,14 +56,14 @@
     state: directory
     owner: root
     group: root
-    mode: '0755'
+    mode: '0755'  # NOSONAR
 - name: Create sieve directory
   ansible.builtin.file:
     path: /etc/dovecot/sieve
     state: directory
     owner: root
     group: root
-    mode: '0755'
+    mode: '0755'  # NOSONAR
 - name: Copy rspam learn ham script
   ansible.builtin.template:
     src: templates/rspamd-learn-ham.sh.j2
@@ -88,7 +88,7 @@
     dest: /etc/dovecot/sieve/learn-ham.sieve
     owner: root
     group: root
-    mode: '0644'
+    mode: '0644'  # NOSONAR
   notify:
     - Reload dovecot
 - name: Copy learn-spam sieve script
@@ -97,7 +97,7 @@
     dest: /etc/dovecot/sieve/learn-spam.sieve
     owner: root
     group: root
-    mode: '0644'
+    mode: '0644'  # NOSONAR
   notify:
     - Reload dovecot
 - name: Copy spam-to-folder sieve script
@@ -106,7 +106,7 @@
     dest: /etc/dovecot/sieve/spam-to-folder.sieve
     owner: root
     group: root
-    mode: '0644'
+    mode: '0644'  # NOSONAR
   notify:
     - Reload dovecot
 - name: Configure dovecot
@@ -115,7 +115,7 @@
     dest: /etc/dovecot/dovecot.conf
     owner: root
     group: root
-    mode: '0644'
+    mode: '0644'  # NOSONAR
   notify:
     - Reload dovecot
 - name: Compile sieve scripts

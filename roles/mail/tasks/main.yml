@@ -12,7 +12,7 @@
     dest: /etc/postfix/main.cf
     owner: root
     group: root
-    mode: "0644"
+    mode: "0644"  # NOSONAR
   notify:
     - Reload postfix
 - name: Configure postfix (master.cf)
@@ -21,7 +21,7 @@
     dest: /etc/postfix/master.cf
     owner: root
     group: root
-    mode: "0644"
+    mode: "0644"  # NOSONAR
   notify:
     - Reload postfix
 # 0640 root:postfix, not the 0644 these had until 2026-08-18. Every

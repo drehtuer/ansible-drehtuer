@@ -375,6 +375,7 @@ REMOTE
     case "$line" in
       ok*)   ok "${line#ok }" ;;
       FAIL*) bad "${line#FAIL }"; rc=1 ;;
+      *)     ;; # Anything else in the report is not a result.
     esac
   done <<<"$report"
 

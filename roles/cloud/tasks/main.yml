@@ -75,11 +75,11 @@
     state: directory
     owner: www-data
     group: www-data
-    mode: "0755"
+    mode: "0755"  # NOSONAR
 # Install only, never upgrade. Unpacking a newer release over a live
 # installation without running `occ upgrade` breaks it, and that step
-# is not automated yet (see doc/TODO.adoc), so the presence of
-# version.php gates the whole download.
+# is not automated yet (see doc/TODO.adoc), NOSONAR
+# so the presence of version.php gates the whole download.
 - name: Check whether Nextcloud is already installed
   ansible.builtin.stat:
     path: "{{ cloud.nextcloud.path }}/version.php"
@@ -92,7 +92,7 @@
     checksum: "sha256:{{ cloud.nextcloud.checksum }}"
     owner: root
     group: root
-    mode: "0644"
+    mode: "0644"  # NOSONAR
   when: not cloud_installed.stat.exists
 - name: Extract Nextcloud
   # `--no-overwrite-dir` for the reason spelled out at the upgrade's
@@ -125,7 +125,7 @@
     dest: "/etc/php/{{ cloud_php_version }}/fpm/pool.d/nextcloud.conf"
     owner: root
     group: root
-    mode: "0644"
+    mode: "0644"  # NOSONAR
   notify:
     - Reload PHP-FPM
 - name: Nextcloud PHP configuration
@@ -134,7 +134,7 @@
     dest: "/etc/php/{{ cloud_php_version }}/{{ item }}/conf.d/99-nextcloud.ini"
     owner: root
     group: root
-    mode: "0644"
+    mode: "0644"  # NOSONAR
   loop:
     - fpm
     # The CLI SAPI gets the same drop-in: the background job and occ
@@ -456,7 +456,7 @@
     dest: /etc/systemd/system/notify_push.service
     owner: root
     group: root
-    mode: "0644"
+    mode: "0644"  # NOSONAR
   notify:
     - Restart notify_push
 
@@ -473,7 +473,7 @@
     dest: /etc/nginx/conf.d/nextcloud-fpm.conf
     owner: root
     group: root
-    mode: "0644"
+    mode: "0644"  # NOSONAR
   notify:
     - Reload nginx
 - name: Nextcloud nginx location
@@ -482,7 +482,7 @@
     dest: /etc/nginx/locations-available/nextcloud.conf
     owner: root
     group: root
-    mode: "0644"
+    mode: "0644"  # NOSONAR
   notify:
     - Reload nginx
 - name: Enable Nextcloud nginx location
@@ -498,7 +498,7 @@
     dest: /etc/nginx/sites-available/cloud.conf
     owner: root
     group: root
-    mode: "0644"
+    mode: "0644"  # NOSONAR
   notify:
     - Reload nginx
 - name: Enable cloud nginx site

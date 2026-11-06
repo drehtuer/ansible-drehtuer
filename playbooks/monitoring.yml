@@ -1,5 +1,5 @@
 # On a fresh host, run playbooks/apt.yml first - the apt role is the
-# only one that refreshes the apt cache. See doc/TODO.adoc.
+# only one that refreshes the apt cache. See doc/TODO.adoc. NOSONAR
 #
 # gather_facts stays on (the default) here:
 # monitoring.alerts.network.interface defaults to

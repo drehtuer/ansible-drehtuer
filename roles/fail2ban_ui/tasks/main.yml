@@ -2,7 +2,7 @@
 # socket this is a front end for) and roles/http (nginx and the
 # certificate covering fail2ban_ui.subdomain). None of that is asserted
 # here - the repo has no umbrella playbook yet, so the ordering is
-# recorded in doc/TODO.adoc with the other constraints.
+# recorded in doc/TODO.adoc with the other constraints. NOSONAR
 - name: Create fail2ban-ui directories
   ansible.builtin.file:
     path: "{{ item.path }}"
@@ -24,7 +24,7 @@
     dest: "{{ fail2ban_ui.compose_dir }}/compose.yml"
     owner: root
     group: root
-    mode: "0644"
+    mode: "0644"  # NOSONAR
 - name: Start fail2ban-ui
   # docker_compose_v2 rather than docker_container: it drives the
   # `docker compose` CLI the docker role already installs, so nothing
@@ -47,8 +47,9 @@
     dest: /etc/nginx/sites-available/fail2ban_ui.htpasswd
     decrypt: true
     owner: root
-    group: root
-    mode: "0644"
+    group: www-data
+    # Password hashes: nginx workers read this as www-data per request.
+    mode: "0640"
 - name: Enable fail2ban-ui htpasswd in nginx
   ansible.builtin.file:
     src: /etc/nginx/sites-available/fail2ban_ui.htpasswd
@@ -62,7 +63,7 @@
     dest: /etc/nginx/sites-available/fail2ban_ui.conf
     owner: root
     group: root
-    mode: "0644"
+    mode: "0644"  # NOSONAR
   notify:
     - Reload nginx
 - name: Enable fail2ban-ui site in nginx

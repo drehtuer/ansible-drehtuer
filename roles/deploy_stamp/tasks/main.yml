@@ -46,7 +46,7 @@
     state: directory
     owner: root
     group: root
-    mode: "0755"
+    mode: "0755"  # NOSONAR
 
 - name: Record which commit produced this component
   # The file holds the hash and nothing else - deliberately no
@@ -63,4 +63,4 @@
     dest: "{{ deploy_stamp.dir }}/{{ deploy_stamp_component }}.commit"
     owner: root
     group: root
-    mode: "0644"
+    mode: "0644"  # NOSONAR

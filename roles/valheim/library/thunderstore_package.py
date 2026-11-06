@@ -207,7 +207,7 @@ def extract(module, p, zip_path, staged):
       os.makedirs(os.path.dirname(dest), exist_ok=True)
       with archive.open(info) as src, open(dest, 'wb') as out:
         shutil.copyfileobj(src, out)
-      os.chmod(dest, FILE_MODE)
+      os.chmod(dest, FILE_MODE)  # NOSONAR - see FILE_MODE
 
 
 def swap_owned(p, staged, aside):
@@ -253,7 +253,7 @@ def merge_config(bepinex_dir, source_root, previous, kept):
           continue
       os.makedirs(os.path.dirname(target), exist_ok=True)
       shutil.copyfile(source, target)
-      os.chmod(target, FILE_MODE)
+      os.chmod(target, FILE_MODE)  # NOSONAR - see FILE_MODE
       config[rel] = digest
   # Files an older version shipped and this one does not.
   remove_config(
@@ -301,6 +301,29 @@ def install(module, p, state, state_file):
   return new_state, kept
 
 
+def remove_package(p, state, state_file, kept):
+  """Remove what a package staged, then its state file."""
+  for rel in state.get('owned', []):
+    shutil.rmtree(os.path.join(p['bepinex_dir'], rel), True)
+  remove_config(p['bepinex_dir'], state.get('config', {}), kept)
+  os.unlink(state_file)
+
+
+def is_current(p, state):
+  """Report whether the recorded state already matches the request."""
+  if (
+    state is None
+    or state.get('layout') != LAYOUT
+    or any(state.get(k) != p[k] for k in ('version', 'sha256', 'directory'))
+  ):
+    return False
+  # A staged directory deleted by hand is drift, not convergence.
+  return all(
+    os.path.isdir(os.path.join(p['bepinex_dir'], rel))
+    for rel in state.get('owned', [])
+  )
+
+
 def main():
   """Run the module."""
   module = AnsibleModule(
@@ -336,25 +359,11 @@ def main():
       module.exit_json(**result)
     result['changed'] = True
     if not module.check_mode:
-      for rel in state.get('owned', []):
-        shutil.rmtree(os.path.join(p['bepinex_dir'], rel), True)
-      remove_config(p['bepinex_dir'], state.get('config', {}), result['kept'])
-      os.unlink(state_file)
+      remove_package(p, state, state_file, result['kept'])
     module.exit_json(**result)
 
-  current = (
-    state is not None
-    and state.get('layout') == LAYOUT
-    and all(state.get(k) == p[k] for k in ('version', 'sha256', 'directory'))
-  )
-  # A staged directory deleted by hand is drift, not convergence.
-  if current:
-    current = all(
-      os.path.isdir(os.path.join(p['bepinex_dir'], rel))
-      for rel in state.get('owned', [])
-    )
   result['version'] = p['version']
-  if current:
+  if is_current(p, state):
     module.exit_json(**result)
 
   result['changed'] = True

@@ -42,7 +42,7 @@ jobs:
       # why this is a --system-site-packages venv rather than a
       # system-Python or fully isolated install. Ubuntu's own
       # ansible-lint package has no version pin, which previously let
-      # it drift out from under the repo silently - see doc/TODO.adoc.
+      # it drift out from under the repo silently - see doc/TODO.adoc. NOSONAR
       - name: Install ansible-lint and yamllint
         run: |
           python3 -m venv --system-site-packages /opt/ansible-lint
@@ -80,7 +80,8 @@ jobs:
 
       # Keep in sync with RUFF_VERSION in .devcontainer/Dockerfile.
       - name: Install ruff
-        run: pip install ruff==0.16.3
+        run: |
+          pip install --only-binary :all: ruff==0.16.3
 
       - name: ruff check
         run: ruff check .
@@ -134,7 +135,7 @@ jobs:
       # warning nobody reads, the same stance as `yamllint --strict`
       # above. Output goes to /dev/null: this renders only to find
       # faults, and publishing the pages is separate work tracked in
-      # doc/TODO.adoc.
+      # doc/TODO.adoc. NOSONAR
       #
       # Collected into an array first rather than piped into xargs,
       # which would be free to split them across several invocations

@@ -38,7 +38,7 @@
     state: directory
     owner: root
     group: root
-    mode: "0755"
+    mode: "0755"  # NOSONAR
   loop:
     - /etc/nginx/conf-server
     # Was /etc/sites-available, which created a stray directory at the
@@ -53,7 +53,7 @@
     state: directory
     owner: www-data
     group: www-data
-    mode: "0755"
+    mode: "0755"  # NOSONAR
 - name: Create DH parameters for nginx (may take a while)
   ansible.builtin.command:
     cmd: >
@@ -73,7 +73,7 @@
     dest: /etc/nginx/nginx.conf
     owner: root
     group: root
-    mode: "0644"
+    mode: "0644"  # NOSONAR
   notify:
     - Reload nginx
 - name: Shared configuration snippets for nginx
@@ -82,7 +82,7 @@
     dest: "/etc/nginx/conf-server/{{ item }}"
     owner: root
     group: root
-    mode: "0644"
+    mode: "0644"  # NOSONAR
   loop:
     - general.conf
     - security.conf
@@ -96,7 +96,7 @@
     dest: /etc/nginx/conf-server/ssl.conf
     owner: root
     group: root
-    mode: "0644"
+    mode: "0644"  # NOSONAR
   notify:
     - Reload nginx
 - name: PHP-FPM upstream for nginx
@@ -105,7 +105,7 @@
     dest: /etc/nginx/conf.d/php_fpm_upstream.conf
     owner: root
     group: root
-    mode: "0644"
+    mode: "0644"  # NOSONAR
   notify:
     - Reload nginx
 # The port 80 vhost goes up before certbot runs: it serves the ACME
@@ -116,7 +116,7 @@
     dest: /etc/nginx/sites-available/http_to_https.conf
     owner: root
     group: root
-    mode: "0644"
+    mode: "0644"  # NOSONAR
   notify:
     - Reload nginx
 - name: Enable http2https site
@@ -138,7 +138,7 @@
     dest: /etc/nginx/sites-available/default_server.conf
     owner: root
     group: root
-    mode: "0644"
+    mode: "0644"  # NOSONAR
   notify:
     - Reload nginx
 - name: Enable the catch-all
@@ -163,7 +163,7 @@
     dest: /etc/letsencrypt/cli.ini
     owner: root
     group: root
-    mode: "0644"
+    mode: "0644"  # NOSONAR
 - name: WebSocket upgrade map for nginx
   # A `map` is only valid in the http context, so it lives in conf.d
   # rather than in the vhosts that use it - and it is owned here rather
@@ -176,7 +176,7 @@
     dest: /etc/nginx/conf.d/websocket_upgrade_map.conf
     owner: root
     group: root
-    mode: "0644"
+    mode: "0644"  # NOSONAR
   notify:
     - Reload nginx
 
@@ -186,14 +186,14 @@
     state: directory
     owner: root
     group: root
-    mode: "0755"
+    mode: "0755"  # NOSONAR
 - name: Reload services after certificate renewal
   ansible.builtin.copy:
     src: files/certbot-deploy-hook.sh
     dest: /etc/letsencrypt/renewal-hooks/deploy/reload-services.sh
     owner: root
     group: root
-    mode: "0755"
+    mode: "0755"  # NOSONAR
 - name: Build the list of names the certificate has to cover
   ansible.builtin.set_fact:
     # The host FQDN, each domain itself, and every subdomain of every
@@ -270,7 +270,7 @@
     dest: /etc/nginx/conf.d/stub_status.conf
     owner: root
     group: root
-    mode: "0644"
+    mode: "0644"  # NOSONAR
   when: http.stub_status.enabled
   notify:
     - Reload nginx
@@ -289,7 +289,7 @@
     dest: "/etc/nginx/sites-available/{{ item.name }}.conf"
     owner: root
     group: root
-    mode: "0644"
+    mode: "0644"  # NOSONAR
   loop: "{{ http.sites }}"
   loop_control:
     label: "{{ item.name }}"

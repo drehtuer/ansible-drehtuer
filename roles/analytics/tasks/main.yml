@@ -174,14 +174,14 @@
     owner: root
     group: root
     # Served by nginx as www-data, written by the timer as root.
-    mode: "0755"
+    mode: "0755"  # NOSONAR
 - name: Deploy the report script
   ansible.builtin.template:
     src: templates/analytics-report.sh.j2
     dest: /usr/local/bin/analytics-report
     owner: root
     group: root
-    mode: "0755"
+    mode: "0755"  # NOSONAR
     # Caught before it is installed rather than at twenty past the
     # hour, the same stance as `nginx -t` here and `bash -n` in
     # roles/backup. It parses without running, so it finds the
@@ -194,7 +194,7 @@
     dest: /etc/systemd/system/{{ item }}
     owner: root
     group: root
-    mode: "0644"
+    mode: "0644"  # NOSONAR
   loop: "{{ analytics_units }}"
   notify:
     - Reload systemd
@@ -224,8 +224,9 @@
     dest: /etc/nginx/sites-available/analytics.htpasswd
     decrypt: true
     owner: root
-    group: root
-    mode: "0644"
+    group: www-data
+    # Password hashes: nginx workers read this as www-data per request.
+    mode: "0640"
 - name: Enable the analytics htpasswd in nginx
   ansible.builtin.file:
     src: /etc/nginx/sites-available/analytics.htpasswd
@@ -239,7 +240,7 @@
     dest: /etc/nginx/sites-available/analytics.conf
     owner: root
     group: root
-    mode: "0644"
+    mode: "0644"  # NOSONAR
   notify:
     - Reload nginx
 - name: Enable the analytics site in nginx

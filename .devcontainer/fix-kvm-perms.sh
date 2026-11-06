@@ -27,6 +27,6 @@
 # there, see the --device line in devcontainer.json.
 set -euo pipefail
 
-if [ -e /dev/kvm ]; then
+if [[ -e /dev/kvm ]]; then
     sudo chmod 0666 /dev/kvm
 fi

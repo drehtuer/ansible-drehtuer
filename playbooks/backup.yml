@@ -1,5 +1,5 @@
 # On a fresh host, run playbooks/apt.yml first - the apt role is the
-# only one that refreshes the apt cache. See doc/TODO.adoc.
+# only one that refreshes the apt cache. See doc/TODO.adoc. NOSONAR
 #
 # Ordering: this wants roles/database to have run, since it dumps what
 # MariaDB holds, and roles/cloud if backup.nextcloud.enabled is set,

@@ -36,7 +36,7 @@ set -euo pipefail
 # re-encrypted, so this cannot silently replace a key that a published
 # DS record depends on.
 
-if [ "${#}" -ne "1" ]; then
+if [[ "${#}" -ne "1" ]]; then
   echo "Zone name as argument needed, e.g. ${0##*/} example.com" >&2
   exit 1
 fi
@@ -65,7 +65,7 @@ generate() {
   shift 2
 
   existing="$(find_key "${flag_pattern}")"
-  if [ -n "${existing}" ]; then
+  if [[ -n "${existing}" ]]; then
     echo "${role}: keeping existing $(basename "${existing%.key}")" >&2
   else
     # -K writes both files into the key directory. The base name it
