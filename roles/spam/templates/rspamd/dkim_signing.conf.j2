@@ -17,6 +17,14 @@ enabled = true;
 sign_local = true;
 sign_authenticated = true;
 
+# Logins here are bare names (`drehtuer`), and RSpamd's default of false
+# skips signing any message whose login has no @domain to compare, with
+# no error. Turning it on loses little: allow_hdrfrom_mismatch stays
+# false, so the From domain must match the envelope's, and a domain with
+# no key is not signed. What this check would add is already missing -
+# see doc/TODO.adoc on sender login maps.
+allow_username_mismatch = true;
+
 selector = "{{ spam.dkim.selector }}";
 path = "/var/lib/rspamd/dkim/$domain.$selector.key";
 
