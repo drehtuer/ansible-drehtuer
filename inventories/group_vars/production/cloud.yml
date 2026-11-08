@@ -97,6 +97,13 @@ cloud:
     - tasks
   mail:
     classify_importance: false
+  # How Nextcloud itself sends mail; see roles/cloud/defaults.
+  smtp:
+    host: 127.0.0.1
+    port: 25
+    tls_name: "mail.{{ domain }}"
+    from_address: nextcloud
+    domain: "{{ domain }}"
   ocr:
     # Tesseract training data for OCRmyPDF, one package per language.
     languages:

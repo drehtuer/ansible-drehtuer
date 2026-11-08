@@ -237,6 +237,42 @@ argument_specs:
                     every other IMAP client - Thunderbird shows it as
                     "Important". Governs accounts created after it is
                     set; an existing account keeps its own column.
+          smtp:
+            type: dict
+            required: true
+            description:
+              - How Nextcloud itself sends mail - notifications,
+                password resets, invitations - written to
+                config/smtp.config.php. Not the Mail app, which is
+                `mail` above.
+            options:
+              host:
+                type: str
+                required: true
+                description:
+                  - SMTP server. 127.0.0.1, so that Postfix relays
+                    without a login (mynetworks).
+              port:
+                type: int
+                required: true
+                description: SMTP port. 25 on loopback.
+              tls_name:
+                type: str
+                required: true
+                description:
+                  - Name the server's certificate is verified against
+                    when STARTTLS is negotiated, which Nextcloud does
+                    whenever it is offered. Must be a name on the
+                    certificate - mail.<domain> - since 127.0.0.1 is
+                    not, and the connection fails without it.
+              from_address:
+                type: str
+                required: true
+                description: Local part of the sender address.
+              domain:
+                type: str
+                required: true
+                description: Domain of the sender address.
           ocr:
             type: dict
             required: true

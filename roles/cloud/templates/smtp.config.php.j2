@@ -1,0 +1,49 @@
+<?php
+{{ ansible_managed | comment }}
+# How Nextcloud itself sends mail: share notifications, password resets,
+# calendar invitations, activity digests. An additional config file, not
+# config.php - the same mechanism as the cache, domains, logging and
+# proxy drop-ins beside it. Values here win over config.php, so what the
+# web form under Administration settings > Basic settings shows is this
+# file, and saving that form changes nothing that lasts.
+#
+# Loopback rather than mail.<domain>. Until 2026-11-08 these were set
+# by hand to mail.<domain>:587 with no login, so Postfix saw a client on
+# a public address without SASL - treated like any outside server, able
+# to deliver to the served domains and refused `Relay access denied` for
+# every other recipient. On 127.0.0.1 the client is in Postfix's
+# mynetworks and relays without a login, the way Alertmanager sends.
+#
+# Port 25 on loopback, not 587: submission would demand a login this
+# client does not have.
+#
+# `peer_name` is what makes loopback work at all. Nextcloud's mailer
+# (Symfony Mailer) switches to STARTTLS whenever the server offers it,
+# which Postfix does on 25 for every client, and then verifies the
+# certificate against the host it connected to. The certificate names
+# mail.<domain>, not 127.0.0.1, so without this every message fails -
+# measured on carcosa with Nextcloud's own copy of the library:
+# "Unable to connect with STARTTLS: ... subjectAltName did not match
+# expected name `127.0.0.1'". With peer_name set, the same connection
+# negotiates TLS and verifies the certificate under its real name.
+# Turning verification off instead would also work; this keeps it.
+#
+# No login (`mail_smtpauth` false): there is no account for Nextcloud
+# to log in as, and the sender check on submission would refuse it
+# anyway, since `{{ cloud.smtp.from_address }}@{{ cloud.smtp.domain }}`
+# belongs to no login.
+$CONFIG = [
+    'mail_smtpmode' => 'smtp',
+    'mail_sendmailmode' => 'smtp',
+    'mail_smtphost' => '{{ cloud.smtp.host }}',
+    'mail_smtpport' => {{ cloud.smtp.port | int }},
+    'mail_smtpsecure' => '',
+    'mail_smtpauth' => false,
+    'mail_from_address' => '{{ cloud.smtp.from_address }}',
+    'mail_domain' => '{{ cloud.smtp.domain }}',
+    'mail_smtpstreamoptions' => [
+        'ssl' => [
+            'peer_name' => '{{ cloud.smtp.tls_name }}',
+        ],
+    ],
+];
