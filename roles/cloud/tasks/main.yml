@@ -225,13 +225,31 @@
         that:
           - (cloud.nextcloud.version.split('.')[0] | int)
             - (cloud_installed_version.split('.')[0] | int) <= 1
-          - (cloud.nextcloud.version.split('.')[0] | int)
-            >= (cloud_installed_version.split('.')[0] | int)
         fail_msg: >-
           Refusing to move from {{ cloud_installed_version }} to
           {{ cloud.nextcloud.version }}. Nextcloud upgrades one major
-          version at a time and cannot go backwards; do it in steps,
-          letting each one complete before bumping again.
+          version at a time; do it in steps, letting each one complete
+          before bumping again.
+
+    - name: Refuse to go backwards
+      # The whole version, not only the major. This block runs whenever
+      # the installed version differs from the pin, so a host updated
+      # outside this repository - the web updater - looks exactly like
+      # one waiting for an upgrade. On 2026-11-08 carcosa ran 34.0.5
+      # against a pin of 34.0.4, and the guard then compared majors
+      # only: a run would have dumped the database and extracted 34.0.4
+      # over 34.0.5. `check-drift` showed it getting as far as the
+      # download. Nextcloud does not support downgrades at all, and
+      # catches one only after the files are replaced.
+      ansible.builtin.assert:
+        that:
+          - cloud.nextcloud.version is version(cloud_installed_version, '>')
+        fail_msg: >-
+          Refusing to replace Nextcloud {{ cloud_installed_version }}
+          with the older {{ cloud.nextcloud.version }}. The host runs
+          ahead of the pin - probably updated with the web updater.
+          Move cloud.nextcloud.version (and its checksum) to at least
+          {{ cloud_installed_version }} first.
 
     - name: Enable maintenance mode
       ansible.builtin.command:

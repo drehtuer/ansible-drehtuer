@@ -10,8 +10,8 @@ cloud:  # noqa: var-naming[no-role-prefix] - see doc/STATUS.adoc
   nextcloud:
     # Pinned rather than tracking `latest`, so a rebuild produces the
     # same version and the checksum below can be verified.
-    version: "34.0.3"
-    checksum: "d7ed36ac0e14a2d9bbd167d6f6d4fc498f0f39fcccdf304e67e35bfc42e4506d"
+    version: "35.0.2"
+    checksum: "dfc7955eaec5621de90e031d10f76006173b3f3e31d5d6e174821d1da14f162d"
     path: /var/www/nextcloud
     # Nextcloud's own recommendation for the background job.
     cron_minute: "*/5"
