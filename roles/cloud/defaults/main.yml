@@ -164,6 +164,17 @@ cloud:  # noqa: var-naming[no-role-prefix] - see doc/STATUS.adoc
     # account carries its own `classification_enabled` column that no
     # occ command exposes.
     classify_importance: false
+  # How Nextcloud itself sends mail (templates/smtp.config.php.j2):
+  # notifications, password resets, invitations. Not the Mail app,
+  # which is `mail` above. Loopback port 25, so Postfix relays it
+  # without a login - see the template for why both, and for why
+  # tls_name has to name the certificate.
+  smtp:
+    host: 127.0.0.1
+    port: 25
+    tls_name: "mail.{{ domain }}"
+    from_address: nextcloud
+    domain: "{{ domain }}"
   ocr:
     # Tesseract training data for OCRmyPDF, one package per language.
     languages:

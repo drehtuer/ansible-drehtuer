@@ -431,6 +431,17 @@
     mode: "0640"
     validate: php -l %s
 
+- name: Nextcloud outgoing mail
+  # Values here win over config.php, which still holds whatever was set
+  # in the web form before; see the template.
+  ansible.builtin.template:
+    src: templates/smtp.config.php.j2
+    dest: "{{ cloud.nextcloud.path }}/config/smtp.config.php"
+    owner: www-data
+    group: www-data
+    mode: "0640"
+    validate: php -l %s
+
 - name: Detect the architecture notify_push ships a binary for
   ansible.builtin.command:
     cmd: uname -m
