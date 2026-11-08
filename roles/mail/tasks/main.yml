@@ -107,3 +107,23 @@
     - /etc/aliases.db
     - /etc/valiases.db
     - /etc/vmailbox.db
+# MTA-STS, served by the nginx the http role runs - the same arrangement
+# as the RSpamd UI in roles/spam. The certificate has to cover
+# mta-sts.<domain> already (http.letsencrypt.subdomains), or senders
+# reject the policy fetch and treat the domain as having none.
+- name: MTA-STS policy vhost
+  ansible.builtin.template:
+    src: templates/nginx/mta-sts.conf.j2
+    dest: /etc/nginx/sites-available/mta-sts.conf
+    owner: root
+    group: root
+    mode: "0644"  # NOSONAR
+  notify:
+    - Reload nginx
+- name: Enable the MTA-STS policy vhost
+  ansible.builtin.file:
+    src: /etc/nginx/sites-available/mta-sts.conf
+    dest: /etc/nginx/sites-enabled/mta-sts.conf
+    state: link
+  notify:
+    - Reload nginx

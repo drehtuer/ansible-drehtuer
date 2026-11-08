@@ -187,6 +187,18 @@ nsd:
         # it - certbot validates over HTTP-01, and a name that
         # does not resolve fails the whole certificate.
         - {name: weblog, type: CNAME, value: "{{ domain }}."}
+        # MTA-STS (RFC 8461) and TLS-RPT (RFC 8460). The CNAME is where
+        # roles/mail serves the policy; `_mta-sts` tells senders it
+        # exists and which version to fetch, with an id derived from
+        # the policy in inventories/host_vars/carcosa/mail.yml so that
+        # changing the policy changes it. `_smtp._tls` asks senders for
+        # a daily report of their TLS sessions with this domain, as
+        # mail to the same postmaster@ the DMARC reports go to.
+        - {name: mta-sts, type: CNAME, value: "{{ domain }}."}
+        - {name: _mta-sts, type: TXT,
+           value: '"v=STSv1; id={{ mail_mta_sts_id }}"'}
+        - {name: _smtp._tls, type: TXT,
+           value: '"v=TLSRPTv1; rua=mailto:postmaster@{{ domain }}"'}
         # DMARC is p=reject with strict alignment, so a message that
         # fails both SPF and DKIM is discarded rather than quarantined.
         - name: _dmarc
@@ -319,6 +331,12 @@ nsd:
         - {name: spam, type: CNAME, value: drehtuer.de.}
         - {name: status, type: CNAME, value: drehtuer.de.}
         - {name: weblog, type: CNAME, value: drehtuer.de.}
+        # MTA-STS and TLS-RPT, same as the primary zone above.
+        - {name: mta-sts, type: CNAME, value: drehtuer.de.}
+        - {name: _mta-sts, type: TXT,
+           value: '"v=STSv1; id={{ mail_mta_sts_id }}"'}
+        - {name: _smtp._tls, type: TXT,
+           value: '"v=TLSRPTv1; rua=mailto:postmaster@drehtuer.de"'}
         - name: _dmarc
           type: TXT
           value: >-

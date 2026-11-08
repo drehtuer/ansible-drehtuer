@@ -18,6 +18,9 @@ mail:
     - alias: root
       forwards:
         - drehtuer
+  mta_sts:
+    mode: testing
+    max_age: 86400
   ssl:
     cert: /etc/letsencrypt/live/{{ hostname_fqdn }}/fullchain.pem
     key: /etc/letsencrypt/live/{{ hostname_fqdn }}/privkey.pem

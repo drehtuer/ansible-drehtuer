@@ -1,0 +1,46 @@
+{{ ansible_managed | comment }}
+{#
+  MTA-STS (RFC 8461): the policy file a sending server fetches from
+  https://mta-sts.<domain>/.well-known/mta-sts.txt once it has seen the
+  `_mta-sts` TXT record. It says which MX names are valid for the
+  domain and whether a sender must refuse to deliver over a connection
+  without valid TLS to one of them (`enforce`) or only report it
+  (`testing`). That is the protection DANE would give, without needing
+  a DS record at the registrar - see doc/TODO.adoc on why DANE is
+  blocked.
+
+  One server block per served domain, because each domain's policy
+  names its own MX (`mail.<domain>`, per the MX records in nsd.zones).
+  The policy body is generated here rather than kept as a file, so it
+  cannot disagree with the inventory.
+
+  RFC 8461 requires the policy over HTTPS with a certificate valid for
+  mta-sts.<domain>, as text/plain, and forbids following redirects.
+  The certificate covers the name through http.letsencrypt.subdomains,
+  and the location below answers directly. Everything else on the name
+  is a 404.
+
+  The `_mta-sts` TXT record carries an `id` that has to change whenever
+  this policy does, or senders keep their cached copy for max_age.
+  inventories/host_vars/carcosa/mail.yml derives it from mail.mta_sts,
+  so changing the mode changes the id with it.
+#}
+{% for d in http.domains %}
+server {
+  listen {{ http.port_https }} ssl http2;
+  listen [::]:{{ http.port_https }} ssl http2;
+  server_name mta-sts.{{ d }};
+
+  include conf-server/ssl.conf;
+  include conf-server/security.conf;
+
+  location = /.well-known/mta-sts.txt {
+    default_type text/plain;
+    return 200 "version: STSv1\nmode: {{ mail.mta_sts.mode }}\nmx: mail.{{ d }}\nmax_age: {{ mail.mta_sts.max_age }}\n";
+  }
+
+  location / {
+    return 404;
+  }
+}
+{% endfor %}

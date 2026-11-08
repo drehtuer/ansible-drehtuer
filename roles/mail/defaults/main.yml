@@ -6,6 +6,15 @@ mail:  # noqa: var-naming[no-role-prefix] - see doc/STATUS.adoc
     - alias: www-data
       forwards:
         - root
+  # MTA-STS policy, served at mta-sts.<domain> for every served domain
+  # (templates/nginx/mta-sts.conf.j2). `testing` makes senders report
+  # TLS failures to the TLS-RPT address without refusing delivery;
+  # `enforce` makes them refuse; `none` withdraws the policy. One day
+  # while testing, so a mistake is forgotten quickly. RFC 8461 suggests
+  # weeks once enforcing.
+  mta_sts:
+    mode: testing
+    max_age: 86400
   ssl:
     cert: /etc/letsencrypt/live/{{ hostname_fqdn }}/fullchain.pem
     key: /etc/letsencrypt/live/{{ hostname_fqdn }}/privkey.pem
