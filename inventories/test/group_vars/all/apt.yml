@@ -1,5 +1,6 @@
 apt:
   unattended:
+    updates: true
     reboot: true
     reboot_with_users: true
     reboot_time: "04:00"

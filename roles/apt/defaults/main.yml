@@ -1,6 +1,10 @@
 # Override with own variables
 apt:  # noqa: var-naming[no-role-prefix] - see doc/STATUS.adoc
   unattended:
+    # Take -updates as well as -security. Ubuntu does not always put a
+    # security fix in -security first: the kernel for CVE-2026-98432
+    # reached noble-updates alone, and this host skipped it.
+    updates: true
     # Reboot when an update needs it. Without this the patch is on disk
     # but never in memory, which loses most of the value of applying it
     # automatically in the first place.

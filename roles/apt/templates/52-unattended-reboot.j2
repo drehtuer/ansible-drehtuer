@@ -1,7 +1,8 @@
 {{ ansible_managed | comment }}
 //
-// A drop-in, so the packaged 50unattended-upgrades keeps ownership of
-// which origins are patched.
+// A drop-in, so the packaged 50unattended-upgrades stays untouched
+// and keeps receiving package updates. Origins added on top of it are
+// in 51-unattended-origins.
 //
 // Without an automatic reboot, kernel and libc updates install but the
 // host keeps running the old ones indefinitely - the patch is on disk
