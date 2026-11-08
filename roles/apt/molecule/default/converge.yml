@@ -9,6 +9,7 @@
       # missing one fails the argument spec, not the task that uses it.
       # See doc/STATUS.adoc.
       unattended:
+        updates: true
         reboot: false
         reboot_with_users: false
         reboot_time: "04:00"

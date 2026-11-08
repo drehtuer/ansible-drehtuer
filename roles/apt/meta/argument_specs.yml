@@ -16,6 +16,13 @@ argument_specs:
             required: true
             description: Unattended-upgrade behaviour.
             options:
+              updates:
+                type: bool
+                required: true
+                description:
+                  - Also install from the -updates pocket, not only
+                    -security. Ubuntu sometimes ships a security fix
+                    there first.
               reboot:
                 type: bool
                 required: true

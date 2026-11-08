@@ -1,0 +1,19 @@
+{{ ansible_managed | comment }}
+//
+// Adds to the origins the packaged 50unattended-upgrades allows,
+// rather than replacing them: apt.conf lists accumulate across files,
+// so the release, -security and ESM entries there stay in force.
+//
+// Ubuntu does not always publish a security fix to -security first.
+// The 6.8.0-149 kernel fixing CVE-2026-98432 (remote code execution
+// in IPv4 TCP, CVSS 9.8) reached noble-updates on its own, and with
+// only -security allowed this host kept skipping it night after
+// night. unattended-upgrades cannot filter by package per origin, so
+// letting kernels in from -updates means letting -updates in.
+{% if apt.unattended.updates %}
+Unattended-Upgrade::Allowed-Origins {
+  "${distro_id}:${distro_codename}-updates";
+};
+{% else %}
+// Disabled by apt.unattended.updates: only the packaged origins apply.
+{% endif %}

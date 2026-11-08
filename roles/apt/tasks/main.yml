@@ -30,6 +30,8 @@
   loop:
     - src: 20auto-upgrades.j2
       dest: 20auto-upgrades
+    - src: 51-unattended-origins.j2
+      dest: 51-unattended-origins
     - src: 52-unattended-reboot.j2
       dest: 52-unattended-reboot
   loop_control:
