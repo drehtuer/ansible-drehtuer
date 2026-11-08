@@ -76,7 +76,7 @@ argument_specs:
               version:
                 type: str
                 required: true
-                description: Pinned release, e.g. 34.0.3.
+                description: Pinned release, e.g. 35.0.2.
               checksum:
                 type: str
                 required: true
