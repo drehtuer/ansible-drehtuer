@@ -36,6 +36,21 @@ smtpd_recipient_restrictions =
     permit_sasl_authenticated,
     reject_unauth_destination
 
+# Every listener except submission. Port 25 offers no SASL, so a login
+# check here could never apply. Postfix said so on every connection that
+# reached it - "restriction `reject_authenticated_sender_login_mismatch'
+# ignored: no SASL support" - and that was true before the check moved
+# to the front, too. permit_sasl_authenticated stays: it costs nothing
+# without SASL and keeps this list the same shape as the one below.
+smtpd_sender_restrictions =
+    permit_mynetworks,
+    permit_sasl_authenticated,
+    reject_unknown_sender_domain
+
+# Submission (port 587) only, selected in master.cf with
+# `-o smtpd_sender_restrictions=$mua_sender_restrictions` - the name
+# Debian's stock master.cf uses for the same thing.
+#
 # The login check comes *first*. It used to sit after
 # permit_sasl_authenticated, where it could never run: a permit ends the
 # evaluation, so every logged-in account could send as any address, and
@@ -43,10 +58,9 @@ smtpd_recipient_restrictions =
 # permits, it refuses an authenticated client whose envelope sender is
 # not owned by its login in smtpd_sender_login_maps (553 5.7.1) - any
 # address outside the served domains included, since none of those is
-# in the map. Unauthenticated clients are not affected at all, which
-# covers inbound mail on port 25 and everything on 127.0.0.1 that sends
-# without a login (Alertmanager, Nextcloud, cron).
-smtpd_sender_restrictions =
+# in the map. Unauthenticated clients are not affected by it; on this
+# port they can only reach the served domains, as on port 25.
+mua_sender_restrictions =
     reject_authenticated_sender_login_mismatch,
     permit_mynetworks,
     permit_sasl_authenticated,
