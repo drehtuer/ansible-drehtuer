@@ -36,11 +36,26 @@ smtpd_recipient_restrictions =
     permit_sasl_authenticated,
     reject_unauth_destination
 
+# The login check comes *first*. It used to sit after
+# permit_sasl_authenticated, where it could never run: a permit ends the
+# evaluation, so every logged-in account could send as any address, and
+# RSpamd then DKIM-signed the result for any served domain. Ahead of the
+# permits, it refuses an authenticated client whose envelope sender is
+# not owned by its login in smtpd_sender_login_maps (553 5.7.1) - any
+# address outside the served domains included, since none of those is
+# in the map. Unauthenticated clients are not affected at all, which
+# covers inbound mail on port 25 and everything on 127.0.0.1 that sends
+# without a login (Alertmanager, Nextcloud, cron).
 smtpd_sender_restrictions =
+    reject_authenticated_sender_login_mismatch,
     permit_mynetworks,
     permit_sasl_authenticated,
-    reject_authenticated_sender_login_mismatch,
     reject_unknown_sender_domain
+
+# Who owns which address. Each account owns its own address on every
+# served domain, and each alias belongs to the accounts it delivers to.
+# See templates/postfix/sender_logins.j2.
+smtpd_sender_login_maps = hash:/etc/sender_logins
 
 # SSL
 smtpd_tls_cert_file = {{ mail.ssl.cert }}

@@ -109,6 +109,9 @@ argument_specs:
             recipients Postfix accepts at SMTP time - so an account
             missing from it has its mail refused rather than bounced
             after the fact.
+          - The same names are the SASL logins in /etc/sender_logins,
+            where each account owns its own address and every alias
+            that delivers to it.
           - Declared without suboptions for the same reason as spam
             above - listing them would make validation reject every
             other key the users role itself requires.

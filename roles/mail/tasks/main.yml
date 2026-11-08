@@ -81,6 +81,15 @@
     mode: "0640"
   notify:
     - Compile virtual mailbox recipients
+- name: Configure sender login ownership
+  ansible.builtin.template:
+    src: templates/postfix/sender_logins.j2
+    dest: /etc/sender_logins
+    owner: root
+    group: postfix
+    mode: "0640"
+  notify:
+    - Compile sender login ownership
 # Handlers normally flush at the end of the play, but the two tasks
 # below have to see the .db files the compilers produce, so they are
 # forced to run here instead.
@@ -107,6 +116,7 @@
     - /etc/aliases.db
     - /etc/valiases.db
     - /etc/vmailbox.db
+    - /etc/sender_logins.db
 # MTA-STS, served by the nginx the http role runs - the same arrangement
 # as the RSpamd UI in roles/spam. The certificate has to cover
 # mta-sts.<domain> already (http.letsencrypt.subdomains), or senders

@@ -1,6 +1,6 @@
 # Order matters here, and not for cosmetic reasons: Ansible runs
 # handlers in the order they are *defined*, not the order they were
-# notified. The three map compilers therefore come first, so that the
+# notified. The map compilers therefore come first, so that the
 # .db files Postfix reads exist before anything starts or reloads it.
 #
 # With the restart/reload pair first - as this file had them until
@@ -27,6 +27,11 @@
     - Reload postfix
 - name: Compile virtual mailbox recipients
   ansible.builtin.command: postmap /etc/vmailbox
+  changed_when: true
+  notify:
+    - Reload postfix
+- name: Compile sender login ownership
+  ansible.builtin.command: postmap /etc/sender_logins
   changed_when: true
   notify:
     - Reload postfix

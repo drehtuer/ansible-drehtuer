@@ -1,0 +1,61 @@
+{#
+  Which SASL login may use which envelope sender, for
+  smtpd_sender_login_maps in main.cf. Before this map existed,
+  `permit_sasl_authenticated` came first in smtpd_sender_restrictions,
+  so any logged-in account could send as any address at all - and
+  since RSpamd signs authenticated mail for every served domain, a
+  stolen password produced correctly DKIM-signed mail from any address
+  here. With `reject_authenticated_sender_login_mismatch` now ahead of
+  that permit, an authenticated sender address that is missing from
+  this map, or owned by another login, is refused with `553 5.7.1`.
+  That includes every address outside the served domains.
+
+  Ownership, for each served domain:
+
+    - <account>@<domain> belongs to the account. Logins are bare names,
+      because Dovecot's `auth_username_format = %n` drops any domain the
+      client sends and hands Postfix the result. That is the
+      sasl_username Postfix logs, and the only form this map needs.
+
+    - <alias>@<domain> belongs to every account the alias delivers to,
+      following alias chains to the end: `postmaster -> root -> <user>`
+      gives postmaster@ to <user>. That matches valiases.j2, which
+      resolves the same names the same way. Somebody who receives an
+      address's mail may also send as it, and nobody else may.
+
+  An alias that leads to no account (e.g. one that forwards only to
+  root, when root is itself unaliased) gets no line. Nobody can send as
+  it, because nobody receives its mail as a login.
+
+  The chain walk is bounded by the number of aliases, which is the
+  longest chain possible without a cycle; `seen` stops a cycle early.
+#}
+# Envelope sender -> SASL logins allowed to use it
+{% set alias_targets = {} %}
+{% for entry in mail.aliases %}
+{%   set _ = alias_targets.update({entry.alias: entry.forwards}) %}
+{% endfor %}
+{% set accounts = users.users | map(attribute='name') | list %}
+{% set owners = {} %}
+{% for name in (accounts + (alias_targets | list)) | unique %}
+{%   set walk = namespace(frontier=[name], seen=[], found=[]) %}
+{%   for _ in range((alias_targets | length) + 1) %}
+{%     set step = namespace(next=[]) %}
+{%     for n in walk.frontier | unique if n not in walk.seen %}
+{%       set _ = walk.seen.append(n) %}
+{%       if n in accounts %}
+{%         set _ = walk.found.append(n) %}
+{%       endif %}
+{%       set step.next = step.next + alias_targets.get(n, []) %}
+{%     endfor %}
+{%     set walk.frontier = step.next %}
+{%   endfor %}
+{%   if walk.found %}
+{%     set _ = owners.update({name: walk.found | unique | sort}) %}
+{%   endif %}
+{% endfor %}
+{% for d in [domain] + domain_aliases %}
+{%   for name in owners | sort %}
+{{ name }}@{{ d }} {{ owners[name] | join(', ') }}
+{%   endfor %}
+{% endfor %}
