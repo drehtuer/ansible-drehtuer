@@ -29,6 +29,15 @@ argument_specs:
         type: str
         required: true
         description: Fully qualified host name, used as $myhostname.
+      http:
+        type: dict
+        required: true
+        description:
+          - Shared HTTP settings, owned by the http role. The MTA-STS
+            vhost reads `http.port_https` and `http.domains`, serving
+            mta-sts.<domain> for each.
+          - Declared without suboptions, as in roles/spam, so the keys
+            the http role itself requires are not rejected here.
       mail:
         type: dict
         required: true
@@ -49,6 +58,26 @@ argument_specs:
                 elements: str
                 required: true
                 description: Accounts/addresses receiving the mail.
+          mta_sts:
+            type: dict
+            required: true
+            description:
+              - MTA-STS policy served at
+                https://mta-sts.<domain>/.well-known/mta-sts.txt for
+                every served domain, naming mail.<domain> as its MX.
+            options:
+              mode:
+                type: str
+                required: true
+                choices: [testing, enforce, none]
+                description:
+                  - testing reports TLS failures without refusing
+                    delivery, enforce refuses, none withdraws the
+                    policy.
+              max_age:
+                type: int
+                required: true
+                description: Seconds a sender may cache the policy.
           ssl:
             type: dict
             required: true

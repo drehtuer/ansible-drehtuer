@@ -45,3 +45,8 @@
     name: postfix
     state: reloaded
     enabled: true
+- name: Reload nginx
+  ansible.builtin.systemd:
+    name: nginx
+    state: reloaded
+    enabled: true

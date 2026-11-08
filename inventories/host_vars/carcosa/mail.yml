@@ -15,6 +15,22 @@
 # *variable* and joined by reference here rather than by Ansible.
 mail:  # noqa: var-naming[no-role-prefix] - see doc/STATUS.adoc
   aliases: "{{ mail_aliases }}"
+  # MTA-STS policy, served at mta-sts.<domain> for every served domain
+  # (roles/mail/templates/nginx/mta-sts.conf.j2). `testing` makes senders report
+  # TLS failures to the TLS-RPT address without refusing delivery;
+  # `enforce` makes them refuse; `none` withdraws the policy. One day
+  # while testing, so a mistake is forgotten quickly. RFC 8461 suggests
+  # weeks once enforcing.
+  mta_sts:
+    mode: testing
+    max_age: 86400
   ssl:
     cert: /etc/letsencrypt/live/{{ hostname_fqdn }}/fullchain.pem
     key: /etc/letsencrypt/live/{{ hostname_fqdn }}/privkey.pem
+
+# The `id` in the `_mta-sts` TXT records in nsd.yml. Senders re-fetch the
+# policy only when it changes, so it has to change whenever the policy
+# does - deriving it from mail.mta_sts makes that automatic. It changes
+# nothing for the mx lines, which follow `domain` and change with the
+# zone itself.
+mail_mta_sts_id: "{{ (mail.mta_sts | to_json | hash('sha1'))[:20] }}"

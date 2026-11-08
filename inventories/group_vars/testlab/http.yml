@@ -22,6 +22,10 @@ http:
       # agree or the vhost is served with a mismatched certificate.
       - f2b
       - mail
+      # MTA-STS policy, served by roles/mail. Must resolve (a CNAME in
+      # nsd.zones) before it is added here, or certbot's HTTP-01
+      # challenge fails for it and takes the whole certificate along.
+      - mta-sts
       - spam
       - status
       # The Valheim web map vhost, see roles/valheim. The role builds
