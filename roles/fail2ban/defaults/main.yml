@@ -146,7 +146,7 @@ fail2ban:  # noqa: var-naming[no-role-prefix] - see doc/STATUS.adoc
       port: imaps
       filter: dovecot
       backend: auto
-      # Set by roles/imap (dovecot.conf.j2 `log_path`).
+      # Set by roles/imap (dovecot-2.*.conf.j2 `log_path`).
       logpath: /var/log/dovecot.log
     - name: nginx-http-auth
       port: https

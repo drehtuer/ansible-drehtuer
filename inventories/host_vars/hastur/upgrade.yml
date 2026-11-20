@@ -8,6 +8,9 @@
 upgrade:
   target_release: "26.04"
   prompt: lts
+  # Dovecot 2.4 cannot read the 2.3 configuration, see the role default.
+  services_stopped:
+    - dovecot
   async_timeout: 5400
   poll_interval: 30
   reboot_timeout: 1800

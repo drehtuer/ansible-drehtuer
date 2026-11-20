@@ -1,0 +1,220 @@
+{{ ansible_managed | comment }}
+#
+# Dovecot 2.4 - Ubuntu 26.04 and later. dovecot-2.3.conf.j2 beside it
+# is the same configuration for 2.3 (24.04); tasks/main.yml picks one
+# by the version actually installed. 2.4 rejects a 2.3 file outright,
+# starting at line 1, so the two cannot be one template with
+# conditionals: nearly every section changed its syntax, not only its
+# values. The comments explaining *why* each setting is here live in
+# the 2.3 file and are not repeated; this one notes what 2.4 changed.
+
+# Must be the first two settings. The config version selects how the
+# rest of this file is read; the storage version is the oldest
+# Dovecot that has to be able to read the mail files written here.
+# Raising it is one-way - do it only once no 2.3 is left to go back to.
+dovecot_config_version = 2.4.0
+dovecot_storage_version = 2.4.0
+
+!include_try /usr/share/dovecot/protocols.d/*.protocol
+protocols = imap lmtp{{ ' sieve' if imap.managesieve.enabled else '' }}
+listen = *, ::
+
+# Auth. `disable_plaintext_auth = yes` is now `auth_allow_cleartext =
+# no`, and %n is spelled out as a filter on the user variable - one
+# account per local part, whatever domain follows, exactly as in 2.3.
+auth_allow_cleartext = no
+auth_mechanisms = plain login
+auth_username_format = %{user | username}
+# Named now. The name is also the driver, as in the packaged
+# auth-system.conf.ext.
+passdb pam {
+}
+userdb passwd {
+}
+
+# Logging
+log_path = {{ imap.conf.logfile }}
+
+# Mailbox. 2.3's single `mail_location = maildir:<path>` is split into
+# the driver and the path.
+mail_driver = maildir
+mail_path = {{ imap.conf.maildir }}
+mail_privileged_group = mail
+mail_access_groups = mail
+
+# One namespace block rather than 2.3's two: the mailbox definitions
+# that used to be a second `namespace inbox` further down are inside
+# it.
+namespace inbox {
+  type = private
+  inbox = yes
+  hidden = no
+  list = yes
+  subscriptions = yes
+
+  mailbox Drafts {
+    special_use = \Drafts
+  }
+  mailbox Sent {
+    special_use = \Sent
+  }
+  mailbox "Sent Messages" {
+    special_use = \Sent
+  }
+  mailbox Archive {
+    special_use = \Archive
+  }
+  mailbox Spam {
+    special_use = \Junk
+    auto = subscribe
+  }
+  # Moving a message *into* TrainSpam trains it as spam. The script is
+  # attached to the mailbox itself, where 2.3 needed the numbered
+  # imapsieve_mailbox1_* settings to say which mailbox it meant.
+  mailbox TrainSpam {
+    auto = subscribe
+    sieve_script learn-spam {
+      type = before
+      cause = copy
+      path = /etc/dovecot/sieve/learn-spam.sieve
+    }
+  }
+  mailbox Trash {
+    special_use = \Trash
+  }
+}
+
+# Moving one *out* of TrainSpam, to any mailbox, trains it as ham -
+# 2.3's imapsieve_mailbox2_* with `name = *` and `from = TrainSpam`.
+imapsieve_from TrainSpam {
+  sieve_script learn-ham {
+    type = before
+    cause = copy
+    path = /etc/dovecot/sieve/learn-ham.sieve
+  }
+}
+
+# Master
+service imap-login {
+  inet_listener imaps {
+    port = 993
+    ssl = yes
+  }
+}
+
+{% if imap.managesieve.enabled %}
+# ManageSieve. Deliberately one listener: the packaged
+# 20-managesieve.conf, which this file does not include, also opens
+# the long-deprecated port 2000.
+service managesieve-login {
+  inet_listener sieve {
+    port = {{ imap.managesieve.port }}
+  }
+}
+
+{% endif %}
+service lmtp {
+  unix_listener /var/spool/postfix/private/dovecot-lmtp {
+    mode = 0600
+    user = postfix
+    group = postfix
+  }
+}
+
+service auth {
+  unix_listener /var/spool/postfix/private/auth {
+    mode = 0660
+    user = postfix
+    group = postfix
+  }
+}
+
+# `mail_plugins = $mail_plugins x` is a boolean list now, which adds to
+# the inherited set by itself.
+protocol lmtp {
+  postmaster_address = postmaster@{{ domain }}
+  mail_plugins {
+    sieve = yes
+  }
+}
+
+protocol imap {
+  mail_plugins {
+    imap_sieve = yes
+  }
+}
+
+{% if imap.metrics.enabled %}
+# `address` on a listener is `listen` now.
+service stats {
+  inet_listener http {
+    listen = {{ imap.metrics.listen_address }}
+    port = {{ imap.metrics.port }}
+  }
+}
+
+metric auth_success {
+  filter = event=auth_request_finished AND success=yes
+}
+
+metric auth_failure {
+  filter = event=auth_request_finished AND NOT success=yes
+}
+
+metric mail_delivery {
+  filter = event=mail_delivery_finished
+}
+
+# group_by is a named block with an explicit method now, rather than a
+# list of field names.
+metric imap_command {
+  filter = event=imap_command_finished
+  group_by cmd_name {
+    method discrete {
+    }
+  }
+}
+
+{% endif %}
+# SSL. The files are named directly rather than read with `<`. 2.3's
+# `ssl_ca` is gone without a replacement here: the chain is already in
+# fullchain.pem, and `ssl_server_ca_file` is what 2.4 calls the CA used
+# to verify *client* certificates, which this host does not ask for.
+ssl = yes
+ssl_server_cert_file = {{ imap.conf.ssl.cert }}
+ssl_server_key_file = {{ imap.conf.ssl.key }}
+ssl_min_protocol = TLSv1.2
+ssl_cipher_list = HIGH:!aNULL:!MD5:!3DES:!RC4:!DSS:!SHA1:!SHA256:!SHA384:!CAMELLIA128:!CAMELLIA256
+ssl_server_prefer_ciphers = server
+
+# Sieve. There is no `plugin {}` block in 2.4: these are ordinary
+# settings, and each script is a named `sieve_script` with a type.
+#
+# Runs before any user script on every delivery, which is how spam is
+# filed without each account needing a script of its own.
+sieve_script spam-to-folder {
+  type = before
+  path = /etc/dovecot/sieve/spam-to-folder.sieve
+}
+{% if imap.managesieve.enabled %}
+# The user's own storage, which is what ManageSieve reads and writes.
+sieve_script personal {
+  type = personal
+  path = ~/sieve
+  active_path = ~/.dovecot.sieve
+}
+sieve_quota_script_count = {{ imap.managesieve.max_scripts }}
+sieve_max_script_size = {{ imap.managesieve.max_script_size }}
+{% endif %}
+sieve_plugins {
+  sieve_imapsieve = yes
+  sieve_extprograms = yes
+}
+# Global extensions only, where 2.3 had `sieve_extensions =
+# +vnd.dovecot.pipe`: that made the pipe available to every script,
+# including the ones users upload over ManageSieve. Only the scripts
+# this role deploys need it.
+sieve_global_extensions {
+  vnd.dovecot.pipe = yes
+}
+sieve_pipe_bin_dir = /etc/dovecot/sieve-pipe
