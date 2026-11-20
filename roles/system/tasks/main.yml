@@ -52,4 +52,4 @@
     dest: /etc/modprobe.d/disabled-modules.conf
     owner: root
     group: root
-    mode: "0644"
+    mode: "0644"  # NOSONAR - modprobe config is world-readable by design

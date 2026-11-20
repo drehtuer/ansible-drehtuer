@@ -22,7 +22,7 @@ system:  # noqa: var-naming[no-role-prefix] - see doc/STATUS.adoc
   # nginx worker included - that opens an SCTP socket. Blocking it
   # costs nothing and removes the bug from reach. It can stay once
   # the kernel fix ships - an unused protocol is attack surface all
-  # the same - see doc/TODO.adoc.
+  # the same. See the `system` row in doc/STATUS.adoc.
   kernel_modules_disabled:
     - sctp
   locales:
