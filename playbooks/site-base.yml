@@ -16,6 +16,10 @@
   ansible.builtin.import_playbook: system.yml
 - name: Packages
   ansible.builtin.import_playbook: apt.yml
+# Right behind apt: the ESM origins are package sources like any other,
+# so every role installing packages after this one already sees them.
+- name: Ubuntu Pro
+  ansible.builtin.import_playbook: pro.yml
 - name: Accounts
   ansible.builtin.import_playbook: users.yml
 - name: SSH

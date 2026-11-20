@@ -1,0 +1,26 @@
+argument_specs:
+  main:
+    short_description: Attach the host to Ubuntu Pro
+    description:
+      - Attaches the host to Ubuntu Pro with the configured token and
+        enables the listed services, so that security fixes published
+        only through ESM reach it. A no-op without a token.
+    options:
+      pro:
+        type: dict
+        required: true
+        description: Ubuntu Pro settings.
+        options:
+          services:
+            type: list
+            elements: str
+            required: true
+            description:
+              - Pro services that must be enabled, e.g. esm-apps and
+                esm-infra. Services not listed are left as they are.
+      pro_token:
+        type: str
+        required: false
+        default: ""
+        description:
+          - The subscription's attach token. Empty skips the role.

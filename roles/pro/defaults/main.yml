@@ -1,0 +1,21 @@
+pro:  # noqa: var-naming[no-role-prefix] - see doc/STATUS.adoc
+  # The Pro services to have enabled. esm-apps is the reason this role
+  # exists: Canonical publishes security fixes for packages from
+  # universe - NSD, ImageMagick among them - only there. esm-infra is
+  # the same for main once standard support ends. Both are origins the
+  # packaged 50unattended-upgrades already lists, so their fixes
+  # install unattended like any other.
+  #
+  # Deliberately not livepatch, which `pro attach` would enable by
+  # default: it patches the running kernel in place, and this host
+  # already reboots for kernel updates through roles/apt. Two
+  # mechanisms deciding which kernel code runs is one too many.
+  services:
+    - esm-apps
+    - esm-infra
+
+# Empty by default, which makes the role a no-op. The real token is
+# vaulted in inventories/group_vars/production/pro.yml, so the lab never
+# attaches - a personal subscription covers five machines, and a guest
+# reset several times a day would use them up.
+pro_token: ""

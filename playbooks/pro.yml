@@ -1,0 +1,15 @@
+# Attaches the host to Ubuntu Pro. A no-op unless pro_token is set,
+# which only group_vars/production does.
+- name: Pro role
+  hosts: all
+  roles:
+    - role: pro
+      tags:
+        - pro
+    # Runs after the role above, so a component that failed to
+    # deploy is never recorded as deployed.
+    - role: deploy_stamp
+      vars:
+        deploy_stamp_component: pro
+      tags:
+        - pro

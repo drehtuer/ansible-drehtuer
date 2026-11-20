@@ -1,0 +1,63 @@
+- name: Attach to Ubuntu Pro
+  when: pro_token | length > 0
+  block:
+    - name: Install the Pro client
+      ansible.builtin.apt:
+        install_recommends: false
+        name: ubuntu-pro-client
+
+    - name: Read the Pro status
+      # Read even in check mode, so a drift check knows whether the
+      # host is attached rather than assuming it is not.
+      ansible.builtin.command:
+        cmd: pro status --format json
+      register: pro_status
+      changed_when: false
+      check_mode: false
+
+    - name: Note what the Pro status says
+      ansible.builtin.set_fact:
+        pro_attached: "{{ (pro_status.stdout | from_json).attached }}"
+        # An unattached host lists its services without a `status` at
+        # all, so the filter has to allow for the key being missing.
+        pro_enabled: >-
+          {{ (pro_status.stdout | from_json).services
+             | selectattr('status', 'defined')
+             | selectattr('status', 'equalto', 'enabled')
+             | map(attribute='name') | list }}
+
+    - name: Attach with only the listed services
+      # Through an attach config rather than `pro attach <token>`, so
+      # the token is never on a command line where `ps` would show it,
+      # and so that `enable_services` replaces the default set - which
+      # would otherwise include livepatch (see the role defaults).
+      when: not pro_attached
+      block:
+        - name: Write the attach config
+          ansible.builtin.copy:
+            content: "{{ {'token': pro_token,
+                          'enable_services': pro.services} | to_nice_yaml }}"
+            dest: /root/pro-attach.yml
+            owner: root
+            group: root
+            mode: "0600"
+          no_log: true
+
+        - name: Attach
+          ansible.builtin.command:
+            cmd: pro attach --attach-config /root/pro-attach.yml
+          changed_when: true
+          no_log: true
+      always:
+        - name: Remove the attach config
+          ansible.builtin.file:
+            path: /root/pro-attach.yml
+            state: absent
+
+    - name: Enable the listed services that are not enabled yet
+      # Only on an already attached host: attaching just enabled them.
+      ansible.builtin.command:
+        cmd: pro enable {{ item }} --assume-yes
+      loop: "{{ pro.services | difference(pro_enabled) }}"
+      when: pro_attached
+      changed_when: true

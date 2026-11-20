@@ -1,0 +1,8 @@
+# Mirrors roles/pro/defaults/main.yml, because an inventory dict
+# REPLACES the role default rather than merging into it.
+pro:
+  services:
+    - esm-apps
+    - esm-infra
+# Not a real token - set so the static test covers the attach path.
+pro_token: test-pro-token
