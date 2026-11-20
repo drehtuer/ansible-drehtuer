@@ -18,12 +18,17 @@ mail:  # noqa: var-naming[no-role-prefix] - see doc/STATUS.adoc
   # MTA-STS policy, served at mta-sts.<domain> for every served domain
   # (roles/mail/templates/nginx/mta-sts.conf.j2). `testing` makes senders report
   # TLS failures to the TLS-RPT address without refusing delivery;
-  # `enforce` makes them refuse; `none` withdraws the policy. One day
-  # while testing, so a mistake is forgotten quickly. RFC 8461 suggests
-  # weeks once enforcing.
+  # `enforce` makes them refuse; `none` withdraws the policy.
+  #
+  # Enforcing since 2026-11-20, after twelve days in `testing` whose
+  # TLS-RPT reports showed no failures. A week is the shortest max_age
+  # RFC 8461 recommends for an enforced policy; it is how long a sender
+  # keeps the policy cached, so it is also how long a withdrawal takes
+  # to reach one that already has it. Back to `testing` - not `none` -
+  # is the way out if a report ever shows a failure.
   mta_sts:
-    mode: testing
-    max_age: 86400
+    mode: enforce
+    max_age: 604800
   ssl:
     cert: /etc/letsencrypt/live/{{ hostname_fqdn }}/fullchain.pem
     key: /etc/letsencrypt/live/{{ hostname_fqdn }}/privkey.pem
