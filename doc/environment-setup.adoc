@@ -6,7 +6,7 @@ include::.attributes-page.adoc[]
 :url-vscode: https://code.visualstudio.com[Visual Studio Code^]
 :url-doc-testing: TESTING.adoc[Testing]
 
-The development environment is a single link:{url-docker} container, built from `.devcontainer/Dockerfile` on an `ubuntu:26.04` base — note that this is deliberately *ahead* of the 24.04 the target host runs, since it holds tooling rather than services.
+The development environment is a single link:{url-docker} container, built from `.devcontainer/Dockerfile` on an `ubuntu:26.04` base — the same release the target host runs since 2026-11-20. Before that it was deliberately *ahead* of the host's 24.04, since it holds tooling rather than services.
 All configuration for it is kept in the directory `.devcontainer`; there is no compose file, and the containers `molecule` tests in come from the host's own daemon over the socket described below.
 
 == Host Setup

@@ -354,6 +354,7 @@
   loop: "{{ monitoring_collectors_wanted }}"
   loop_control:
     label: "{{ item.name }}"
+  register: monitoring_collector_scripts
 
 - name: Deploy the textfile collector units
   ansible.builtin.template:
@@ -383,17 +384,28 @@
   loop_control:
     label: "{{ item.name }}"
 
-- name: Run the collectors once, so the first scrape has something to read
+- name: Run the collectors whose output is missing or out of date
   # Without this the metrics appear only after the timer's first
   # interval, which reads as "the collector does not work" to anyone
   # checking straight after a deploy.
+  #
+  # Also after the script itself changed, not only when there is no
+  # output yet: until the timer next fired, the old script's result
+  # went on being served as current. That is how carcosa reported no
+  # security notices for the first hour on 26.04 - the updates
+  # collector had last run against the 24.04 feed, and the 26.04
+  # packages are all newer than its fixed versions.
   ansible.builtin.command:
-    cmd: /usr/local/bin/prometheus-textfile-{{ item.name }}
+    cmd: /usr/local/bin/prometheus-textfile-{{ item.item.name }}
+    # `creates` is checked on the host: an existing output file skips
+    # the run, unless the script changed, which drops the condition.
     creates: >-
-      {{ monitoring.node_exporter.textfile_dir }}/{{ item.name }}.prom
-  loop: "{{ monitoring_collectors_wanted }}"
+      {{ omit if item.changed else
+         monitoring.node_exporter.textfile_dir ~ '/'
+         ~ item.item.name ~ '.prom' }}
+  loop: "{{ monitoring_collector_scripts.results }}"
   loop_control:
-    label: "{{ item.name }}"
+    label: "{{ item.item.name }}"
 
 - name: Deploy the alert rules
   # Before the Prometheus configuration below, and that order is

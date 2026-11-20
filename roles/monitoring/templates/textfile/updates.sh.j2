@@ -33,6 +33,10 @@ LAST_DOWNLOAD="${CACHE}/last-download"
 
 mkdir -p "${CACHE}"
 
+# Feeds for any other release - the one this host ran before a release
+# upgrade - are 50 MB that nothing will read again.
+find "${CACHE}" -maxdepth 1 -name 'com.ubuntu.*' ! -name "${FEED_NAME}*" -delete
+
 # One run at a time. Runs share the files in the cache, and two at
 # once corrupt each other's evaluation - which is what happened on the
 # first deploy to carcosa, when enabling the timer started a run while
