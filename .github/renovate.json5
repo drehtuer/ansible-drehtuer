@@ -131,6 +131,18 @@
       allowedVersions: '/^\\d[02468]\\.04$/',
     },
     {
+      // CI's Python follows the Dev Container's - python3.14, from the
+      // Ubuntu 26.04 base - rather than the newest release. Ahead of it,
+      // CI would test on a Python nobody develops on, and a fresh
+      // release is usually ahead of the wheels: CI installs with
+      // `--only-binary :all:`, and Python 3.15 broke every molecule job
+      // because PyYAML had no wheel for it yet (#179). Raise this
+      // together with the Dockerfile's base image.
+      matchManagers: ['github-actions'],
+      matchDepNames: ['python'],
+      allowedVersions: '<3.15',
+    },
+    {
       // One CLI, one generator; they must match, and the Dockerfile
       // pins both with a single ARG.
       groupName: 'Antora',
