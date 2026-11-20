@@ -35,8 +35,17 @@
       block:
         - name: Write the attach config
           ansible.builtin.copy:
-            content: "{{ {'token': pro_token,
-                          'enable_services': pro.services} | to_nice_yaml }}"
+            # Written out as text rather than with to_nice_yaml: that
+            # filter dumps a vaulted value *still encrypted*, tagged
+            # `!vault`, which the Pro client cannot parse ("could not
+            # determine a constructor for the tag '!vault'") - the
+            # first attach on carcosa failed exactly so. Interpolating
+            # the variable is what decrypts it. The static test cannot
+            # see this: its token is plain, because CI has no vault
+            # password.
+            content: |
+              token: {{ pro_token | to_json }}
+              enable_services: {{ pro.services | to_json }}
             dest: /root/pro-attach.yml
             owner: root
             group: root
