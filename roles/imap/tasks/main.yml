@@ -109,13 +109,33 @@
     mode: '0644'  # NOSONAR
   notify:
     - Reload dovecot
+- name: Read the installed dovecot version
+  # 2.4 (Ubuntu 26.04) rejects a 2.3 configuration from its first line,
+  # and 2.3 cannot read a 2.4 one, so which template is right depends on
+  # what is installed - not on the release this host is meant to run.
+  # During a release upgrade the two disagree for a while, and the
+  # package is the one that has to start. Read even in check mode, so a
+  # drift check compares against the right template.
+  ansible.builtin.command:
+    cmd: dovecot --version
+  register: imap_dovecot_version
+  changed_when: false
+  check_mode: false
+
 - name: Configure dovecot
   ansible.builtin.template:
-    src: templates/dovecot.conf.j2
+    src: >-
+      templates/dovecot-{{ '2.4' if (imap_dovecot_version.stdout.split()[0]
+      is version('2.4', '>=')) else '2.3' }}.conf.j2
     dest: /etc/dovecot/dovecot.conf
     owner: root
     group: root
     mode: '0644'  # NOSONAR
+    # A reload keeps the old configuration running when the new one is
+    # broken, so without this a bad file would only show at the next
+    # restart - or, as in the first 26.04 rehearsal, halfway through a
+    # release upgrade.
+    validate: doveconf -n -c %s
   notify:
     - Reload dovecot
 - name: Compile sieve scripts

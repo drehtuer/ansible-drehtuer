@@ -39,6 +39,32 @@
         upgrade: full
         autoremove: true
 
+    # do-release-upgrade refuses to start while a reboot is pending
+    # ("You have not rebooted after updating a package which requires a
+    # reboot"), and the full upgrade above is what usually makes one
+    # pending - it installs the kernel. Found in the first real
+    # rehearsal on hastur, 2026-11-20. Rebooting only when asked keeps
+    # the run short on a host that is already current.
+    - name: Check whether the full upgrade asked for a reboot
+      ansible.builtin.stat:
+        path: /var/run/reboot-required
+      register: upgrade_reboot_required
+
+    - name: Reboot before switching release
+      ansible.builtin.reboot:
+        reboot_timeout: "{{ upgrade.reboot_timeout }}"
+      when: upgrade_reboot_required.stat.exists
+
+    - name: Stop the services whose configuration the new release rejects
+      # Disabled as well as stopped: a package postinst restarts any
+      # service that is enabled, whether it was running or not. See
+      # upgrade.services_stopped in the role defaults.
+      ansible.builtin.systemd_service:
+        name: "{{ item }}"
+        state: stopped
+        enabled: false
+      loop: "{{ upgrade.services_stopped }}"
+
     - name: Install the release upgrade tool
       ansible.builtin.apt:
         name: ubuntu-release-upgrader-core
@@ -80,3 +106,14 @@
           After upgrade and reboot, release is still
           {{ ansible_facts['distribution_version'] }}, expected at least
           {{ upgrade.target_release }}.
+
+    - name: Name the services that are still stopped
+      # Nothing has started them again yet, and nothing should until
+      # their roles have written the new release's configuration.
+      ansible.builtin.debug:
+        msg: >-
+          Still stopped and disabled:
+          {{ upgrade.services_stopped | join(', ') }}.
+          Run their playbooks now to configure them for
+          {{ upgrade.target_release }} and start them again.
+      when: upgrade.services_stopped | length > 0
