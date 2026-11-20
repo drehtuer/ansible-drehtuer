@@ -45,7 +45,7 @@ The `testlab` group is a deliberate exception: its `users.yml`, `http.yml` and `
 | Role | Implementation notes
 
 | `system`
-| Hostname, `/etc/hosts` and locales.
+| Hostname, `/etc/hosts`, locales and blocked kernel modules.
 
 The hosts file is what the machine uses to answer questions about itself before DNS is consulted, so a stale entry misnames it locally however correct DNS is. Hetzner's install image leaves `Ubuntu-2404-noble-amd64-base` mapped to both public addresses, and nothing else rewrites the file, so it survived every later rename - `getent hosts 88.198.12.17` returned the image name until this role took the file over. It was also the reason an audit of what the DNS published briefly looked like an OS leak: the host's default resolver is systemd-resolved, which synthesises PTR answers out of `/etc/hosts`, so a local lookup disagreed with what the public nameservers actually served.
 
@@ -54,6 +54,8 @@ Each address is written only when the host really holds it, checked against `ans
 The fully qualified name comes first on each line, because `hostname -f` and most software wanting an FQDN take the first name after the address.
 
 **`system.extra_names` adds this host's own served names to those lines, and is empty on `carcosa`.** Public DNS resolves every name that host serves, so it has no need of them. It exists for a host the world's DNS knows nothing about: the lab serves `cloud.lab.lan` and a dozen more on domains that resolve nowhere, so anything on the guest calling its own public name cannot resolve it - and Nextcloud does exactly that, since `occ notify_push:setup` fetches `https://cloud.<domain>/push/test/cookie` from the host itself and fails the whole of `playbooks/cloud.yml` when the name does not resolve. The lab's value is derived from the same two facts `http.domains` is built from, so a domain or subdomain added there needs no second edit.
+
+**`system.kernel_modules_disabled` keeps `sctp` from ever loading.** nginx2root (announced 2026-11-18) is five nginx CVEs plus a separate kernel bug: a local privilege escalation in the SCTP code, which turns code execution as the nginx worker into root. Ubuntu fixed the nginx half in USN-9159-1 (`1.24.0-2ubuntu7.20`), which unattended-upgrades installed on `carcosa` on 2026-11-20 and restarted nginx onto; the kernel half had no fix yet. Nothing here speaks SCTP, but the module was not blocked either, and the kernel loads it on demand for any process that opens an SCTP socket. `/etc/modprobe.d/disabled-modules.conf` gives each listed module a `blacklist` line and an `install <module> /bin/false` line - the `blacklist` alone would only stop loading by alias, not the on-demand load or an explicit `modprobe`. It applies to the next load attempt, so a module that is already loaded stays until the next reboot; `sctp` was not loaded on `carcosa`. `modprobe -n -v sctp` on the host prints `install /bin/false` once it is in effect.
 
 | `apt`
 | Updates apt cache, installs a shared base package set (editors, shells, monitoring CLIs, unattended-upgrades, etc.). Configures unattended-upgrades through drop-ins beside the packaged `50unattended-upgrades`, never by editing it: when to run (`20auto-upgrades`), which extra origins to take (`51-unattended-origins`) and when to reboot (`52-unattended-reboot`).

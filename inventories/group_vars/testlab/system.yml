@@ -2,6 +2,9 @@
 # REPLACES the role default rather than merging into it. See
 # doc/STATUS.adoc.
 system:
+  # Same as the role default - see there for why.
+  kernel_modules_disabled:
+    - sctp
   locales:
     locale: en_US.UTF-8
     locale_time: en_GB.UTF-8
