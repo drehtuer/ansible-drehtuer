@@ -1,0 +1,145 @@
+// Renovate: watches every version pinned in this repository and opens
+// a pull request when upstream has a newer one. It informs; it does
+// not deploy. Nothing reaches a host until the PR is merged *and* the
+// playbook is run, so a bump goes through the same review, CI and
+// `invoke run-playbook` as any other change.
+//
+// The Dependency Dashboard issue it keeps open is the overview: every
+// pin it found, which are outdated, and which PRs are open.
+//
+// What it reads, and how:
+//
+//   * Container images in role defaults and inventories - the
+//     `image:` / `tag:` / `digest:` triple. Tag and digest are bumped
+//     together, so a pin stays reproducible.
+//   * Any other version carries a `# renovate: datasource=... depName=...`
+//     marker on the line above it: Nextcloud and Prometheus in YAML,
+//     the tool versions in .devcontainer/Dockerfile.
+//   * The same tools pinned again inside the CI workflows, matched by
+//     their install command. A PR is per dependency rather than per
+//     file, so the Dev Container and CI copies ("keep in sync" in both)
+//     move in one PR.
+//   * GitHub Actions and the Dockerfile's base image, natively.
+//
+// Deliberately NOT watched: the Valheim mods (`valheim_mods`). Thunderstore
+// is not a source Renovate knows, and `invoke valheim-mods` already
+// checks those pins - they carry no marker, so nothing here matches them.
+{
+  $schema: 'https://docs.renovatebot.com/renovate-schema.json',
+  extends: ['config:recommended'],
+  timezone: 'Europe/Berlin',
+  labels: ['dependencies'],
+  // Flag a pin that has a known vulnerability (OSV database), and open
+  // its PR outside any schedule.
+  osvVulnerabilityAlerts: true,
+  // config:recommended ignores **/test/** and **/tests/**, which would
+  // skip inventories/test/ - a copy of the pins that has to move with
+  // the real ones, or the static tests check a stale version.
+  ignorePaths: ['**/node_modules/**'],
+
+  customManagers: [
+    {
+      description: 'Container images pinned as image + tag + digest',
+      customType: 'regex',
+      managerFilePatterns: [
+        '/^roles/[^/]+/defaults/main\\.yml$/',
+        '/^inventories/.+\\.yml$/',
+      ],
+      // Comment lines may sit between tag and digest
+      // (inventories/test/group_vars/all/monitoring.yml).
+      matchStrings: [
+        'image: (?<depName>\\S+)\\n\\s+tag: "?(?<currentValue>[^"\\s]+)"?\\n(?:\\s*#.*\\n)*\\s+digest: >-\\n\\s+(?<currentDigest>sha256:[a-f0-9]{64})',
+      ],
+      datasourceTemplate: 'docker',
+    },
+    {
+      description: 'YAML versions marked with a renovate comment',
+      customType: 'regex',
+      managerFilePatterns: [
+        '/^roles/[^/]+/defaults/main\\.yml$/',
+        '/^inventories/.+\\.yml$/',
+      ],
+      matchStrings: [
+        '#\\s*renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)\\n\\s+version: "?(?<currentValue>[^"\\s]+)"?',
+      ],
+    },
+    {
+      description: 'Dockerfile ARGs marked with a renovate comment',
+      customType: 'regex',
+      managerFilePatterns: ['/(^|/)Dockerfile$/'],
+      matchStrings: [
+        '#\\s*renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)\\nARG\\s+\\w+=(?<currentValue>\\S+)',
+      ],
+    },
+    {
+      description: 'pip pins in workflow run steps (name==version)',
+      customType: 'regex',
+      managerFilePatterns: ['/^\\.github/workflows/.+\\.yml$/'],
+      matchStrings: [
+        '[\'"\\s](?<depName>[a-z][a-z0-9-]*)(?:\\[[a-z,]+\\])?==(?<currentValue>\\d[\\w.]*)',
+      ],
+      datasourceTemplate: 'pypi',
+    },
+    {
+      description: 'gem pins in workflow run steps (gem install NAME -v VERSION)',
+      customType: 'regex',
+      managerFilePatterns: ['/^\\.github/workflows/.+\\.yml$/'],
+      matchStrings: [
+        'gem install --no-document (?<depName>[a-z][\\w-]*) -v (?<currentValue>\\d[\\w.]*)',
+      ],
+      datasourceTemplate: 'rubygems',
+    },
+    {
+      description: 'npm pins in workflow run steps (@scope/name@version)',
+      customType: 'regex',
+      managerFilePatterns: ['/^\\.github/workflows/.+\\.yml$/'],
+      matchStrings: [
+        '\\s(?<depName>@[a-z0-9-]+/[a-z0-9-]+)@(?<currentValue>\\d+\\.\\d+\\.\\d+)',
+      ],
+      datasourceTemplate: 'npm',
+    },
+  ],
+
+  packageRules: [
+    {
+      // GitHub tags these with a leading v; the pins have none.
+      matchDatasources: ['github-releases'],
+      matchPackageNames: ['nextcloud/server', 'prometheus/prometheus'],
+      extractVersion: '^v(?<version>.+)$',
+    },
+    {
+      // The role refuses to skip a major version (`occ upgrade` goes
+      // one at a time), so offer each major as its own PR.
+      matchPackageNames: ['nextcloud/server'],
+      separateMultipleMajor: true,
+      prBodyNotes: [
+        '**Update `checksum` by hand before merging**, in every file this PR touches - Renovate cannot compute it. Take it from `https://download.nextcloud.com/server/releases/nextcloud-{{{newVersion}}}.tar.bz2.sha256`. Without it the deploy fails at the download, before anything on the host is changed.',
+        'Check every enabled app has a release for the new version first: the 35 upgrade disabled KeeWeb. See `doc/TODO.adoc`.',
+      ],
+    },
+    {
+      matchPackageNames: ['prometheus/prometheus'],
+      prBodyNotes: [
+        "**Update `checksums.amd64` and `checksums.arm64` by hand before merging**, in every file this PR touches - Renovate cannot compute them. Take them from upstream's `sha256sums.txt` for v{{{newVersion}}}. Without them the deploy fails at the download.",
+      ],
+    },
+    {
+      // Only LTS releases for the Dev Container base: interim releases
+      // are supported for nine months.
+      matchDatasources: ['docker'],
+      matchPackageNames: ['ubuntu'],
+      allowedVersions: '/^\\d[02468]\\.04$/',
+    },
+    {
+      // One CLI, one generator; they must match, and the Dockerfile
+      // pins both with a single ARG.
+      groupName: 'Antora',
+      matchPackageNames: ['@antora/cli', '@antora/site-generator'],
+    },
+    {
+      // Released together and pinned together.
+      groupName: 'molecule',
+      matchPackageNames: ['molecule', 'molecule-plugins'],
+    },
+  ],
+}

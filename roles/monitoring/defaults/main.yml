@@ -45,6 +45,7 @@ monitoring:  # noqa: var-naming[no-role-prefix] - see doc/STATUS.adoc
     # tasks/main.yml - and 24.04 is four minor releases behind.
     # Checksums are the sha256 from upstream's own
     # sha256sums.txt, one per build.
+    # renovate: datasource=github-releases depName=prometheus/prometheus
     version: "3.14.0"
     checksums:
       amd64: f665c6da19eb7ba399c915d30c7d9793c9b417bf8a749b504bc470678631478d

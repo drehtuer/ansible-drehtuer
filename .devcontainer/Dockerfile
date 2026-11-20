@@ -186,7 +186,9 @@ RUN   \
 # dependency of the (now unused) ansible-lint
 # package, and ansible-lint itself requires a newer
 # yamllint than Ubuntu 26.04 packages.
+# renovate: datasource=pypi depName=ansible-lint
 ARG   ANSIBLE_LINT_VERSION=26.8.0
+# renovate: datasource=pypi depName=yamllint
 ARG   YAMLLINT_VERSION=1.38.0
 
 RUN   \
@@ -215,6 +217,7 @@ RUN   \
 # Keep in sync with the version installed by
 # .github/workflows/lint.yml, so CI and the
 # Dev Container lint with the same ruff.
+# renovate: datasource=pypi depName=ruff
 ARG   RUFF_VERSION=0.16.3
 
 RUN   \
@@ -242,6 +245,7 @@ RUN   \
 # AsciiDoc, which is what lets Antora render them -
 # it reads AsciiDoc and nothing else. Ubuntu does not
 # package it, so it is a pinned gem.
+# renovate: datasource=rubygems depName=kramdown-asciidoc
 ARG   KRAMDOC_VERSION=2.1.1
 
 RUN   gem install \
@@ -258,6 +262,7 @@ RUN   gem install \
 # The CLI and the site generator are separate
 # packages and must match; installing one alone gives
 # "generator not found".
+# renovate: datasource=npm depName=@antora/cli
 ARG   ANTORA_VERSION=3.1.15
 
 RUN   npm install \
@@ -271,7 +276,9 @@ RUN   npm install \
 # Keep in sync with the versions installed by
 # .github/workflows/test.yml, so CI and the Dev
 # Container test with the same molecule.
+# renovate: datasource=pypi depName=molecule
 ARG   MOLECULE_VERSION=26.8.0
+# renovate: datasource=pypi depName=molecule-plugins
 ARG   MOLECULE_PLUGINS_VERSION=26.7.15
 
 RUN   \
@@ -291,6 +298,7 @@ RUN   \
 # terminal and not just through the VS Code extension
 # listed in devcontainer.json. Pinned like every other
 # tool here, and bumped by editing this line.
+# renovate: datasource=npm depName=@anthropic-ai/claude-code
 ARG   CLAUDE_CODE_VERSION=2.1.228
 
 RUN   \
