@@ -32,6 +32,17 @@ INPUTS="${CACHE}/inputs"
 LAST_DOWNLOAD="${CACHE}/last-download"
 
 mkdir -p "${CACHE}"
+
+# One run at a time. Runs share the files in the cache, and two at
+# once corrupt each other's evaluation - which is what happened on the
+# first deploy to carcosa, when enabling the timer started a run while
+# the role's own first run was still going, and one parsed a
+# half-written results file. A run that cannot get the lock in ten
+# minutes gives up without writing anything; UpdatesCollectorStale is
+# what notices if that keeps happening.
+exec 9> "${CACHE}/lock"
+flock --wait 600 9 || exit 0
+
 TMP="$(mktemp "${OUT}.XXXXXX")"
 trap 'rm -f "$TMP" "${FEED_BZ2}.new" "${FEED}.new" "${NOTICES}.new" "${CACHE}/results.xml"' EXIT
 
