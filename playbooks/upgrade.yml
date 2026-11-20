@@ -8,5 +8,14 @@
   tags:
     - never
     - release-upgrade
+  vars:
+    # Not the interpreter Ansible discovers, which is versioned
+    # (/usr/bin/python3.12 on 24.04): the release upgrade removes it,
+    # and every task after that - starting with polling the upgrade's
+    # own async job - fails with "python3.12: not found". The second
+    # 26.04 rehearsal on hastur stopped exactly there, with the upgrade
+    # itself complete. /usr/bin/python3 is a symlink the new release
+    # keeps, pointing at its own Python.
+    ansible_python_interpreter: /usr/bin/python3
   roles:
     - upgrade

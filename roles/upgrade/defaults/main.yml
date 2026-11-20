@@ -8,6 +8,15 @@ upgrade:  # noqa: var-naming[no-role-prefix] - see doc/STATUS.adoc
   # "lts" only offers upgrades to the next LTS release, skipping
   # interim (non-LTS) releases in between.
   prompt: lts
+  # Services to stop and disable for the release upgrade, because the
+  # configuration this repo gives them is only valid on one side of it.
+  # A package's postinst restarts an *enabled* service, and if that
+  # fails the postinst fails, and do-release-upgrade aborts halfway -
+  # which is what Dovecot 2.4 did to the 2.3 configuration in the
+  # first 26.04 rehearsal. A disabled, stopped service is skipped by
+  # the postinst. The role does not start them again: their own roles
+  # do, once they have written the configuration for the new release.
+  services_stopped: []
   async_timeout: 5400
   poll_interval: 30
   reboot_timeout: 1800
