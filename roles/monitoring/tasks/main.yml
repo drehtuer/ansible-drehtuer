@@ -622,10 +622,20 @@
         # the failure is a missing page rather than an error. Same stance
         # as promtool on the alert rules.
         validate: python3 -m json.tool %s /dev/null
-      loop:
-        - host
-        - security
-        - uptime
+      loop: >-
+        {{ ['host', 'security', 'uptime']
+           + (['updates'] if monitoring.textfile.updates.enabled else []) }}
+      notify:
+        - Restart grafana
+
+    - name: Remove the updates dashboard on a host with no updates collector
+      # Same reasoning as the rule files: the provider loads whatever is
+      # in the directory, so a dashboard left behind would show empty
+      # panels over metrics that no longer arrive.
+      ansible.builtin.file:
+        path: "{{ monitoring.grafana.compose_dir }}/dashboards/updates.json"
+        state: absent
+      when: not monitoring.textfile.updates.enabled
       notify:
         - Restart grafana
 
