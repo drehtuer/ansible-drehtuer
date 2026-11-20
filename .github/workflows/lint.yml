@@ -1,8 +1,8 @@
 # Runs the same linters as `invoke lint`, on the committed state,
-# plus the AsciiDoc structural check - which has no `invoke lint`
-# counterpart yet, so this workflow is currently the only thing
-# running it. See .yamllint, .ansible-lint and pyproject.toml for the
-# rules; the docs job carries its own reasoning inline.
+# including the AsciiDoc structural check (`invoke lint-docs`), which
+# the pre-commit hook does not run. See .yamllint, .ansible-lint and
+# pyproject.toml for the rules; the docs job carries its own
+# reasoning inline.
 name: Lint
 
 "on":
