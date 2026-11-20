@@ -1,0 +1,13 @@
+{{ ansible_managed | comment }}
+#
+# Kernel modules this host never loads. `blacklist` alone only stops
+# loading by alias - the on-demand autoload a socket() call triggers
+# still goes through, as does an explicit `modprobe`. `install ...
+# /bin/false` replaces the load itself, so every path fails.
+#
+# Takes effect for the next load attempt. A module already loaded
+# stays loaded until it is removed or the host reboots.
+{% for module in system.kernel_modules_disabled %}
+blacklist {{ module }}
+install {{ module }} /bin/false
+{% endfor %}

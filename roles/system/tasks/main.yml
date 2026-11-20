@@ -3,6 +3,9 @@
     install_recommends: false
     name:
       - hostname
+      # Owns /etc/modprobe.d and modprobe itself. Always present on a
+      # real host, missing from minimal container images.
+      - kmod
       - locales
 - name: Set hostname
   # Tagged so molecule can skip it - `sethostname()` fails even in a
@@ -41,3 +44,12 @@
   notify:
     - Set default locales
     - Set LANG
+- name: Block disabled kernel modules
+  # No handler: modprobe reads /etc/modprobe.d/ on every invocation,
+  # and none of these modules belongs in the initramfs.
+  ansible.builtin.template:
+    src: templates/disabled-modules.conf.j2
+    dest: /etc/modprobe.d/disabled-modules.conf
+    owner: root
+    group: root
+    mode: "0644"  # NOSONAR - modprobe config is world-readable by design

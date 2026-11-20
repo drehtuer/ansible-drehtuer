@@ -13,6 +13,18 @@ system:  # noqa: var-naming[no-role-prefix] - see doc/STATUS.adoc
   # https://cloud.<domain>/push/test/cookie from the host itself - and
   # it is fatal to `playbooks/cloud.yml` when the name does not resolve.
   extra_names: []
+  # Kernel modules that may never be loaded, not even on demand.
+  #
+  # sctp: the root step of the nginx2root chain is a local privilege
+  # escalation in the kernel's SCTP code (announced 2026-11-18, no
+  # Ubuntu kernel fix yet). Nothing on these hosts speaks SCTP, but
+  # the kernel loads the module automatically for any process - the
+  # nginx worker included - that opens an SCTP socket. Blocking it
+  # costs nothing and removes the bug from reach. It can stay once
+  # the kernel fix ships - an unused protocol is attack surface all
+  # the same. See the `system` row in doc/STATUS.adoc.
+  kernel_modules_disabled:
+    - sctp
   locales:
     # Normalised to the UTF-8 spelling so these match the names in
     # locale_gen below.

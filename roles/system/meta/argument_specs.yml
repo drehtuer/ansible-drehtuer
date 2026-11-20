@@ -1,9 +1,10 @@
 argument_specs:
   main:
-    short_description: Set hostname, hosts file and system locales
+    short_description: Set hostname, hosts, locales and blocked kernel modules
     description:
-      - Sets the system hostname, writes /etc/hosts, and generates
-        the configured locales.
+      - Sets the system hostname, writes /etc/hosts, generates the
+        configured locales, and blocks the listed kernel modules
+        from loading.
     options:
       hostname_fqdn:
         type: str
@@ -44,6 +45,15 @@ argument_specs:
                 beside the hostname. Empty on a host whose served names
                 are in public DNS; populated on one where they are not,
                 so that the host can resolve the vhosts it serves.
+          kernel_modules_disabled:
+            type: list
+            elements: str
+            required: true
+            description:
+              - Kernel modules that are never loaded, neither
+                explicitly nor on demand. Written to
+                /etc/modprobe.d/ as an `install <module> /bin/false`
+                line each.
           locales:
             type: dict
             required: true

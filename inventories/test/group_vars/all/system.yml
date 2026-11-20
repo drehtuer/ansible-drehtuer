@@ -1,4 +1,7 @@
 system:
+  # Same as the role default - see there for why.
+  kernel_modules_disabled:
+    - sctp
   # Empty here: every served name is in public DNS, so this host has
   # no need to resolve them from its own hosts file. See the role
   # defaults for what this is for.
