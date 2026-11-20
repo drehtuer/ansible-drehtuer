@@ -1,0 +1,416 @@
+{#
+  Updates and security notices dashboard, over the `updates` textfile
+  collector.
+
+  Answers what the alerts in rules/updates.rules.yml only summarise:
+  which fixes are published and not applied, whether a reboot is owed,
+  and whether the collector can still tell. The alerts wait 30h; this
+  shows the same state from the first minute, so a fix that is merely
+  waiting for tonight's run is visible here without being an alert.
+
+  Status colours mean state only - nothing pending is green, something
+  pending is amber or red - and every coloured tile also says what it
+  means in text, so the colour is never the only signal.
+
+  Grafana's legendFormat uses {{label}}, which is Jinja's syntax too,
+  hence the raw blocks. The datasource uid is templated so it cannot
+  drift from the provisioned datasource.
+#}
+{% set ds = '{"type": "prometheus", "uid": "' ~ monitoring.grafana.datasource_uid ~ '"}' %}
+{% macro stat_options() %}
+      "options": {
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value_and_name"
+      },
+{% endmacro %}
+{% macro count_thresholds(colour) %}
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "{{ colour }}", "value": 1}
+            ]
+          }
+{% endmacro %}
+{% macro state_override(ref, ok_text, bad_text) %}
+          {
+            "matcher": {"id": "byFrameRefID", "options": "{{ ref }}"},
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {"text": "{{ ok_text }}", "color": "green", "index": 0},
+                      "1": {"text": "{{ bad_text }}", "color": "orange", "index": 1}
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+{% endmacro %}
+{
+  "uid": "updates-overview",
+  "title": "Updates and security notices",
+  "tags": ["ansible"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": false,
+  "refresh": "5m",
+  "time": {"from": "now-7d", "to": "now"},
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Notices still applying",
+      "description": "Ubuntu Security Notices whose fix is published and not yet installed or running here, split by Canonical's severity. A kernel notice stays here until the host has rebooted into the fixed kernel. SecurityNoticeUnpatched alerts on the same series after 30h.",
+      "datasource": {{ ds }},
+      "gridPos": {"h": 5, "w": 8, "x": 0, "y": 0},
+{{ stat_options() }}
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+{{ count_thresholds('orange') }}
+        },
+        "overrides": [
+          {
+            "matcher": {"id": "byName", "options": "critical or high"},
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "red", "value": 1}
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {{ ds }},
+          "expr": "count(security_notice_affected{severity=~\"critical|high\"}) or vector(0)",
+          "legendFormat": "critical or high",
+          "instant": true,
+          "range": false
+        },
+        {
+          "refId": "B",
+          "datasource": {{ ds }},
+          "expr": "count(security_notice_affected{severity!~\"critical|high\"}) or vector(0)",
+          "legendFormat": "medium and lower",
+          "instant": true,
+          "range": false
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Upgrades pending",
+      "description": "What apt would upgrade right now, each package counted under the most urgent pocket offering it. unattended-upgrades takes -security and -updates, so both normally return to zero after the nightly run. UpgradesNotApplied alerts after 30h.",
+      "datasource": {{ ds }},
+      "gridPos": {"h": 5, "w": 8, "x": 8, "y": 0},
+{{ stat_options() }}
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+{{ count_thresholds('orange') }}
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {{ ds }},
+          "expr": "apt_upgrades_pending",
+          "legendFormat": "{% raw %}{{pocket}}{% endraw %}",
+          "instant": true,
+          "range": false
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Reboot and kernel",
+      "description": "Whether a package has asked for a reboot, and whether the newest installed kernel is the one running. After a kernel update both read pending until the 04:00 automatic reboot. The kernel tile alone being outdated means the host rebooted into the old kernel.",
+      "datasource": {{ ds }},
+      "gridPos": {"h": 5, "w": 8, "x": 16, "y": 0},
+{{ stat_options() }}
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+{{ count_thresholds('orange') }}
+        },
+        "overrides": [
+{{ state_override('A', 'not needed', 'required') }},
+{{ state_override('B', 'current', 'outdated') }}
+        ]
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {{ ds }},
+          "expr": "node_reboot_required",
+          "legendFormat": "reboot",
+          "instant": true,
+          "range": false
+        },
+        {
+          "refId": "B",
+          "datasource": {{ ds }},
+          "expr": "node_kernel_outdated",
+          "legendFormat": "{% raw %}kernel {{running}}{% endraw %}",
+          "instant": true,
+          "range": false
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "table",
+      "title": "Notices still applying",
+      "description": "Every notice behind the counts above, most severe first. The notice links to Ubuntu's page for it, which names the fixed package versions. Notices that stay here while nothing is pending in apt usually have their fix only in Ubuntu Pro (esm-apps) - see doc/TODO.adoc.",
+      "datasource": {{ ds }},
+      "gridPos": {"h": 10, "w": 16, "x": 0, "y": 5},
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {"show": false, "reducer": ["sum"], "fields": ""}
+      },
+      "fieldConfig": {
+        "defaults": {"custom": {"align": "auto", "cellOptions": {"type": "auto"}}},
+        "overrides": [
+          {
+            "matcher": {"id": "byName", "options": "notice"},
+            "properties": [
+              {"id": "custom.width", "value": 130},
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Ubuntu Security Notice",
+                    "url": "https://ubuntu.com/security/notices/${__value.raw}",
+                    "targetBlank": true
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {"id": "byName", "options": "severity"},
+            "properties": [
+              {"id": "custom.width", "value": 110},
+              {"id": "custom.cellOptions", "value": {"type": "color-text"}},
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "critical": {"color": "red", "index": 0},
+                      "high": {"color": "orange", "index": 1},
+                      "medium": {"color": "yellow", "index": 2}
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {"id": "byName", "options": "rank"},
+            "properties": [{"id": "custom.hidden", "value": true}]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {{ ds }},
+          "expr": "(security_notice_affected{severity=\"critical\"} * 4) or (security_notice_affected{severity=\"high\"} * 3) or (security_notice_affected{severity=\"medium\"} * 2) or security_notice_affected",
+          "format": "table",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "transformations": [
+        {
+          "id": "sortBy",
+          "options": {"sort": [{"field": "Value", "desc": true}]}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {"Time": true, "__name__": true, "instance": true, "job": true},
+            "indexByName": {"usn": 0, "severity": 1, "title": 2, "Value": 3},
+            "renameByName": {"usn": "notice", "Value": "rank"}
+          }
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Collector",
+      "description": "Whether the numbers above can be believed. Evaluation is the OVAL feed checked against this system; feed age is how old Canonical's feed was when it was evaluated; last check is when the collector last reached Canonical. Without these, a broken collector reads exactly like a host with nothing to patch.",
+      "datasource": {{ ds }},
+      "gridPos": {"h": 10, "w": 8, "x": 16, "y": 5},
+      "options": {
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value_and_name",
+        "orientation": "horizontal"
+      },
+      "fieldConfig": {
+        "defaults": {"unit": "short"},
+        "overrides": [
+          {
+            "matcher": {"id": "byFrameRefID", "options": "A"},
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {"text": "failing", "color": "red", "index": 0},
+                      "1": {"text": "working", "color": "green", "index": 1}
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {"id": "byFrameRefID", "options": "B"},
+            "properties": [
+              {"id": "unit", "value": "s"},
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "orange", "value": 259200}
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {"id": "byFrameRefID", "options": "C"},
+            "properties": [
+              {"id": "unit", "value": "s"},
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "orange", "value": 259200}
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {{ ds }},
+          "expr": "security_oval_up",
+          "legendFormat": "evaluation",
+          "instant": true,
+          "range": false
+        },
+        {
+          "refId": "B",
+          "datasource": {{ ds }},
+          "expr": "time() - security_oval_feed_timestamp_seconds",
+          "legendFormat": "feed age",
+          "instant": true,
+          "range": false
+        },
+        {
+          "refId": "C",
+          "datasource": {{ ds }},
+          "expr": "time() - security_oval_last_download_timestamp_seconds",
+          "legendFormat": "last check",
+          "instant": true,
+          "range": false
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Notices still applying over time",
+      "description": "How quickly a published fix leaves this list. A step up is Canonical publishing a notice; the step down is unattended-upgrades installing it, or the reboot for a kernel. A level that never falls is a fix this host cannot get.",
+      "datasource": {{ ds }},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 15},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "decimals": 0,
+          "custom": {"drawStyle": "line", "lineInterpolation": "stepAfter", "lineWidth": 2, "fillOpacity": 0}
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {"displayMode": "list", "placement": "bottom", "showLegend": true},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {{ ds }},
+          "expr": "count by (severity) (security_notice_affected)",
+          "legendFormat": "{% raw %}{{severity}}{% endraw %}"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Upgrades pending over time",
+      "description": "The nightly unattended-upgrades run should pull -security and -updates back to zero every day. A pocket that stays up across a night is the same thing UpgradesNotApplied alerts on.",
+      "datasource": {{ ds }},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 15},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "decimals": 0,
+          "custom": {"drawStyle": "line", "lineInterpolation": "stepAfter", "lineWidth": 2, "fillOpacity": 0}
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {"displayMode": "list", "placement": "bottom", "showLegend": true},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {{ ds }},
+          "expr": "apt_upgrades_pending",
+          "legendFormat": "{% raw %}{{pocket}}{% endraw %}"
+        }
+      ]
+    }
+  ]
+}
