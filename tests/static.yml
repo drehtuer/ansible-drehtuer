@@ -77,6 +77,9 @@
     ansible_facts:
       all_ipv4_addresses: "{{ [ip_v4] }}"
       all_ipv6_addresses: "{{ [ip_v6] }}"
+      # The release codename roles/monitoring's updates collector
+      # names the OVAL feed by.
+      distribution_release: noble
     site:
       name: default
       subdomains:

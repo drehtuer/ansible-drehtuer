@@ -102,6 +102,26 @@ monitoring:  # noqa: var-naming[no-role-prefix] - see doc/STATUS.adoc
       enabled: false
       interval: 1h
       key_file: /etc/prometheus/spamhaus-dqs.key
+    # Whether this host is behind on security fixes: upgrades apt
+    # could install but has not, a reboot that is still owed, and
+    # every Ubuntu Security Notice that still applies to what is
+    # installed and running. unattended-upgrades is what installs
+    # fixes; this is what notices when it stops doing so. The
+    # nginx2root fix arrived on its own, but CVE-2026-98432 sat in
+    # noble-updates for nights with nothing to say so - see
+    # doc/STATUS.adoc.
+    #
+    # The notices come from Canonical's OVAL feed, checked locally
+    # with oscap. Fetched only when it changed upstream, and evaluated
+    # only when the feed, the installed packages or the running kernel
+    # changed, because a run peaks near 1 GB of memory.
+    updates:
+      enabled: false
+      interval: 1h
+      # The release codename and the file name are added by the
+      # collector, so a release upgrade needs no edit here.
+      oval_base_url: https://security-metadata.canonical.com/oval
+      cache_dir: /var/cache/prometheus-textfile-updates
   # Per-service exporters. Everything here binds loopback, is scraped
   # over loopback, and is opened in no firewall - the same stance as
   # the servers above.

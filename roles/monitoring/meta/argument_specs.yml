@@ -209,6 +209,39 @@ argument_specs:
                     description:
                       - Root-only file holding the key, so that the
                         collector script itself carries no secret.
+              updates:
+                type: dict
+                required: true
+                description:
+                  - Pending upgrades by pocket, owed reboots, and the
+                    Ubuntu Security Notices from Canonical's OVAL feed
+                    that still apply to this host.
+                options:
+                  enabled:
+                    type: bool
+                    required: true
+                    description: Whether to run it.
+                  interval:
+                    type: str
+                    required: true
+                    description:
+                      - systemd timer interval. The feed is downloaded
+                        only when it changed and evaluated only when an
+                        input did, so this mostly bounds how late a
+                        change is noticed.
+                  oval_base_url:
+                    type: str
+                    required: true
+                    description:
+                      - Where Canonical publishes the OVAL feeds. The
+                        collector appends
+                        com.ubuntu.<codename>.usn.oval.xml.bz2.
+                  cache_dir:
+                    type: str
+                    required: true
+                    description:
+                      - Where the feed and the last evaluation are
+                        kept between runs.
           exporters:
             type: dict
             required: true

@@ -73,3 +73,6 @@ monitoring_collectors:
       {{ monitoring.textfile.spamhaus.enabled
          and (spam_dqs_key | default('') | length > 0) }}
     interval: "{{ monitoring.textfile.spamhaus.interval }}"
+  - name: updates
+    enabled: "{{ monitoring.textfile.updates.enabled }}"
+    interval: "{{ monitoring.textfile.updates.interval }}"
