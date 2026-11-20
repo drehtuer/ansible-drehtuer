@@ -1,0 +1,18 @@
+# The release upgrade of production, rehearsed end to end on hastur
+# first - see doc/TESTING.adoc. playbooks/upgrade.yml is tagged
+# `never`, so this only takes effect when asked for explicitly:
+#
+#   invoke run-playbook --hosts=production \
+#     --playbook=playbooks/upgrade.yml --tags=release-upgrade
+#
+# Once the target is reached the role is a no-op, so this can stay
+# until the next release upgrade changes it.
+upgrade:
+  target_release: "26.04"
+  prompt: lts
+  # Dovecot 2.4 cannot read the 2.3 configuration, see the role default.
+  services_stopped:
+    - dovecot
+  async_timeout: 5400
+  poll_interval: 30
+  reboot_timeout: 1800
