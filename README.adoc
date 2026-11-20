@@ -24,7 +24,7 @@ endif::[]
 This repo contains the configuration for the hosts link:{url-drehtuer-de}/link:{url-drehtuer-net} as link:{url-ansible} scripts.
 The environment is provided as configuration for link:{url-dev-container} and link:{url-vscode}.
 
-The goal is a complete, documentation-as-code setup of the server so that it can be rebuilt or migrated to another host with minimal manual effort. The server runs nginx (serving Nextcloud, with Let's Encrypt certificates), Postfix + Dovecot (with RSpamd for anti-spam filtering, including learning from user feedback), SSH, MariaDB + Redis, and two DNS servers side by side — Unbound resolving recursively on loopback, and NSD answering authoritatively on the public addresses as a hidden primary for `drehtuer.net` — plus supporting system services (firewall, fail2ban, cron, NTP, Docker). A Valheim dedicated server runs alongside all of that in a container, modded with a pinned set of Thunderstore packages, with a live web map of the world behind the same nginx and a password.
+The goal is a complete, documentation-as-code setup of the server so that it can be rebuilt or migrated to another host with minimal manual effort. The server runs nginx (serving Nextcloud, with Let's Encrypt certificates), Postfix + Dovecot (with RSpamd for anti-spam filtering, including learning from user feedback), SSH, MariaDB + Redis, and two DNS servers side by side — Unbound resolving recursively on loopback, and NSD answering authoritatively on the public addresses as a hidden primary for `drehtuer.net` — plus supporting system services (firewall, fail2ban with a web UI, cron, NTP, Docker, local users, Ubuntu Pro for the `esm-apps` security fixes). Around those sit a WireGuard VPN for a few personal devices, monitoring (Prometheus, Alertmanager mailing its alerts, and Grafana at `status.<domain>`), a GoAccess report over the nginx logs at `weblog.<domain>`, and nightly `restic` backups. A Valheim dedicated server runs alongside all of that in a container, modded with a pinned set of Thunderstore packages, with a live web map of the world behind the same nginx and a password.
 
 Secrets (passwords, private keys, personal data) are never stored unencrypted in this repository — they are encrypted with `ansible-vault`. The vault password itself is kept in `vault/secret.txt`, which is excluded from version control and must never be committed.
 
@@ -32,8 +32,12 @@ Playbooks are run through `tasks.py` (link:{url-invoke}) rather than calling `an
 
 [source, bash]
 ----
-invoke run-playbook --playbook=playbooks/http.yml
+invoke run-playbook --playbook=playbooks/http.yml --hosts=production
 ----
+
+`--hosts` is required: every playbook is `hosts: all`, and the inventory holds the production host and the test lab side by side, so the task refuses to default to both.
+
+There is one thin playbook per role, and `playbooks/site.yml` runs all of them in an order that works on an empty machine. It is split into stages (`site-base.yml`, `site-platform.yml`, `site-web.yml`, `site-mail.yml`, `site-security.yml`, `site-ops.yml`) so one part of the host can be re-run on its own. Two roles are deliberately left out of it: `upgrade`, an Ubuntu release upgrade that only runs with `--tags release-upgrade`, and `valheim` (see <<Game server>>).
 
 See `invoke --list` for all available tasks.
 
@@ -72,7 +76,7 @@ invoke install-hooks
 ----
 +
 Use `git commit --no-verify` to bypass it for a single commit.
-* *On every push to `main` and every pull request*, via `.github/workflows/lint.yml`.
+* *On every push to `main` and every pull request*, via `.github/workflows/lint.yml` — the tests in `.github/workflows/test.yml` and a SonarCloud scan in `.github/workflows/sonar.yml` run alongside it.
 
 Editor-side formatting is described in `.editorconfig`, which mirrors the same rules (two spaces, 80 columns, final newline, no trailing whitespace). VS Code needs the EditorConfig extension for it to take effect; it is installed by the Dev Container.
 
@@ -91,7 +95,7 @@ Every page under `doc/` is AsciiDoc and renders to a static site with link:{url-
 invoke docs      # -> public/
 ----
 
-Antora wants its pages under `modules/<name>/pages/`. Moving `doc/` there would invalidate the 179 references to `doc/*.adoc` spread across 86 files - role comments, playbooks, inventory, `tasks.py` - so the build assembles that layout under `build/` from the sources instead, and the repository keeps its own vocabulary. What it costs is Antora's *Edit this Page* link, which cannot be mapped back: `index.adoc` came from `README.adoc` and the skill pages from Markdown two directories away.
+Antora wants its pages under `modules/<name>/pages/`. Moving `doc/` there would invalidate the more than 240 references to `doc/*.adoc` spread across over 100 files - role comments, playbooks, inventory, `tasks.py` - so the build assembles that layout under `build/` from the sources instead, and the repository keeps its own vocabulary. What it costs is Antora's *Edit this Page* link, which cannot be mapped back: `index.adoc` came from `README.adoc` and the skill pages from Markdown two directories away.
 
 The two `.claude/skills/*/SKILL.md` files are converted by `kramdoc` on the way in, since Antora reads AsciiDoc and nothing else. They are included because the AsciiDoc pages lean on them - `doc/TESTING.adoc` alone points at `.claude/skills` ten times:
 
@@ -146,7 +150,7 @@ See link:{url-doc-backup} for what is backed up, what deliberately is not and wh
 
 `roles/valheim` runs a Valheim dedicated server as a Compose stack, with BepInEx and the mods listed in `valheim_mods` in `roles/valheim/defaults/main.yml`. Each mod is a link:{url-thunderstore} package pinned to a version and to the SHA-256 of its zip, the way every image here is pinned to a digest. One of them is the link:{url-webmap} plugin, which serves a live map of the world at `valheim.<domain>`, behind TLS and a password.
 
-*Most of those mods are not server-only.* The list is grouped by who has to install what: eleven run on the server alone, two also need the admin's client, and the other 26 need every player to run the same versions, or the server turns them away.
+*Most of those mods are not server-only.* The list is grouped by who has to install what: fifteen run on the server alone, two also need the admin's client, and the other 26 need every player to run the same versions, or the server turns them away.
 Players find the list, and an r2modman profile to import, in `roles/valheim/CLIENT_MODS.md`; both are generated from the pins by `invoke valheim-client-mods`.
 
 [source, bash]
