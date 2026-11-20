@@ -299,7 +299,7 @@ RUN   \
 # listed in devcontainer.json. Pinned like every other
 # tool here, and bumped by editing this line.
 # renovate: datasource=npm depName=@anthropic-ai/claude-code
-ARG   CLAUDE_CODE_VERSION=2.1.228
+ARG   CLAUDE_CODE_VERSION=2.1.251
 
 RUN   \
     # Anthropic's install.sh is deliberately not used: it
