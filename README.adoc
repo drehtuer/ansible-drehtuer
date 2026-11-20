@@ -80,6 +80,16 @@ Use `git commit --no-verify` to bypass it for a single commit.
 
 Editor-side formatting is described in `.editorconfig`, which mirrors the same rules (two spaces, 80 columns, final newline, no trailing whitespace). VS Code needs the EditorConfig extension for it to take effect; it is installed by the Dev Container.
 
+== Dependency updates
+
+:url-renovate: https://docs.renovatebot.com[Renovate^]
+
+Every version this repository deploys is pinned - container images by tag and digest, Nextcloud and Prometheus by version and checksum, the Dev Container and CI tools by version - so a rebuild produces the same host. The cost of pinning is that nothing moves on its own. link:{url-renovate}, configured in `.github/renovate.json5`, watches those pins and opens a pull request when upstream has a newer release, or when a pin has a known vulnerability. Its *Dependency Dashboard* issue lists every pin it tracks and which are outdated.
+
+A Renovate PR only changes the pin. Nothing reaches a host until it is merged and the playbook is run. Two kinds need a hand before merging: Renovate cannot compute the checksum of a Nextcloud or Prometheus download, so those PRs say where to take it from. The Valheim mods are deliberately not watched - `invoke valheim-mods` checks them against Thunderstore instead.
+
+Pins outside role defaults and inventories carry a `# renovate: datasource=... depName=...` comment on the line above them. Add one to a new pin to have it watched.
+
 == Documentation
 
 :url-pages: https://pages.github.com[GitHub Pages^]

@@ -23,6 +23,7 @@ monitoring:
     config_file: /etc/prometheus/prometheus.yml
     # Upstream release rather than the distro package: the packaged
     # server ships no modern web UI. See roles/monitoring/tasks.
+    # renovate: datasource=github-releases depName=prometheus/prometheus
     version: "3.14.0"
     checksums:
       amd64: f665c6da19eb7ba399c915d30c7d9793c9b417bf8a749b504bc470678631478d
