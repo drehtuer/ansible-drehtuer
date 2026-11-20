@@ -49,6 +49,13 @@ monitoring:
       enabled: true
       interval: 1h
       key_file: /etc/prometheus/spamhaus-dqs.key
+    # Pending upgrades, owed reboots and Ubuntu Security Notices that
+    # still apply. See the role defaults.
+    updates:
+      enabled: true
+      interval: 1h
+      oval_base_url: https://security-metadata.canonical.com/oval
+      cache_dir: /var/cache/prometheus-textfile-updates
   # Per-service exporters, all on loopback. Ports are the exporters'
   # own defaults; what is wired here is which ones this host runs and
   # the two secrets that come from elsewhere rather than being

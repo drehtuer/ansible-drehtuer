@@ -1,0 +1,225 @@
+#!/usr/bin/env bash
+{{ ansible_managed | comment }}
+#
+# Whether this host is behind on security fixes. unattended-upgrades
+# installs them and says nothing when it stops: a pocket it does not
+# take, a held package, a conffile prompt or a reboot that never
+# happened all look exactly like a host that is up to date. Three
+# separate questions, so that each one can be answered on its own:
+#
+# - what apt could upgrade now, by pocket (a simulation, no lock)
+# - whether a reboot is owed, and whether the newest kernel installed
+#   is the one running
+# - which Ubuntu Security Notices still apply to the installed and
+#   running system, from Canonical's OVAL feed evaluated by oscap. A
+#   notice only exists once a fix has been published, so every one of
+#   these is something that could already be patched.
+#
+# The feed is ~50 MB unpacked and oscap peaks near 1 GB evaluating it,
+# so it is downloaded only when it changed upstream and evaluated only
+# when the feed, the package database or the running kernel changed.
+# Every other run reuses the previous evaluation.
+set -euo pipefail
+
+OUT="{{ monitoring.node_exporter.textfile_dir }}/updates.prom"
+CACHE="{{ monitoring.textfile.updates.cache_dir }}"
+FEED_NAME="com.ubuntu.{{ ansible_facts['distribution_release'] }}.usn.oval.xml"
+FEED_URL="{{ monitoring.textfile.updates.oval_base_url }}/${FEED_NAME}.bz2"
+FEED_BZ2="${CACHE}/${FEED_NAME}.bz2"
+FEED="${CACHE}/${FEED_NAME}"
+NOTICES="${CACHE}/notices.prom"
+INPUTS="${CACHE}/inputs"
+LAST_DOWNLOAD="${CACHE}/last-download"
+
+mkdir -p "${CACHE}"
+TMP="$(mktemp "${OUT}.XXXXXX")"
+trap 'rm -f "$TMP" "${FEED_BZ2}.new" "${FEED}.new" "${NOTICES}.new" "${CACHE}/results.xml"' EXIT
+
+emit() { printf '%s\n' "$*" >> "$TMP"; }
+
+# --- apt ---------------------------------------------------------------
+# Simulated, and without apt's lock, so a run that coincides with
+# unattended-upgrades neither waits for it nor gets in its way. Each
+# upgrade is counted once, under the most urgent pocket offering it:
+# a fix published to both -updates and -security is a security fix.
+
+emit "# HELP apt_simulation_up Whether simulating a dist-upgrade worked, so that apt_upgrades_pending can be believed."
+emit "# TYPE apt_simulation_up gauge"
+emit "# HELP apt_upgrades_pending Packages apt would upgrade or install now, by the most urgent pocket offering them."
+emit "# TYPE apt_upgrades_pending gauge"
+if simulation="$(apt-get --simulate -o Debug::NoLocking=true -qq dist-upgrade 2>/dev/null)"; then
+  emit "apt_simulation_up 1"
+  awk '
+    /^Inst / {
+      if ($0 ~ /-security[ ,\]]/) security++
+      else if ($0 ~ /-updates[ ,\]]/) updates++
+      else other++
+    }
+    END {
+      printf "apt_upgrades_pending{pocket=\"security\"} %d\n", security
+      printf "apt_upgrades_pending{pocket=\"updates\"} %d\n", updates
+      printf "apt_upgrades_pending{pocket=\"other\"} %d\n", other
+    }' <<<"${simulation}" >> "$TMP"
+else
+  # No apt_upgrades_pending at all: a zero would claim the host is up
+  # to date, which nobody has established.
+  emit "apt_simulation_up 0"
+fi
+
+# --- reboot ------------------------------------------------------------
+# /run/reboot-required is what the packages themselves request a
+# reboot through, kernel or not, and a reboot clears it. It cannot see
+# a host that rebooted into an old kernel, which the kernel check
+# below is for.
+
+emit "# HELP node_reboot_required Whether an installed package has asked for a reboot."
+emit "# TYPE node_reboot_required gauge"
+if [ -e /run/reboot-required ]; then
+  emit "node_reboot_required 1"
+else
+  emit "node_reboot_required 0"
+fi
+
+# The flavour (`generic`) is part of the comparison, so a second
+# flavour installed beside the running one is not mistaken for an
+# upgrade of it.
+running="$(uname -r)"
+flavour="${running##*-}"
+newest="$(find /boot -maxdepth 1 -name "vmlinuz-*-${flavour}" -printf '%f\n' \
+          | sed 's/^vmlinuz-//' | sort -V | tail -n 1)"
+emit "# HELP node_kernel_outdated Whether a newer kernel than the running one is installed."
+emit "# TYPE node_kernel_outdated gauge"
+if [ -n "${newest}" ] && [ "${newest}" != "${running}" ]; then
+  emit "node_kernel_outdated{running=\"${running}\",newest=\"${newest}\"} 1"
+else
+  emit "node_kernel_outdated{running=\"${running}\",newest=\"${newest:-${running}}\"} 0"
+fi
+
+# --- security notices --------------------------------------------------
+
+# -z asks for the file only if it is newer than the copy here, -R
+# keeps the server's modification time for the next run to compare
+# with. A 304 writes nothing and still counts as a successful check.
+time_cond=()
+if [ -s "${FEED_BZ2}" ]; then
+  time_cond=(--time-cond "${FEED_BZ2}")
+fi
+if curl --silent --show-error --fail --location --max-time 300 \
+        --remote-time "${time_cond[@]}" \
+        --output "${FEED_BZ2}.new" "${FEED_URL}"; then
+  if [ -s "${FEED_BZ2}.new" ]; then
+    # Tested before it replaces the copy that is known to be good.
+    bzip2 --test "${FEED_BZ2}.new" && mv "${FEED_BZ2}.new" "${FEED_BZ2}"
+  fi
+  touch "${LAST_DOWNLOAD}"
+fi
+if [ -s "${FEED_BZ2}" ] && { [ ! -s "${FEED}" ] || [ "${FEED_BZ2}" -nt "${FEED}" ]; }; then
+  bzip2 --decompress --stdout "${FEED_BZ2}" > "${FEED}.new"
+  mv "${FEED}.new" "${FEED}"
+fi
+
+emit "# HELP security_oval_last_download_timestamp_seconds When the feed was last checked for changes successfully, changed or not."
+emit "# TYPE security_oval_last_download_timestamp_seconds gauge"
+if [ -e "${LAST_DOWNLOAD}" ]; then
+  emit "security_oval_last_download_timestamp_seconds $(stat -c %Y "${LAST_DOWNLOAD}")"
+fi
+
+emit "# HELP security_oval_up Whether the notices below come from evaluating the current feed against the current system."
+emit "# TYPE security_oval_up gauge"
+
+if [ ! -s "${FEED}" ]; then
+  emit "security_oval_up 0"
+else
+  inputs="$(stat -c %Y "${FEED}") $(stat -c %Y /var/lib/dpkg/status) ${running}"
+  if [ ! -s "${NOTICES}" ] || [ "$(cat "${INPUTS}" 2>/dev/null)" != "${inputs}" ]; then
+    # Lowest priority, since nothing waits on the result.
+    if nice -n 19 ionice -c 3 \
+         oscap oval eval --results "${CACHE}/results.xml" "${FEED}" > /dev/null 2>&1 \
+       && python3 -I - "${CACHE}/results.xml" > "${NOTICES}.new" <<'PYTHON'
+{% raw %}
+import sys
+import xml.etree.ElementTree as ET
+from datetime import datetime, timezone
+
+DEF = '{http://oval.mitre.org/XMLSchema/oval-definitions-5}'
+RES = '{http://oval.mitre.org/XMLSchema/oval-results-5}'
+COMMON = '{http://oval.mitre.org/XMLSchema/oval-common-5}'
+
+
+def label(value):
+  return value.replace('\\', '\\\\').replace('"', '\\"').replace('\n', ' ')
+
+
+notices = {}
+affected = []
+generated = None
+in_feed_generator = False
+# Streamed: the results file is as large as the feed, and holding
+# both trees at once would double what oscap has just used.
+for event, element in ET.iterparse(sys.argv[1], events=('start', 'end')):
+  # The results file has two generators: oscap's own, first, and the
+  # feed's, inside the definitions. Only the second says how old the
+  # feed is.
+  if element.tag == DEF + 'generator':
+    in_feed_generator = event == 'start'
+    continue
+  if event == 'start':
+    continue
+  if element.tag == COMMON + 'timestamp' and in_feed_generator:
+    generated = element.text
+  elif element.tag == DEF + 'definition':
+    # `patch` only. The feed also carries an `inventory` definition
+    # that is true whenever the release itself is installed.
+    if element.get('class') == 'patch':
+      meta = element.find(DEF + 'metadata')
+      usn = next(
+        (r.get('ref_id') for r in meta.iter(DEF + 'reference')
+         if r.get('source') == 'USN'),
+        None,
+      )
+      title = meta.findtext(DEF + 'title', '')
+      severity = meta.findtext(DEF + 'advisory/' + DEF + 'severity', 'unknown')
+      if usn:
+        notices[element.get('id')] = (usn, severity.lower(), title.split(' -- ', 1)[-1])
+    element.clear()
+  elif element.tag == RES + 'definition':
+    if element.get('result') == 'true' and element.get('definition_id') in notices:
+      affected.append(notices[element.get('definition_id')])
+    element.clear()
+
+if generated is None or not notices:
+  sys.exit('no definitions found')
+
+stamp = datetime.fromisoformat(generated).replace(tzinfo=timezone.utc).timestamp()
+print('# HELP security_oval_feed_timestamp_seconds When Canonical generated the feed that was evaluated.')
+print('# TYPE security_oval_feed_timestamp_seconds gauge')
+print(f'security_oval_feed_timestamp_seconds {stamp:.0f}')
+print('# HELP security_notice_affected An Ubuntu Security Notice whose fix is published and not yet installed or running here.')
+print('# TYPE security_notice_affected gauge')
+for usn, severity, title in sorted(set(affected)):
+  print(f'security_notice_affected{{usn="{label(usn)}",severity="{label(severity)}",title="{label(title)}"}} 1')
+{% endraw %}
+PYTHON
+    then
+      mv "${NOTICES}.new" "${NOTICES}"
+      printf '%s\n' "${inputs}" > "${INPUTS}"
+    else
+      # The previous evaluation describes a system that no longer
+      # exists, so it is not served as if it were current.
+      rm -f "${NOTICES}" "${INPUTS}"
+    fi
+    rm -f "${CACHE}/results.xml"
+  fi
+
+  if [ -s "${NOTICES}" ]; then
+    emit "security_oval_up 1"
+    cat "${NOTICES}" >> "$TMP"
+  else
+    emit "security_oval_up 0"
+  fi
+fi
+
+chmod 0644 "$TMP"
+mv "$TMP" "$OUT"
+trap - EXIT
+rm -f "${FEED_BZ2}.new" "${FEED}.new" "${NOTICES}.new"

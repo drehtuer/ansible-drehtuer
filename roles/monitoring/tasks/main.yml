@@ -332,6 +332,18 @@
     state: absent
   when: not monitoring_spamhaus_wanted
 
+- name: Install what the updates collector runs
+  # oscap evaluates the OVAL feed, which is fetched with curl and
+  # published bzip2-compressed. All three are usually present already;
+  # they are listed because the collector fails without them.
+  ansible.builtin.apt:
+    install_recommends: false
+    name:
+      - bzip2
+      - curl
+      - openscap-scanner
+  when: monitoring.textfile.updates.enabled
+
 - name: Deploy the textfile collectors
   ansible.builtin.template:
     src: templates/textfile/{{ item.name }}.sh.j2
@@ -400,6 +412,7 @@
        + (['probes'] if monitoring.blackbox.enabled else [])
        + (['zones'] if monitoring.textfile.nsd.enabled else [])
        + (['spamhaus'] if monitoring_spamhaus_wanted else [])
+       + (['updates'] if monitoring.textfile.updates.enabled else [])
        + (['backup'] if monitoring.alerts.backup.enabled else []) }}
   notify:
     - Reload prometheus
@@ -421,6 +434,15 @@
     path: "{{ monitoring.prometheus.rules_dir }}/spamhaus.rules.yml"
     state: absent
   when: not monitoring_spamhaus_wanted
+  notify:
+    - Reload prometheus
+
+- name: Remove the update rules on a host with no updates collector
+  # Same reasoning as the zone rules above.
+  ansible.builtin.file:
+    path: "{{ monitoring.prometheus.rules_dir }}/updates.rules.yml"
+    state: absent
+  when: not monitoring.textfile.updates.enabled
   notify:
     - Reload prometheus
 

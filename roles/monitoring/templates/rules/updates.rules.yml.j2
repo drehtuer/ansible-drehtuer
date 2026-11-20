@@ -1,0 +1,162 @@
+{{ ansible_managed | comment }}
+# Alerts over the updates textfile collector: security fixes that are
+# published but not installed, or installed but not running.
+#
+# unattended-upgrades runs daily and roles/apt reboots for it at
+# apt.unattended.reboot_time, so a fix normally goes from published
+# to running within a day. 30h is that day plus a margin for the
+# randomised start of apt-daily-upgrade.timer, which makes every
+# alert here mean "the automatic path did not do it", not "it has not
+# got round to it yet". Shorter would mail about every fix on the day
+# it ships.
+#
+# As elsewhere in this directory, annotations use Prometheus's own Go
+# templating - hence the raw blocks - and none may *begin* with one of
+# those expressions.
+groups:
+  - name: updates
+    rules:
+      # The one that matters. A notice is only published with its fix,
+      # so every series here could already be patched. Kernel notices
+      # are evaluated against the running kernel, so a kernel that was
+      # installed and never booted into shows up here too.
+      #
+      # Split by Canonical's own severity rather than by a threshold of
+      # ours, so the mail for a critical kernel fix and the one for a
+      # moderate library fix do not read alike.
+      - alert: SecurityNoticeUnpatched
+        expr: security_notice_affected{severity=~"critical|high"} == 1
+        for: 30h
+        labels:
+          severity: critical
+{% raw %}        annotations:
+          summary: "{{ $labels.usn }} ({{ $labels.title }}) is not applied"
+          description: >-
+            Ubuntu published a {{ $labels.severity }} fix more than a
+            day ago and this host is still affected - either the
+            package is not upgraded or the fixed kernel is not running.
+            See https://ubuntu.com/security/notices/{{ $labels.usn }},
+            then `apt-get -s dist-upgrade` and
+            /var/log/unattended-upgrades/ for why it was not taken.
+{% endraw %}
+
+      - alert: SecurityNoticeUnpatched
+        expr: security_notice_affected{severity!~"critical|high"} == 1
+        for: 30h
+        labels:
+          severity: warning
+{% raw %}        annotations:
+          summary: "{{ $labels.usn }} ({{ $labels.title }}) is not applied"
+          description: >-
+            Ubuntu published a fix (severity {{ $labels.severity }})
+            more than a day ago and this host is still affected. See
+            https://ubuntu.com/security/notices/{{ $labels.usn }}.
+{% endraw %}
+
+      # Broader than the notices: roles/apt has unattended-upgrades
+      # take -updates as well as -security, so anything still pending
+      # in either after a day means it is not doing its job - held
+      # packages and conffile prompts are the usual reasons. This is
+      # also the only signal for a fix that reached -updates without a
+      # notice, which is how CVE-2026-98432 arrived.
+      - alert: UpgradesNotApplied
+        expr: apt_upgrades_pending{pocket=~"security|updates"} > 0
+        for: 30h
+        labels:
+          severity: warning
+{% raw %}        annotations:
+          summary: "{{ $value }} upgrades from -{{ $labels.pocket }} are not installed"
+          description: >-
+            unattended-upgrades takes this pocket, so these should have
+            been installed by now. Check
+            /var/log/unattended-upgrades/unattended-upgrades.log for held
+            packages or a conffile prompt, and `apt-get -s dist-upgrade`
+            for what is waiting.
+{% endraw %}
+
+      # Packages ask for a reboot through /run/reboot-required, and
+      # roles/apt reboots for them automatically. Still asking a day
+      # later means that reboot did not happen.
+      - alert: RebootPending
+        expr: node_reboot_required == 1
+        for: 30h
+        labels:
+          severity: warning
+{% raw %}        annotations:
+          summary: A reboot has been pending for over a day
+          description: >-
+            Installed updates (/run/reboot-required.pkgs lists them)
+            are on disk but not in memory. The automatic reboot should
+            have done this - check that
+            Unattended-Upgrade::Automatic-Reboot is in effect and the
+            journal around its time.
+{% endraw %}
+
+      # The case reboot-required cannot see: a reboot happened, the
+      # file is gone, and the host came back on the old kernel anyway -
+      # a GRUB default pinned to an entry, or the new one failing to
+      # boot and a fallback taking over.
+      - alert: KernelOutdated
+        expr: node_kernel_outdated == 1 unless on() node_reboot_required == 1
+        for: 30h
+        labels:
+          severity: warning
+{% raw %}        annotations:
+          summary: Running kernel {{ $labels.running }}, {{ $labels.newest }} is installed
+          description: >-
+            No reboot is pending, yet the newest installed kernel is not
+            the one running. Check which entry GRUB boots and whether
+            the newer kernel failed to start.
+{% endraw %}
+
+      # Without a working evaluation, "no notices" is indistinguishable
+      # from "not looking". Two runs' worth, since one failed download
+      # or evaluation is not a finding.
+      - alert: SecurityNoticesUnknown
+        expr: security_oval_up == 0 or apt_simulation_up == 0
+        for: 3h
+        labels:
+          severity: warning
+{% raw %}        annotations:
+          summary: Security notices or pending upgrades cannot be determined
+          description: >-
+            The updates collector could not evaluate the OVAL feed or
+            simulate an upgrade, so missing fixes would go unreported.
+            Run /usr/local/bin/prometheus-textfile-updates by hand and
+            read its errors.
+{% endraw %}
+
+      # Canonical regenerates the feed as notices are published, which
+      # is most days. A check that has not succeeded in three days means the notices are evaluated
+      # against an old list, which looks exactly like being up to date.
+      - alert: SecurityFeedStale
+        expr: >-
+          time() - security_oval_last_download_timestamp_seconds
+          > 3 * 86400
+        for: 1h
+        labels:
+          severity: warning
+{% raw %}        annotations:
+          summary: The OVAL feed has not been fetched for three days
+          description: >-
+            Notices published since then are not being checked. The
+            collector fetches from security-metadata.canonical.com -
+            check that the host can reach it.
+{% endraw %}
+
+      # node_exporter serves whatever is in the file whatever its age,
+      # so a collector that stopped goes on reporting the last answer.
+      - alert: UpdatesCollectorStale
+        expr: >-
+          time() - node_textfile_mtime_seconds{file=~".*/updates[.]prom"}
+          > 10800
+        for: 30m
+        labels:
+          severity: warning
+{% raw %}        annotations:
+          summary: The updates collector has stopped updating
+          description: >-
+            Its last result is over three hours old, so pending fixes
+            may be going unreported. Check
+            prometheus-textfile-updates.timer and its journal.
+{% endraw %}
