@@ -45,7 +45,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v7
         with:
-          node-version: '22'
+          node-version: '26'
 
       # Keep the version in step with ANTORA_VERSION in
       # .devcontainer/Dockerfile. The CLI and the site generator are
