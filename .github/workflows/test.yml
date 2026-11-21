@@ -83,7 +83,7 @@ jobs:
         run: |
           pip install \
             --only-binary :all: \
-            'ansible==14.5.0' \
+            'ansible==14.6.0' \
             'molecule==26.8.0' \
             'molecule-plugins[docker]==26.7.15'
           ansible-galaxy collection install \
