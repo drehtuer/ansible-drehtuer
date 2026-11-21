@@ -277,9 +277,9 @@ RUN   npm install \
 # .github/workflows/test.yml, so CI and the Dev
 # Container test with the same molecule.
 # renovate: datasource=pypi depName=molecule
-ARG   MOLECULE_VERSION=26.8.0
+ARG   MOLECULE_VERSION=26.11.0
 # renovate: datasource=pypi depName=molecule-plugins
-ARG   MOLECULE_PLUGINS_VERSION=26.7.15
+ARG   MOLECULE_PLUGINS_VERSION=26.11.0
 
 RUN   \
     # Neither is packaged for Ubuntu 26.04, and pip
