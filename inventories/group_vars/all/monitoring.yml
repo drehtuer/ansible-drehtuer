@@ -24,7 +24,7 @@ monitoring:
     # Upstream release rather than the distro package: the packaged
     # server ships no modern web UI. See roles/monitoring/tasks.
     # renovate: datasource=github-releases depName=prometheus/prometheus
-    version: "3.14.0"
+    version: "3.16.0"
     checksums:
       amd64: f665c6da19eb7ba399c915d30c7d9793c9b417bf8a749b504bc470678631478d
       arm64: 077f3781ab7245dc04c9a3c9b78ba120fc8e41aa0dc97489b0af67247e50ba83
