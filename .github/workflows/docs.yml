@@ -43,7 +43,7 @@ jobs:
       # version keeps this build and the Dev Container on the same
       # major - Ubuntu 26.04 packages 22 there.
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: '22'
 
