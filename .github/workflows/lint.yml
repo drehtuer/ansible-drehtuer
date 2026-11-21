@@ -17,7 +17,7 @@ permissions:
 jobs:
   yaml:
     name: YAML and Ansible
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - name: Check out the repository
         uses: actions/checkout@v7
@@ -68,7 +68,7 @@ jobs:
 
   python:
     name: Python
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - name: Check out the repository
         uses: actions/checkout@v7
@@ -91,7 +91,7 @@ jobs:
 
   docs:
     name: AsciiDoc
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - name: Check out the repository
         uses: actions/checkout@v7
