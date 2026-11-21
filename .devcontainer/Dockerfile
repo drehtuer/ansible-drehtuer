@@ -187,7 +187,7 @@ RUN   \
 # package, and ansible-lint itself requires a newer
 # yamllint than Ubuntu 26.04 packages.
 # renovate: datasource=pypi depName=ansible-lint
-ARG   ANSIBLE_LINT_VERSION=26.8.0
+ARG   ANSIBLE_LINT_VERSION=26.11.0
 # renovate: datasource=pypi depName=yamllint
 ARG   YAMLLINT_VERSION=1.38.0
 
