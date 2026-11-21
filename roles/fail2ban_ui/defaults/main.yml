@@ -13,7 +13,7 @@ fail2ban_ui:  # noqa: var-naming[no-role-prefix] - see doc/STATUS.adoc
   image: swissmakers/fail2ban-ui
   tag: v1.6.1
   digest: >-
-    sha256:078fb35fcf0c4b946c79e220bde2727f5bc48a7ec8fb29d565a678c856204fcd
+    sha256:81696e19ae06d957e9f3f81468e80986f0636d8c98086372070e2bb3fc8b6efc
   # Compose file, and the container's own persistent state. Separate
   # directories on purpose: the first is configuration this repo owns
   # and rewrites, the second is data the container writes and must
