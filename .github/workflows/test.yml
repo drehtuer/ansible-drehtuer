@@ -43,6 +43,25 @@ jobs:
           ansible-playbook tests/static.yml
           --inventory inventories/test/machines.yml
 
+  # Renovate moves a release's version but cannot compute the checksum
+  # beside it; this fails its pull request until someone has. A job of
+  # its own, since it needs the network and the static tests do not -
+  # an upstream outage should not hold up the molecule scenarios.
+  pins:
+    name: Pinned checksums
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v7
+
+      - name: Install PyYAML
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends --yes python3-yaml
+
+      - name: Check pinned checksums against upstream
+        run: /usr/bin/python3 tests/check_pins.py
+
   molecule:
     name: Molecule
     runs-on: ubuntu-24.04
