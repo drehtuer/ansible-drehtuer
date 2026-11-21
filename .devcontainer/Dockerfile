@@ -263,7 +263,7 @@ RUN   gem install \
 # packages and must match; installing one alone gives
 # "generator not found".
 # renovate: datasource=npm depName=@antora/cli
-ARG   ANTORA_VERSION=3.1.15
+ARG   ANTORA_VERSION=3.2.3
 
 RUN   npm install \
     --global \

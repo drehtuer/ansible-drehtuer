@@ -54,7 +54,7 @@ jobs:
       - name: Install Antora
         run: |
           npm install --global --no-fund --no-audit --ignore-scripts \
-            @antora/cli@3.1.15 @antora/site-generator@3.1.15
+            @antora/cli@3.2.3 @antora/site-generator@3.2.3
 
       # kramdoc converts the Markdown skill definitions to AsciiDoc,
       # which is what lets Antora render them at all - it reads
