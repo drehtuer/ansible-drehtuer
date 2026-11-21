@@ -44,6 +44,7 @@ GROUP_TESTLAB = 'testlab'
 TEST_INVENTORY = f'{INVENTORY_DIR}/test/machines.yml'
 TESTS_DIR = 'tests'
 STATIC_TESTS = f'{TESTS_DIR}/static.yml'
+CHECK_PINS = f'{TESTS_DIR}/check_pins.py'
 ROLES_DIR = 'roles'
 PLAYBOOKS_DIR = 'playbooks'
 HOSTS_ALL = 'all'
@@ -823,6 +824,22 @@ def test_static(
   check_verbose(cmd, verbose)
 
   ctx_run(ctx, cmd)
+
+
+@task
+def check_pins(
+  ctx: context,
+) -> None:
+  """
+  Check every pinned release checksum against upstream.
+
+  Renovate moves a release's `version` but cannot compute the
+  checksum beside it. This fetches the checksum file upstream
+  publishes for each pinned version and fails on any that differ.
+  Needs network access, which is why it is not part of
+  `test-static`; CI runs it on every pull request.
+  """
+  ctx_run(ctx, ['python3', CHECK_PINS])
 
 
 @task(pre=[clean], iterable=['role'])

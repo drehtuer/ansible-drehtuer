@@ -113,14 +113,14 @@
       matchPackageNames: ['nextcloud/server'],
       separateMultipleMajor: true,
       prBodyNotes: [
-        '**Update `checksum` by hand before merging**, in every file this PR touches - Renovate cannot compute it. Take it from `https://download.nextcloud.com/server/releases/nextcloud-{{{newVersion}}}.tar.bz2.sha256`. Without it the deploy fails at the download, before anything on the host is changed.',
+        '**Update `checksum` by hand before merging**, in every file this PR touches - Renovate cannot compute it. Take it from `https://download.nextcloud.com/server/releases/nextcloud-{{{newVersion}}}.tar.bz2.sha256`. Without it the deploy fails at the download, before anything on the host is changed. The *Pinned checksums* check fails this PR until it is done.',
         'Check every enabled app has a release for the new version first: the 35 upgrade disabled KeeWeb. See `doc/TODO.adoc`.',
       ],
     },
     {
       matchPackageNames: ['prometheus/prometheus'],
       prBodyNotes: [
-        "**Update `checksums.amd64` and `checksums.arm64` by hand before merging**, in every file this PR touches - Renovate cannot compute them. Take them from upstream's `sha256sums.txt` for v{{{newVersion}}}. Without them the deploy fails at the download.",
+        "**Update `checksums.amd64` and `checksums.arm64` by hand before merging**, in every file this PR touches - Renovate cannot compute them. Take them from upstream's `sha256sums.txt` for v{{{newVersion}}}. Without them the deploy fails at the download. The *Pinned checksums* check fails this PR until it is done.",
       ],
     },
     {
