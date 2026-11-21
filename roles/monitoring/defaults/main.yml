@@ -46,10 +46,10 @@ monitoring:  # noqa: var-naming[no-role-prefix] - see doc/STATUS.adoc
     # Checksums are the sha256 from upstream's own
     # sha256sums.txt, one per build.
     # renovate: datasource=github-releases depName=prometheus/prometheus
-    version: "3.14.0"
+    version: "3.16.0"
     checksums:
-      amd64: f665c6da19eb7ba399c915d30c7d9793c9b417bf8a749b504bc470678631478d
-      arm64: 077f3781ab7245dc04c9a3c9b78ba120fc8e41aa0dc97489b0af67247e50ba83
+      amd64: 68727009472a2c02e1ff7f062fd5b3e637285bffc8fc2d340c76fb449d6e0f34
+      arm64: fd8571b8162f4020232d886f17340bcf92e1722985ae3b4c1d096157826c0fbe
     install_dir: /opt
     # The path the packaged binary defaulted to, kept so that the
     # history collected under the package carries over.
