@@ -218,7 +218,7 @@ RUN   \
 # .github/workflows/lint.yml, so CI and the
 # Dev Container lint with the same ruff.
 # renovate: datasource=pypi depName=ruff
-ARG   RUFF_VERSION=0.16.3
+ARG   RUFF_VERSION=0.17.6
 
 RUN   \
     # Python linter/formatter, not packaged for
