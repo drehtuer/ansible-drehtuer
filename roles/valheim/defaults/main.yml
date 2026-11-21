@@ -9,9 +9,9 @@ valheim:  # noqa: var-naming[no-role-prefix] - see doc/STATUS.adoc
   # `monitoring` take. This is the multi-arch *index* digest rather than one
   # platform's, so the pin survives a host of another architecture.
   image: ghcr.io/community-valheim-tools/valheim-server
-  tag: "1.4.0"
+  tag: "1.4.1"
   digest: >-
-    sha256:f3ccde9a4e292663cf5096d502ff33cc9617015f6d70b6a9ca0968543f165ef2
+    sha256:f34d67ba8023e343b10ffda0144759a8c8d986f276510460315a01051bed8a6d
   # Three directories, three owners, deliberately not one:
   #
   #   compose_dir - this repository's. Rewritten every run.
