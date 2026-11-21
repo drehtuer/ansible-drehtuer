@@ -304,7 +304,9 @@
       # holds every user's files inside the installation directory, so
       # any "delete what the tarball does not contain" cleanup would be
       # catastrophic. Stale files from the previous release are left
-      # behind; they are inert, and that is the right trade.
+      # behind, and the integrity passes below remove the ones
+      # Nextcloud's own manifests disown. Most are inert build output,
+      # but not all - see the pass before `occ upgrade`.
       #
       # `--no-overwrite-dir` is what keeps the background job quiet
       # while this runs. tar as root restores a directory's ownership
@@ -337,6 +339,24 @@
         group: www-data
         recurse: true
 
+    - name: Clear up the previous release's files before migrating
+      # The same passes as after the upgrade, run here as well because
+      # a stale file can break the upgrade itself, not just the admin
+      # overview: `occ upgrade` finds an app's migrations by listing the
+      # directory, so a migration the new release renamed or dropped is
+      # still found there, is no longer known to the autoloader, and
+      # fails the run with "Migration step ... is unknown". That is what
+      # happened on carcosa for 35.0.2 to 35.0.3. The manifests read here
+      # are the new release's, already extracted, which is exactly the
+      # list wanted. The run after the upgrade then has nothing to do
+      # unless the upgrade itself left something.
+      ansible.builtin.include_tasks: integrity_cleanup.yml
+      loop: "{{ range(cloud.nextcloud.integrity.max_passes | int) | list }}"
+      loop_control:
+        loop_var: cloud_integrity_pass
+        label: "pass {{ cloud_integrity_pass + 1 }}"
+      when: cloud_integrity_pass == 0 or not ansible_check_mode
+
     - name: Run the Nextcloud upgrade
       ansible.builtin.command:
         cmd: sudo -u www-data php occ upgrade
@@ -365,14 +385,13 @@
       changed_when: true
 
 - name: Clear up after the upgrade until the integrity check is quiet
-  # Looped, and that is not belt-and-braces: `integrity:check-core`
-  # reports a *partial* set. Measured on 2026-09-13, after the 34.0.4
-  # upgrade - the command named five extra files while comparing
-  # `core/signature.json` against the filesystem directly showed 47
-  # under `dist/` alone, so a single pass cannot finish and five
-  # consecutive runs of this role each removed another handful. Why it
-  # reports a subset was not established; that it does was measured
-  # both ways.
+  # Looped, and that is not belt-and-braces: the integrity checks
+  # report one file per distinct content rather than one per file
+  # (see integrity_cleanup.yml for why, and how each pass makes up
+  # for it), and removing a link's target leaves the link dangling and
+  # newly reported. A pass finds what the one before it uncovered;
+  # from 35.0.2 to 35.0.3 that took two productive passes and a third
+  # that found nothing.
   #
   # Each pass costs one `occ` call once there is nothing left to do,
   # because the tasks inside stop as soon as a pass comes back empty.
@@ -400,9 +419,13 @@
   # Nextcloud stores the outcome of the last check and the overview
   # renders that, so deleting the files is only half of it - without
   # this the warning stays up until something else triggers a check.
+  # Both checks, since each stores its own part of that result.
   ansible.builtin.command:
-    cmd: sudo -u www-data php occ integrity:check-core
+    cmd: "sudo -u www-data php occ {{ item }}"
     chdir: "{{ cloud.nextcloud.path }}"
+  loop:
+    - integrity:check-core
+    - integrity:check-app --all
   changed_when: false
   failed_when: false
   when: cloud_integrity_removed | default(false)

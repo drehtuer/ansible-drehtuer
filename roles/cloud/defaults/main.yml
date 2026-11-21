@@ -69,24 +69,21 @@ cloud:  # noqa: var-naming[no-role-prefix] - see doc/STATUS.adoc
     # `themes/`, something left in `config/` - is reported by Nextcloud
     # and left alone. Narrowing this list is always safe; widening it to
     # `apps` or `themes` would let a core check delete what it does not
-    # own.
+    # own. Apps are cleaned separately, by `integrity:check-app`, and
+    # only those the release lists in `core/shipped.json` - never one
+    # from the app store, which shares the same `apps/` directory here.
     integrity:
-      # How many times to ask, delete, and ask again.
-      # `integrity:check-core` answers with a *partial* set - five
-      # files at a time on this host, where comparing
-      # core/signature.json against the filesystem directly showed 47
-      # - so one pass cannot finish. Passes after the last productive
-      # one cost a condition each, so this is a ceiling rather than a
-      # count: reaching it ends the run instead of spinning.
+      # How many times to ask, delete, and ask again. Passes after the
+      # last productive one cost a condition each, so this is a
+      # ceiling rather than a count: reaching it ends the run instead
+      # of spinning.
       #
-      # 120 rather than the 12 this started at, and the number comes
-      # from measuring the 34.0.3-to-34.0.4 cleanup rather than from
-      # taste. That upgrade left 283 stale files and each pass
-      # removed about three, so twelve passes cleared 33 and the host
-      # needed three playbook runs to come clean. A ceiling of 120
-      # covers an upgrade of that size in a single run, which is the
-      # point: the warning should clear when the role runs, not when
-      # somebody notices it is still there and runs it again.
+      # 120 was measured when each pass removed about three files,
+      # because Nextcloud reports one file per distinct content and
+      # the cause was not yet known. Each pass now expands that report
+      # to every stale file of the same content, and 35.0.2 to 35.0.3
+      # - 2366 stale files - needed two productive passes. The ceiling
+      # stays as headroom; lowering it is safe but buys nothing.
       max_passes: 120
       cleanup_prefixes:
         - 3rdparty

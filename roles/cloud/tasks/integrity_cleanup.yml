@@ -53,43 +53,240 @@
       # `invoke check-drift` too.
       check_mode: false
 
-    - name: Note which stale files may be removed
+    - name: Read the integrity result of every app
+      # The same leftovers, inside the apps the tarball ships. Core's
+      # check does not look under `apps/`, and these are not all inert:
+      # 35.0.3 renamed a files_sharing migration, and the copy 35.0.2
+      # left behind made `occ upgrade` on carcosa (2026-11-21) fail with
+      # "Migration step ... is unknown" after it had otherwise finished.
+      #
+      # `--all` is one call for every app, about 7 s on carcosa, against
+      # roughly a second per app asked one at a time.
+      #
+      # Its JSON output is not one document: each app with findings
+      # gets an `<app>: N errors found:` line, then its JSON on the
+      # next. Parsed below.
+      ansible.builtin.command:
+        cmd: >-
+          sudo -u www-data php occ integrity:check-app --all --output=json
+        chdir: "{{ cloud.nextcloud.path }}"
+      register: cloud_integrity_apps
+      changed_when: false
+      # Exits 1 when it has findings, as the core check does.
+      failed_when: cloud_integrity_apps.rc not in [0, 1]
+      check_mode: false
+
+    - name: Read which apps the release ships
+      # `--all` covers app-store apps too, and on this host they install
+      # into the same `apps/` directory as the shipped ones (no
+      # `apps_paths` is configured). The app store replaces an app's
+      # directory whole on update, so it leaves nothing stale; a finding
+      # there is something this role did not put there, and is left
+      # alone. The list is the release's own, read from the tree just
+      # extracted, so an app a release adds or drops is right first time.
+      ansible.builtin.slurp:
+        src: "{{ cloud.nextcloud.path }}/core/shipped.json"
+      register: cloud_shipped_json
+
+    - name: Note what Nextcloud reported, per tree
       # Two filters, and the second is the one that matters. `EXTRA_FILE`
       # means "present and not in the manifest", which is also true of
       # anything an administrator legitimately added - a custom theme
       # under `themes/`, a file left in `config/`. Only the directories
-      # that hold code this role itself unpacked are eligible, so a file
-      # nobody here created is reported by Nextcloud and left alone,
-      # which is the correct outcome for something this role does not own.
+      # that hold code this role itself unpacked are eligible - the core
+      # prefixes, and the apps the release ships - so a file nobody here
+      # created is reported by Nextcloud and left alone, which is the
+      # correct outcome for something this role does not own.
       #
-      # `..` and absolute paths are refused outright. Nextcloud has no
-      # reason to emit either, and `state: absent` on one would delete
-      # outside the installation.
+      # `..` and absolute paths are refused outright, from either check.
+      # Nextcloud has no reason to emit either, and `state: absent` on one
+      # would delete outside the installation.
+      #
+      # Each entry is one tree to search: `tree` is what the manifest's
+      # paths are relative to, `search` the directory to look in, and
+      # `hashes` the content Nextcloud reported as extra there, `files`
+      # the paths it named. Core is split by prefix so that a stale file
+      # under `dist/` does not cost a checksum of all of `3rdparty/`.
+      ansible.builtin.set_fact:
+        cloud_integrity_reports: >-
+          {%- set ns = namespace(app='', out=[]) -%}
+          {%- set core = {} -%}
+          {%- for f, v in cloud_integrity_extra.items()
+                if f is match(cloud_integrity_prefixes)
+                and f is not search('\\.\\.')
+                and f is not match('/') -%}
+          {%-   set _ = core.setdefault(f.split('/')[0], [])
+                  .append({'file': f, 'hash': v.current}) -%}
+          {%- endfor -%}
+          {%- for prefix, found in core.items() -%}
+          {%-   set ns.out = ns.out + [{'tree': '', 'search': prefix,
+                  'manifest': 'core/signature.json',
+                  'files': found | map(attribute='file') | list,
+                  'hashes': found | map(attribute='hash') | unique
+                            | list}] -%}
+          {%- endfor -%}
+          {%- for line in cloud_integrity_apps.stdout_lines -%}
+          {%-   if line is match('^[a-z0-9_]+: [0-9]+ errors found:$') -%}
+          {%-     set ns.app = line.split(':')[0] -%}
+          {%-   elif ns.app and line.startswith('{') -%}
+          {%-     set extra = ((line | from_json).EXTRA_FILE | default({}))
+                    | dict2items
+                    | rejectattr('key', 'search', '\\.\\.')
+                    | rejectattr('key', 'match', '/') | list -%}
+          {%-     if ns.app in cloud_shipped_apps and extra -%}
+          {%-       set ns.out = ns.out + [{'tree': 'apps/' ~ ns.app,
+                      'search': 'apps/' ~ ns.app,
+                      'manifest': 'apps/' ~ ns.app ~ '/appinfo/signature.json',
+                      'files': extra | map(attribute='key')
+                               | map('regex_replace', '^',
+                                     'apps/' ~ ns.app ~ '/') | list,
+                      'hashes': extra | map(attribute='value.current')
+                                | unique | list}] -%}
+          {%-     endif -%}
+          {%-     set ns.app = '' -%}
+          {%-   endif -%}
+          {%- endfor -%}
+          {{ ns.out }}
+      vars:
+        cloud_integrity_parsed: >-
+          {{ ((cloud_integrity.stdout | default('')) | trim or '{}')
+             | from_json }}
+        cloud_integrity_extra: >-
+          {{ (cloud_integrity_parsed.EXTRA_FILE | default({}))
+             if cloud_integrity_parsed is mapping else {} }}
+        cloud_integrity_prefixes: >-
+          ^({{ cloud.nextcloud.integrity.cleanup_prefixes | join('|') }})/
+        cloud_shipped_apps: >-
+          {{ (cloud_shipped_json.content | b64decode | from_json).shippedApps }}
+
+    - name: Read the manifests of the trees with findings
+      # The release's own signed lists - the same ones the checks above
+      # compared against, and already verified by them: a manifest whose
+      # signature does not hold is reported as an EXCEPTION, never as an
+      # EXTRA_FILE, so it never gets this far.
+      ansible.builtin.slurp:
+        src: "{{ cloud.nextcloud.path }}/{{ item }}"
+      loop: "{{ cloud_integrity_reports | map(attribute='manifest') | unique }}"
+      register: cloud_integrity_manifests
+
+    - name: Checksum the trees with findings
+      # Why this exists at all: both checks report one file per distinct
+      # *content*, not one per file. Nextcloud builds the report with
+      # `array_unique()` over the differences, and the values it
+      # deduplicates are the files' hashes
+      # (lib/private/IntegrityCheck/Checker.php, verify()). Stale files
+      # that are byte-for-byte identical - every `.license` file a build
+      # emits beside its chunk, say - come back as a single entry. That
+      # is the "partial set" this loop was first written around, and it
+      # is worst exactly where the files are most alike: `text` reported
+      # 1 of 146 per call on yuggoth, so 240 passes still left 145.
+      #
+      # So every file Nextcloud names is taken as a sample of its
+      # content, and removed along with each other file in the same tree
+      # that has the same content and is not in that tree's manifest.
+      # The second condition is not optional: the new release ships
+      # `.license` files with the very same text, and they are in it.
+      ansible.builtin.find:
+        paths: "{{ cloud.nextcloud.path }}/{{ item.search }}"
+        recurse: true
+        hidden: true
+        file_type: file
+        get_checksum: true
+        checksum_algorithm: sha512
+      loop: "{{ cloud_integrity_reports }}"
+      loop_control:
+        label: "{{ item.search }}"
+      register: cloud_integrity_found
+      check_mode: false
+
+    - name: Find dangling links in the trees where a hash failed
+      # A symlink whose target is gone hashes as `false`, and
+      # `array_unique()` collapses every such link into one entry just as
+      # it does identical files. 35.0.2 shipped `*.map.license` links to
+      # the `*.license` file beside them; once the targets were removed
+      # as stale, the links were left dangling - and `find` above lists
+      # regular files only, so it never sees them. Read-only.
+      ansible.builtin.command:
+        argv: [find, "{{ cloud.nextcloud.path }}/{{ item.search }}",
+               -xtype, l]
+      loop: "{{ cloud_integrity_reports | selectattr('hashes', 'contains',
+                false) }}"
+      loop_control:
+        label: "{{ item.search }}"
+      register: cloud_integrity_dangling
+      changed_when: false
+      check_mode: false
+
+    - name: Note which stale files may be removed
+      # A file qualifies when Nextcloud named it, or when its content is
+      # one Nextcloud reported as extra in that tree - a dangling link
+      # standing for the `false` it hashes to - *and* the tree's manifest
+      # does not list it. That is Nextcloud's own definition of
+      # EXTRA_FILE, applied to the files its report collapsed together.
+      # The named files are kept in unconditionally, so a file the
+      # searches above cannot see still goes. Each manifest is parsed
+      # once per tree, not once per file.
       ansible.builtin.set_fact:
         cloud_integrity_removed: >-
           {{ cloud_integrity_removed | default(false)
              or cloud_stale_files_this_pass | length > 0 }}
         cloud_stale_files: "{{ cloud_stale_files_this_pass }}"
       vars:
+        cloud_root: "{{ cloud.nextcloud.path | regex_replace('/+$', '') }}/"
         cloud_stale_files_this_pass: >-
-          {{ cloud_integrity_extra
-             | reject('search', '\.\.')
-             | reject('match', '/')
-             | select('match', cloud_integrity_prefixes)
-             | list }}
-        cloud_integrity_parsed: >-
-          {{ ((cloud_integrity.stdout | default('')) | trim or '{}')
-             | from_json }}
-        cloud_integrity_extra: >-
-          {{ (cloud_integrity_parsed.EXTRA_FILE | default({}) | list)
-             if cloud_integrity_parsed is mapping else [] }}
-        cloud_integrity_prefixes: >-
-          ^({{ cloud.nextcloud.integrity.cleanup_prefixes | join('|') }})/
+          {%- set ns = namespace(files=cloud_integrity_reports
+                | map(attribute='files') | flatten) -%}
+          {%- set manifests = dict(cloud_integrity_manifests.results
+                | map(attribute='item')
+                | zip(cloud_integrity_manifests.results
+                      | map(attribute='content'))) -%}
+          {%- for found in cloud_integrity_found.results -%}
+          {%-   set r = found.item -%}
+          {%-   set listed = (manifests[r.manifest] | b64decode
+                              | from_json).hashes -%}
+          {%-   set strip = (r.tree ~ '/') if r.tree else '' -%}
+          {%-   set dangling = cloud_integrity_dangling.results
+                  | selectattr('item.search', 'eq', r.search)
+                  | map(attribute='stdout_lines') | flatten -%}
+          {%-   for path in (found.files
+                    | selectattr('checksum', 'in', r.hashes)
+                    | map(attribute='path') | list) + dangling
+                  if path.startswith(cloud_root ~ strip) -%}
+          {%-     set rel = path[cloud_root | length:] -%}
+          {%-     set in_tree = rel[strip | length:] -%}
+          {%-     if in_tree not in listed
+                  and in_tree not in ['appinfo/signature.json',
+                                      'core/signature.json'] -%}
+          {%-       set ns.files = ns.files + [rel] -%}
+          {%-     endif -%}
+          {%-   endfor -%}
+          {%- endfor -%}
+          {{ ns.files | reject('search', '\\.\\.') | unique | list }}
 
     - name: Remove the stale files the previous release left
-      ansible.builtin.file:
-        path: "{{ cloud.nextcloud.path }}/{{ item }}"
-        state: absent
-      loop: "{{ cloud_stale_files | default([]) }}"
+      # `rm` in batches rather than `file` per path: the pass before
+      # `occ upgrade` runs in maintenance mode, and one module call per
+      # file made 35.0.2 to 35.0.3 on yuggoth - 2347 files - take ten
+      # minutes of it. Every path is relative to the installation and
+      # has been through the filters above; `--` keeps a name that
+      # starts with `-` a name. Skipped under --check; the task below
+      # reports instead.
+      ansible.builtin.command:
+        argv: "{{ ['rm', '-f', '--']
+                  + (item | map('regex_replace', '^',
+                                cloud.nextcloud.path ~ '/') | list) }}"
+      loop: "{{ cloud_stale_files | default([]) | batch(200) | list }}"
       loop_control:
-        label: "{{ item }}"
+        label: "{{ item | length }} files, from {{ item | first }}"
+      changed_when: true
+
+    - name: Report the stale files a real run would remove
+      # `command` is skipped under --check rather than reporting, which
+      # would take stale files out of `invoke check-drift` altogether -
+      # the `file` loop this replaced showed each one as a change.
+      ansible.builtin.debug:
+        msg: "{{ cloud_stale_files }}"
+      changed_when: true
+      when:
+        - ansible_check_mode
+        - cloud_stale_files | default([]) | length > 0
