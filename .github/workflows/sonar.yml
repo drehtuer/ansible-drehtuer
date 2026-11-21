@@ -18,6 +18,15 @@ name: SonarQube Cloud
 permissions:
   contents: read
 
+# One scan per branch at a time. SonarQube Cloud dates an analysis by
+# when its scan started and rejects one older than the last it accepted,
+# so overlapping scans - merging several pull requests in a row - would
+# fail whichever finishes last. A running scan is never cancelled; GitHub
+# keeps only the newest waiting one, which is the commit worth analysing.
+concurrency:
+  group: sonar-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   scan:
     name: Scan
@@ -34,7 +43,8 @@ jobs:
         with:
           fetch-depth: 0
 
-      # Pinned to the commit of v8.4.1, since this step is given the token.
+      # Pinned to a commit, since this step is given the token. Renovate
+      # keeps the version comment on the line below in step with it.
       - name: Run the scan
         # yamllint disable-line rule:line-length
         uses: SonarSource/sonarqube-scan-action@59202af334b4ba7b5db01b701b8e79f8b3bef0f4  # v8.5.0
