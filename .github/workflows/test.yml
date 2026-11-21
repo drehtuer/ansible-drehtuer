@@ -84,8 +84,8 @@ jobs:
           pip install \
             --only-binary :all: \
             'ansible==14.6.0' \
-            'molecule==26.8.0' \
-            'molecule-plugins[docker]==26.7.15'
+            'molecule==26.11.0' \
+            'molecule-plugins[docker]==26.11.0'
           ansible-galaxy collection install \
             --requirements-file .devcontainer/ansible-galaxy.yml
 
