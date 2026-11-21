@@ -12,7 +12,7 @@ cloud:  # noqa: var-naming[no-role-prefix] - see doc/STATUS.adoc
     # same version and the checksum below can be verified.
     # renovate: datasource=github-releases depName=nextcloud/server
     version: "35.0.3"
-    checksum: "dfc7955eaec5621de90e031d10f76006173b3f3e31d5d6e174821d1da14f162d"
+    checksum: "58401440ce81b7f8d445a8c2a8027572b616ef83592f96b121fd15ec8a1aed35"
     path: /var/www/nextcloud
     # Nextcloud's own recommendation for the background job.
     cron_minute: "*/5"
