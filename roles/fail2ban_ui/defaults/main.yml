@@ -11,9 +11,9 @@ fail2ban_ui:  # noqa: var-naming[no-role-prefix] - see doc/STATUS.adoc
   # the point - the digest is what makes the tag a claim rather than a
   # hope.
   image: swissmakers/fail2ban-ui
-  tag: v1.6.1
+  tag: v1.6.2
   digest: >-
-    sha256:81696e19ae06d957e9f3f81468e80986f0636d8c98086372070e2bb3fc8b6efc
+    sha256:3ef2a36e04c8ee5a368eeb1fc56259bb2bbca6a75159cca5b8ec044fe179b168
   # Compose file, and the container's own persistent state. Separate
   # directories on purpose: the first is configuration this repo owns
   # and rewrites, the second is data the container writes and must
