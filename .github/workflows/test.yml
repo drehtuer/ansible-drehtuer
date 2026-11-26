@@ -103,7 +103,7 @@ jobs:
           pip install \
             --only-binary :all: \
             'ansible==15.0.0' \
-            'molecule==26.11.0' \
+            'molecule==26.11.1' \
             'molecule-plugins[docker]==26.11.0'
           ansible-galaxy collection install \
             --requirements-file .devcontainer/ansible-galaxy.yml
