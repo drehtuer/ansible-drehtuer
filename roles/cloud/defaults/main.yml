@@ -26,6 +26,10 @@ cloud:  # noqa: var-naming[no-role-prefix] - see doc/STATUS.adoc
     # 95 MB a year here, so two generations is roughly two years of
     # history for 200 MB of disk.
     log_rotate_size: 104857600
+    # Nextcloud's nightly code integrity check (CheckCodeIntegrityJob,
+    # templates/integrity.config.php.j2). Off: in 35.0.3 on PHP 8.5 the
+    # job hangs every night at 100 % of a core and never finishes.
+    integrity_check_scheduled: false
     # Where user files live. Note this sits *inside* the installation
     # directory on the current host, which is what makes an upgrade
     # delicate: the release tarball never contains `data/`, so

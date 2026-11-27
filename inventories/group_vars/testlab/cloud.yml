@@ -58,6 +58,8 @@ cloud:
         - db:add-missing-columns
         - db:add-missing-primary-keys
     log_rotate_size: 104857600
+    # Off while CheckCodeIntegrityJob hangs, see the role default.
+    integrity_check_scheduled: false
   push:
     port: 7867
   # Added 2026-08-22. The role has required this since the commit that
