@@ -472,6 +472,16 @@
     mode: "0640"
     validate: php -l %s
 
+- name: Nextcloud scheduled integrity check
+  # Off while the nightly job hangs on this host; see the template.
+  ansible.builtin.template:
+    src: templates/integrity.config.php.j2
+    dest: "{{ cloud.nextcloud.path }}/config/integrity.config.php"
+    owner: www-data
+    group: www-data
+    mode: "0640"
+    validate: php -l %s
+
 - name: Nextcloud outgoing mail
   # Values here win over config.php, which still holds whatever was set
   # in the web form before; see the template.

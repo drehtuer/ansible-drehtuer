@@ -1,0 +1,20 @@
+<?php
+{{ ansible_managed | comment }}
+# An additional config file, not config.php - same mechanism as the
+# cache, domains, logging and smtp drop-ins beside it.
+#
+# Whether Nextcloud re-runs its code integrity check every night as a
+# background job (CheckCodeIntegrityJob, new in Nextcloud 35), and
+# notifies and emails the admins when the result changes. The check
+# itself stays available on demand: the *Rescan* link in the admin
+# overview, or `occ integrity:check-core` / `integrity:check-app`.
+#
+# Off on carcosa since 2026-11-27, because the job hung every night
+# from the first one after the upgrade to 35.0.3 (2026-11-22, on PHP
+# 8.5): each run spun one CPU core at 100 % and never finished, and
+# the next night's run added another, until six of eight cores were
+# busy. See doc/STATUS.adoc for what was established about it. Turn it
+# back on once a Nextcloud release fixes the hang.
+$CONFIG = [
+    'integrity.check.scheduled' => {{ cloud.nextcloud.integrity_check_scheduled | bool | ternary('true', 'false') }},
+];

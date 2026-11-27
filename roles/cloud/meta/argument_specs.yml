@@ -193,6 +193,14 @@ argument_specs:
                     nothing packaged rotates it either. Nextcloud keeps
                     one previous file, so the real ceiling is twice
                     this.
+              integrity_check_scheduled:
+                type: bool
+                required: true
+                description:
+                  - Whether Nextcloud runs its code integrity check
+                    every night as a background job and notifies the
+                    admins when the result changes. The check stays
+                    available on demand either way.
           push:
             type: dict
             required: true
