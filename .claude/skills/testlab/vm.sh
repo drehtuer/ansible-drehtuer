@@ -34,7 +34,6 @@ case "$HOST" in
   hastur)  DEFAULT_PORT=2223; DEFAULT_RELEASE=24.04 ;;
   *) printf 'Unknown guest "%s". Known: yuggoth, hastur.\n' "$HOST" >&2; exit 1 ;;
 esac
-GROUP=testlab_vm
 SSH_PORT="${LAB_VM_SSH_PORT:-$DEFAULT_PORT}"
 
 # Codename-independent path, so this keeps working across releases.
@@ -63,16 +62,24 @@ CPUS="${LAB_VM_CPUS:-4}"
 DISK_SIZE="${LAB_VM_DISK:-20G}"
 BOOT_TIMEOUT=300
 
-REPO_ROOT="$(git -C "$(dirname "${BASH_SOURCE[0]}")" rev-parse --show-toplevel)"
-# One key for every local guest: they are ephemeral, identical in
-# purpose, and reachable only from inside this container.
-PUBKEY="${HOME}/.ssh/yuggoth.pub"
-
 say()  { printf '\n\033[1m%s\033[0m\n' "$*"; }
 info() { printf '  %s\n' "$*"; }
 ok()   { printf '  \033[32mok\033[0m   %s\n' "$*"; }
 bad()  { printf '  \033[31mFAIL\033[0m %s\n' "$*"; }
 die()  { printf '\n\033[1;31m%s\033[0m\n\n' "$*"; exit 1; }
+
+# Public half of the key ssh logs in to $HOST with: the first
+# IdentityFile of its Host block in ~/.ssh/config. Today every local
+# guest's block names the same key (they are ephemeral, identical in
+# purpose, and reachable only from inside this container). The key
+# files have opaque names (the dotfiles repo hides what each key is
+# for), so never name one here - always go through the alias.
+host_pubkey() {
+  local f
+  f="$(ssh -G "$HOST" 2>/dev/null | awk '$1 == "identityfile" { print $2; exit }')"
+  f="${f/#\~/$HOME}"
+  [[ -r "$f" ]] && ssh-keygen -y -f "$f" 2>/dev/null
+}
 
 require_kvm() {
   [[ -e /dev/kvm ]] || die "/dev/kvm is missing. The dev container needs rebuilding: devcontainer.json passes it through with --device=/dev/kvm, and that only takes effect on a rebuild (Dev Containers: Rebuild Container)."
@@ -98,7 +105,8 @@ wait_for_ssh() {
 }
 
 write_seed() {
-  [[ -f "$PUBKEY" ]] || die "No ${PUBKEY}. Generate it with: ssh-keygen -t ed25519 -f ~/.ssh/yuggoth -N ''"
+  local pubkey
+  pubkey="$(host_pubkey)" || die "No readable IdentityFile for Host ${HOST} in ~/.ssh/config. The Host block and its key come from the dotfiles (chezmoi apply)."
   # The account and its NOPASSWD sudo have to exist before Ansible can
   # do anything: ansible.cfg escalates on every play.
   cat > "${GUEST}/user-data" <<EOF
@@ -115,7 +123,7 @@ users:
     # which is not exposed outside this container.
     passwd: \$6\$Eaf5VP6t9TNfbMch\$dxYdnEbaYgNAAyssxHYwmpuKfPZG1jJyuXyG9LGKXNQfFS9HGuXbFu/cGfVRN5T6P3e6a7UdIzwPj5K2iAbMd1
     ssh_authorized_keys:
-      - $(cat "$PUBKEY")
+      - ${pubkey}
 ssh_pwauth: false
 package_update: false
 EOF

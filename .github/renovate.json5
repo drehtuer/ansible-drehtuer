@@ -16,9 +16,11 @@
 //     marker on the line above it: Nextcloud and Prometheus in YAML,
 //     the tool versions in .devcontainer/Dockerfile.
 //   * The same tools pinned again inside the CI workflows, matched by
-//     their install command. A PR is per dependency rather than per
-//     file, so the Dev Container and CI copies ("keep in sync" in both)
-//     move in one PR.
+//     their install command - or, for a release binary whose URL has
+//     no install command to match (shellcheck, gitleaks), by the same
+//     marker above a `*_VERSION:` step env var. A PR is per dependency
+//     rather than per file, so the Dev Container and CI copies ("keep
+//     in sync" in both) move in one PR.
 //   * GitHub Actions and the Dockerfile's base image, natively.
 //
 // Deliberately NOT watched: the Valheim mods (`valheim_mods`). Thunderstore
@@ -72,6 +74,18 @@
       ],
     },
     {
+      // The workflow copy of a Dockerfile ARG: shellcheck in lint.yml,
+      // moved together with SHELLCHECK_VERSION in the Dockerfile, and
+      // gitleaks in security.yml. Limited to `*_VERSION` keys so the
+      // checksum env var next to gitleaks' is never read as a version.
+      description: 'Workflow env versions marked with a renovate comment',
+      customType: 'regex',
+      managerFilePatterns: ['/^\\.github/workflows/.+\\.yml$/'],
+      matchStrings: [
+        '#\\s*renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)\\n\\s+[A-Z][A-Z0-9_]*_VERSION: "?(?<currentValue>[^"\\s]+)"?',
+      ],
+    },
+    {
       description: 'pip pins in workflow run steps (name==version)',
       customType: 'regex',
       managerFilePatterns: ['/^\\.github/workflows/.+\\.yml$/'],
@@ -104,7 +118,12 @@
     {
       // GitHub tags these with a leading v; the pins have none.
       matchDatasources: ['github-releases'],
-      matchPackageNames: ['nextcloud/server', 'prometheus/prometheus'],
+      matchPackageNames: [
+        'nextcloud/server',
+        'prometheus/prometheus',
+        'koalaman/shellcheck',
+        'gitleaks/gitleaks',
+      ],
       extractVersion: '^v(?<version>.+)$',
     },
     {
@@ -121,6 +140,12 @@
       matchPackageNames: ['prometheus/prometheus'],
       prBodyNotes: [
         "**Update `checksums.amd64` and `checksums.arm64` by hand before merging**, in every file this PR touches - Renovate cannot compute them. Take them from upstream's `sha256sums.txt` for v{{{newVersion}}}. Without them the deploy fails at the download. The *Pinned checksums* check fails this PR until it is done.",
+      ],
+    },
+    {
+      matchPackageNames: ['gitleaks/gitleaks'],
+      prBodyNotes: [
+        "**Update `GITLEAKS_SHA256` by hand before merging**, in `.github/workflows/security.yml` - Renovate cannot compute it. Take the `linux_x64.tar.gz` line from upstream's `gitleaks_{{{newVersion}}}_checksums.txt`. The *Secrets in history* check fails this PR until it is done, at `sha256sum --check`.",
       ],
     },
     {

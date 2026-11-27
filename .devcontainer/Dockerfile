@@ -4,7 +4,7 @@ FROM  ubuntu:26.04
 
 LABEL name="Ansible controller" \
     description="Control node running Ubuntu 26.04" \
-    version="1.18"
+    version="1.19"
 
 ARG   DEBIAN_FRONTEND=noninteractive
 ARG   ARG_USER
@@ -134,6 +134,9 @@ RUN   \
     # (roles/wireguard/scripts/show-peer.sh --qr), which is how a
     # phone gets one without anybody typing 44 base64 characters.
     qrencode \
+    # Unpacks the shellcheck release below, which upstream ships as
+    # .tar.xz only. The base image has tar but not xz.
+    xz-utils \
     # GitHub CLI apt repo, added below,
     # needs its keyring dir to exist first
     && install -d -m 755 /etc/apt/keyrings \
@@ -238,6 +241,38 @@ RUN   \
     --directory=/usr/local/bin \
     --strip-components=1 \
     "ruff-$(uname -m)-unknown-linux-gnu/ruff"
+
+# Keep in sync with the version installed by
+# .github/workflows/lint.yml, so CI and the
+# Dev Container lint with the same shellcheck.
+# Ubuntu packages it, but at whatever version the
+# release froze - the same unpinned drift that
+# ansible-lint had above.
+# renovate: datasource=github-releases depName=koalaman/shellcheck
+ARG   SHELLCHECK_VERSION=0.11.0
+
+RUN   \
+    # Shell script linter, installed from the pinned
+    # upstream release binary like ruff. Upstream
+    # publishes no checksum file to verify it
+    # against, so the pin is the version alone - the
+    # same footing as ruff's. Tags carry a leading v,
+    # the pin does not (see renovate.json5). uname -m
+    # maps to the x86_64/aarch64 build names used by
+    # upstream.
+    curl \
+    --proto '=https' \
+    --location \
+    --fail \
+    --silent \
+    --show-error \
+    "https://github.com/koalaman/shellcheck/releases/download/v${SHELLCHECK_VERSION}/shellcheck-v${SHELLCHECK_VERSION}.linux.$(uname -m).tar.xz" \
+    | tar \
+    --extract \
+    --xz \
+    --directory=/usr/local/bin \
+    --strip-components=1 \
+    "shellcheck-v${SHELLCHECK_VERSION}/shellcheck"
 
 # Keep in sync with .github/workflows/docs.yml.
 #

@@ -3,13 +3,13 @@
 # This file is load-bearing for access: the users role manages
 # `authorized_keys` authoritatively (authorized_keys_exclusive), so
 # the keys below are the only ones that remain on a host after a run.
-# They are the dedicated keys created for the test machines
-# (~/.ssh/nyarlathotep and ~/.ssh/yuggoth), referenced by the matching
-# entries in ~/.ssh/config. Both are listed for both hosts, which is
-# harmless and means one file covers every test host. Remove a key
-# here without removing the host and the next deploy locks that host
-# out - which is unrecoverable on the metal one, since it has no
-# console.
+# They are the dedicated keys created for the test machines: the
+# IdentityFile of the nyarlathotep and yuggoth entries in ~/.ssh/config
+# (opaque file names; `ssh -G <host> | grep -i identityfile` shows
+# them). Both are listed for both hosts, which is harmless and means
+# one file covers every test host. Remove a key here without removing
+# the host and the next deploy locks that host out - which is
+# unrecoverable on the metal one, since it has no console.
 #
 # The password hash is only there so the physical console remains a
 # way back in; SSH password authentication is denied by the sshd role.

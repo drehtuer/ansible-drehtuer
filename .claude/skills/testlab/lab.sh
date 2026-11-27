@@ -19,12 +19,10 @@ case "$TARGET" in
     HOST=yuggoth
     # Loopback, via the port forward in ~/.ssh/config.
     IP=127.0.0.1
-    KEY="${HOME}/.ssh/yuggoth"
     ;;
   metal)
     HOST=nyarlathotep
     IP=192.168.89.41
-    KEY="${HOME}/.ssh/nyarlathotep"
     ;;
   *) printf 'LAB_TARGET must be "vm" or "metal", not "%s"\n' "$TARGET" >&2; exit 1 ;;
 esac
@@ -108,6 +106,18 @@ needs_human() {
 SSH_MUX=(-o ControlMaster=auto -o "ControlPath=/tmp/.lab-%C" -o ControlPersist=60)
 sshq() { ssh -o ConnectTimeout=10 -o BatchMode=yes "${SSH_MUX[@]}" "$HOST" "$@"; }
 
+# Public half of the key ssh logs in to $HOST with: the first
+# IdentityFile of its Host block in ~/.ssh/config. The key files have
+# opaque names (the dotfiles repo hides what each key is for), so never
+# name one here - always go through the alias. Prints nothing and
+# fails if that file is missing.
+host_pubkey() {
+  local f
+  f="$(ssh -G "$HOST" 2>/dev/null | awk '$1 == "identityfile" { print $2; exit }')"
+  f="${f/#\~/$HOME}"
+  [[ -r "$f" ]] && ssh-keygen -y -f "$f" 2>/dev/null
+}
+
 # The LVM snapshot dance exists because the physical machine cannot be
 # reset any other way. The VM has qcow2 overlays instead.
 metal_only() {
@@ -159,8 +169,14 @@ cmd_check() {
   fi
 
   say "Machine"
-  sshq 'echo "  $(. /etc/os-release; echo "$PRETTY_NAME")  kernel $(uname -r)"
-        echo "  virt: $(systemd-detect-virt || true)   uptime:$(uptime -p | sed s/up//)"'
+  # A quoted heredoc, so the remote shell is the one that expands it.
+  local machine
+  machine="$(cat <<'EOF'
+echo "  $(. /etc/os-release; echo "$PRETTY_NAME")  kernel $(uname -r)"
+        echo "  virt: $(systemd-detect-virt || true)   uptime:$(uptime -p | sed s/up//)"
+EOF
+)"
+  sshq "$machine"
 
   say "Rollback"
   if [[ "$TARGET" == "metal" ]]; then
@@ -183,7 +199,9 @@ cmd_check() {
 
   say "Lockout guards"
   local key
-  key="$(ssh-keygen -y -f "$KEY" 2>/dev/null | awk '{print $2}')"
+  key="$(host_pubkey | awk '{print $2}')"
+  # An empty key would make both grep -F checks below pass.
+  [[ -n "$key" ]] || { bad "no readable IdentityFile for Host ${HOST} in ~/.ssh/config - cannot check our key"; exit 1; }
   if sshq "grep -qF '${key}' ~/.ssh/authorized_keys"; then
     ok "our public key is in authorized_keys"
   else
@@ -379,7 +397,11 @@ REMOTE
     esac
   done <<<"$report"
 
-  ((rc == 0)) && say "verify: PASS" || say "verify: FAIL (expected until every playbook has been deployed)"
+  if ((rc == 0)); then
+    say "verify: PASS"
+  else
+    say "verify: FAIL (expected until every playbook has been deployed)"
+  fi
   return $rc
 }
 
@@ -390,7 +412,8 @@ cmd_reinstall_stage() {
   metal_only reinstall-stage reset
   require_up
   local iso_url="${LAB_ISO_URL:?set LAB_ISO_URL to the 26.04 live-server ISO URL}"
-  local key; key="$(ssh-keygen -y -f ~/.ssh/nyarlathotep)"
+  local key
+  key="$(host_pubkey)" || { bad "no readable IdentityFile for Host ${HOST} in ~/.ssh/config"; exit 1; }
 
   say "Staging the installer on the machine"
   sshq "sudo mkdir -p /var/lib/autoinstall /boot/autoinstall
@@ -449,7 +472,13 @@ ENTRY
   sshq "sudo systemctl reboot" || true
   BOOT_TIMEOUT=1800 wait_for_boot
   say "The machine answered SSH again. Confirm it is actually reinstalled:"
-  sshq '. /etc/os-release; echo "  $PRETTY_NAME"; uptime -p'
+  # A quoted heredoc, so the remote shell is the one that expands it.
+  local release
+  release="$(cat <<'EOF'
+. /etc/os-release; echo "  $PRETTY_NAME"; uptime -p
+EOF
+)"
+  sshq "$release"
 }
 
 usage() {

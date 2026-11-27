@@ -1,8 +1,8 @@
 # Runs the same linters as `invoke lint`, on the committed state,
 # including the AsciiDoc structural check (`invoke lint-docs`), which
 # the pre-commit hook does not run. See .yamllint, .ansible-lint and
-# pyproject.toml for the rules; the docs job carries its own
-# reasoning inline.
+# pyproject.toml for the rules; the shell and docs jobs carry their
+# own reasoning inline.
 name: Lint
 
 "on":
@@ -88,6 +88,66 @@ jobs:
 
       - name: ruff format
         run: ruff format --check .
+
+  shell:
+    name: Shell
+    runs-on: ubuntu-26.04
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v7
+
+      # Keep in sync with SHELLCHECK_VERSION in .devcontainer/Dockerfile,
+      # and installed the same way: the upstream release binary, not
+      # the runner's own shellcheck, whose version is whatever the
+      # image happens to ship. /usr/local/bin is ahead of /usr/bin on
+      # PATH, so this one shadows it; `--version` shows which ran.
+      # Upstream publishes no checksum file, so only the version is
+      # pinned, as in the Dockerfile. Tags carry a leading v, the pin
+      # does not (see .github/renovate.json5).
+      - name: Install shellcheck
+        env:
+          # renovate: datasource=github-releases depName=koalaman/shellcheck
+          SHELLCHECK_VERSION: 0.11.0
+        run: |
+          name="shellcheck-v${SHELLCHECK_VERSION}"
+          base="https://github.com/koalaman/shellcheck/releases/download"
+          curl --proto '=https' --location --fail --silent --show-error \
+            "${base}/v${SHELLCHECK_VERSION}/${name}.linux.$(uname -m).tar.xz" \
+            | sudo tar --extract --xz --directory=/usr/local/bin \
+              --strip-components=1 "${name}/shellcheck"
+          shellcheck --version
+
+      # The same files `invoke lint-shell` selects (shell_files() in
+      # tasks.py), and the same single invocation: tracked `*.sh`,
+      # plus tracked files with no extension at all whose first line
+      # is a sh/bash shebang - .githooks/pre-commit is why. `*.sh.j2`
+      # is neither, on purpose: those are Jinja templates, and
+      # shellcheck cannot parse the `{% %}` and `{{ }}` in them. The
+      # rule is repeated in .githooks/pre-commit; keep all three in
+      # step.
+      #
+      # No options: every severity down to `style` fails by default,
+      # the same stance as `yamllint --strict` above.
+      - name: shellcheck
+        env:
+          SHELL_SHEBANG: '^#! ?/[^ ]*/(env +)?(ba)?sh( |$)'
+        run: |
+          files=()
+          while IFS= read -r -d '' file; do
+            [[ -f ${file} ]] || continue
+            case "${file##*/}" in
+              *.sh) files+=("${file}") ;;
+              *.*) ;;
+              *)
+                first=''
+                IFS= read -r first < "${file}" || true
+                if [[ ${first} =~ ${SHELL_SHEBANG} ]]; then
+                  files+=("${file}")
+                fi
+                ;;
+            esac
+          done < <(git ls-files -z)
+          shellcheck "${files[@]}"
 
   docs:
     name: AsciiDoc

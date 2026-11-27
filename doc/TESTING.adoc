@@ -28,8 +28,12 @@ repo's.
 | Layer | What it does | Where it runs
 
 | Linting
-| `yamllint`, `ansible-lint` (`production` profile) and `ruff`. Style and Ansible idiom only — it never evaluates a variable or renders a template.
+| `yamllint`, `ansible-lint` (`production` profile), `ruff` and `shellcheck`. Style and Ansible idiom only — it never evaluates a variable or renders a template, so the `+*.sh.j2+` templates are not shellchecked.
 | CI + local
+
+| Security
+| `gitleaks` over the whole git history, and the inventory's SSH public keys against a strength policy and published leak lists. See <<Security checks>>.
+| CI (SSH keys also local)
 
 | Static tests
 | Validates every `meta/argument_specs.yml` and renders every template against a fake inventory. No host is contacted, nothing is installed.
@@ -96,6 +100,21 @@ invoke check-pins
 It exists because Renovate moves the version and cannot compute the checksum, and twice that reached `main` unnoticed: Nextcloud 35.0.3 (#186) failed only when the playbook ran on `carcosa`, Prometheus 3.16.0 (#193) only because a molecule scenario happens to download it. Proven both ways on 2026-11-21: the seven pins on `main` pass, and a copy with the two old checksums put back fails on exactly those two, naming the file, the line and the URL to take the right value from.
 
 It needs network access, so it is not part of `invoke test-static` and its *no host is contacted* promise. CI runs it as a job of its own (*Pinned checksums* in `.github/workflows/test.yml`) on every push and pull request, separate from the static tests so an upstream outage does not hold up the molecule scenarios.
+
+== Security checks
+
+[source, bash]
+----
+# Needs badkeys (not in the Dev Container) and network access
+invoke check-ssh-keys
+----
+
+`.github/workflows/security.yml` runs two jobs on every push to `main` and pull request, and weekly. The schedule is for the second one: the leak lists grow while the repository does not change, so a key that passed last week can fail today.
+
+* *Secrets in history* - `gitleaks git --redact --verbose .` over a full-depth checkout, so a secret removed in a later commit is still found. Exceptions are in `.gitleaks.toml`, each an exact value with its reason, so a real secret next to one is still reported. A new fake secret in a test inventory will trip it; add that value there rather than a path or a rule.
+* *SSH public keys* - `tests/extract-ssh-keys.sh` prints every key in the tracked plain-text files under `inventories/`, named by the file it came from, and fails if there are none. `tests/check-ssh-keys.sh` then requires Ed25519 or ECDSA (FIDO variants included) or RSA of at least 3072 bits, refreshes the `badkeys` blocklist and checks every key against it. It names keys by that file only and never prints fingerprints. Vaulted files are never decrypted, so the production keys are outside its reach.
+
+Both were first run locally on 2026-11-27, at the versions CI pins: gitleaks found no leaks in 317 commits, and all three SSH keys passed. `doc/STATUS.adoc` has the detail.
 
 == Molecule
 

@@ -1,0 +1,45 @@
+# gitleaks configuration, read by .github/workflows/security.yml and
+# by a local `gitleaks git .`: gitleaks picks up `.gitleaks.toml` from
+# the directory it scans, so neither needs a --config flag.
+#
+# The built-in rules stay in force; this only adds exceptions. Each is
+# an exact value rather than a path or a rule, so a real secret added
+# next to one of them is still reported.
+#
+# Not needed for the vault: `$ANSIBLE_VAULT;1.1;AES256` bodies and
+# `!vault |` blocks are lowercase hex with no key name on the same
+# line, which no rule matches. What is listed here is what the
+# history (`git log -p`) holds in plain text that the generic
+# `key: <high-entropy value>` rule would read as a credential.
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = 'Fake TSIG secrets for the test and testlab inventories'
+# base64 of "test-tsig-secret-not-used-anywhere",
+# "test-alias-tsig-secret-not-used-either" and
+# "lab-alias-tsig-secret-not-real-either" - throwaway values that let
+# the TSIG path be exercised without a real secondary. See
+# inventories/test/group_vars/all/nsd.yml and
+# inventories/group_vars/testlab/nsd.yml.
+regexTarget = 'secret'
+regexes = [
+  '''dGVzdC10c2lnLXNlY3JldC1ub3QtdXNlZC1hbnl3aGVyZQ==''',
+  '''dGVzdC1hbGlhcy10c2lnLXNlY3JldC1ub3QtdXNlZC1laXRoZXI=''',
+  '''bGFiLWFsaWFzLXRzaWctc2VjcmV0LW5vdC1yZWFsLWVpdGhlcg==''',
+]
+
+[[allowlists]]
+description = 'SHA-256 checksums of deployed htpasswd files'
+# `htaccess_sha256` / `htpasswd_sha256`, removed since: the role
+# compared them with `stat`'s checksum of the decrypted file on the
+# host to decide whether to copy it again. They are digests of a file,
+# not a credential - the file itself was vault-encrypted
+# (`*.htpasswd.aes256`) - and only match because the key names contain
+# "access" and "passwd".
+regexTarget = 'secret'
+regexes = [
+  '''4611135e55fbfd8fed7731c5a616fe87eef0d7be6e2d94757164efbc9b83d7bf''',
+  '''f8cd7b4de6d8cb904cd4d5b6317066c33de93d3fa6c0d2bcf02c113c50e2e5af''',
+]

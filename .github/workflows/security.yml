@@ -1,0 +1,106 @@
+# Looks for secrets that should not be in the repository, and for SSH
+# public keys that should not be trusted. Neither needs the vault
+# password: what is vaulted is out of reach of a leak, and is never
+# decrypted here.
+#
+# On a schedule as well as on changes, because the SSH check's verdict
+# can change while the repository does not: the leak lists grow as
+# compromised keys are found, and a key that passed last week may be
+# on one today. gitleaks' rules are fixed by its pinned version, so
+# for that job the scheduled run only repeats the last verdict; it is
+# kept in the same workflow because it is cheap.
+name: Security
+
+"on":
+  push:
+    branches:
+      - main
+  pull_request:
+  schedule:
+    # Mondays, 05:17 UTC - off the hour, when scheduled runs queue up.
+    - cron: '17 5 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  gitleaks:
+    name: Secrets in history
+    runs-on: ubuntu-26.04
+    steps:
+      # The whole history, not the default single commit: a secret
+      # removed in a later commit is still in the repository, and
+      # still readable by anyone who clones it.
+      - name: Check out the repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      # The release binary rather than gitleaks' own action: one less
+      # third-party action running with access to the repository, and
+      # a download that can be pinned by checksum, not just by tag.
+      #
+      # Checked against a pinned SHA-256 taken from the release's
+      # checksums file. A version bump therefore needs GITLEAKS_SHA256
+      # updated as well - Renovate moves the version only, says so in
+      # its PR (.github/renovate.json5), and this step fails that PR
+      # until the checksum matches.
+      - name: Install gitleaks
+        env:
+          # renovate: datasource=github-releases depName=gitleaks/gitleaks
+          GITLEAKS_VERSION: 8.30.1
+          GITLEAKS_SHA256: >-
+            551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+        run: |
+          archive="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          base="https://github.com/gitleaks/gitleaks/releases/download"
+          install_dir="${RUNNER_TEMP}/gitleaks"
+          mkdir -p "${install_dir}"
+          cd "${install_dir}"
+          curl --proto '=https' --location --fail --silent --show-error \
+            --output "${archive}" \
+            "${base}/v${GITLEAKS_VERSION}/${archive}"
+          sha256sum --check --strict <<< "${GITLEAKS_SHA256}  ${archive}"
+          tar --extract --gzip --file "${archive}" gitleaks
+          echo "${install_dir}" >> "${GITHUB_PATH}"
+
+      # Every commit reachable from the checkout, with the default
+      # rules plus the exceptions in .gitleaks.toml, which gitleaks
+      # reads from the directory it scans. Exit 1 on any finding.
+      #
+      # --redact, because this log is readable by anyone who can read
+      # the repository: a finding is reported by file, line, commit
+      # and rule, never by the secret it found.
+      - name: gitleaks
+        run: gitleaks git --redact --verbose .
+
+  ssh-keys:
+    name: SSH public keys
+    runs-on: ubuntu-26.04
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+
+      # https://badkeys.info - compares keys against published lists
+      # of compromised ones, and runs checks for broken key
+      # generation. See tests/check-ssh-keys.sh.
+      - name: Install badkeys
+        run: pip install 'badkeys==0.0.22'
+
+      # Only the keys in plain-text files under inventories/, which in
+      # practice means the testlab and the fake test inventory; the
+      # production users file is vaulted whole and never decrypted
+      # here. extract-ssh-keys.sh fails if it finds none at all, so a
+      # change to how the inventory writes keys cannot turn this into
+      # a check of nothing.
+      - name: Check SSH public keys
+        run: |
+          keys="${RUNNER_TEMP}/ssh-keys"
+          tests/extract-ssh-keys.sh inventories > "${keys}"
+          tests/check-ssh-keys.sh "${keys}"
