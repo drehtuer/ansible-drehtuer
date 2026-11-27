@@ -90,8 +90,16 @@ jobs:
       # https://badkeys.info - compares keys against published lists
       # of compromised ones, and runs checks for broken key
       # generation. See tests/check-ssh-keys.sh.
+      #
+      # --only-binary :all: so pip never builds a package from source,
+      # which would run that package's setup script in this job. badkeys
+      # and all of its dependencies (cryptography, cffi, gmpy2,
+      # pyopenssl, pycparser, typing_extensions) ship wheels for this
+      # Python, checked on 2026-11-27; if a bump ever needs a source
+      # build, this step fails instead of building it.
       - name: Install badkeys
-        run: pip install 'badkeys==0.0.22'
+        run: |
+          pip install --only-binary :all: 'badkeys==0.0.22'
 
       # Only the keys in plain-text files under inventories/, which in
       # practice means the testlab and the fake test inventory; the

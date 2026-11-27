@@ -76,7 +76,7 @@ badkeys --ssh-lines "${file}" || rc=$?
 ((rc & 4)) && echo "FAIL badkeys: a key above is compromised or weak," \
   "replace it"
 ((rc & 2)) && echo "FAIL badkeys: some input could not be scanned"
-((rc & 1)) && echo "FAIL badkeys: error"
+((rc & 1)) && echo "FAIL badkeys: error" >&2
 ((rc == 0)) && echo "ok   badkeys: none of the ${n} keys is on a leak" \
   "list or known-weak"
 ((rc == 0 && failed == 0))
