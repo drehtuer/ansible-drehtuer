@@ -69,15 +69,16 @@ Avoiding it entirely is better: open a *new* login shell after the container sta
 
 === Tooling not packaged for Ubuntu
 
-Five tools are installed outside `apt` because Ubuntu 26.04 does not package them at all, or not at a usable version, and all five are pinned in `.devcontainer/Dockerfile`:
+Six tools are installed outside `apt` because Ubuntu 26.04 does not package them at all, or not at a usable or pinnable version, and all six are pinned in `.devcontainer/Dockerfile`:
 
 [cols="h,m,d", options="autowidth"]
 |===
 | `ansible-lint` | `ANSIBLE_LINT_VERSION` | In a virtualenv at `/opt/ansible-lint` created with `--system-site-packages`, so it sees the same `ansible-core` and collections as the rest of the toolchain rather than a copy of its own. Ubuntu's own package carries no version pin and previously drifted out from under the repo.
 | `yamllint` | `YAMLLINT_VERSION` | Alongside `ansible-lint` in the same virtualenv, which requires a newer release than Ubuntu packages.
 | `ruff` | `RUFF_VERSION` | Release binary, fetched from GitHub.
+| `shellcheck` | `SHELLCHECK_VERSION` | Release binary, fetched from GitHub like `ruff`. Ubuntu packages it, but at whatever version the release froze, so CI could not be held to the same one. Upstream ships it as `.tar.xz` only, hence `xz-utils` in the apt list.
 | `molecule` | `MOLECULE_VERSION` | Installed into its own — fully isolated — virtualenv at `/opt/molecule`, because pip refuses to install into the system Python (PEP 668). The entry point is linked into `/usr/local/bin`.
 | `claude` | `CLAUDE_CODE_VERSION` | Released binary, fetched from Anthropic's download channel and checked against the SHA256 in that release's `manifest.json`. It is self-contained, so it goes straight into `/usr/local/bin` rather than through Anthropic's `install.sh` — that installer puts everything under `$HOME/.claude`, which `devcontainer.json` bind-mounts from the host, so a build-time install there would be shadowed the moment the container starts. For the same reason `claude update` cannot upgrade it in place: bump the version and rebuild.
 |===
 
-Keep the first four in step with the versions installed by the workflows in `.github/workflows/`, so that CI and a local run use the same tools. `claude` has no CI counterpart — it is a development convenience, so that the CLI is available in a container terminal and not only through the VS Code extension `devcontainer.json` installs.
+Keep the first five in step with the versions installed by the workflows in `.github/workflows/`, so that CI and a local run use the same tools. `claude` has no CI counterpart — it is a development convenience, so that the CLI is available in a container terminal and not only through the VS Code extension `devcontainer.json` installs.

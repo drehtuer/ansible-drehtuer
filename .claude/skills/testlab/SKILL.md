@@ -80,7 +80,7 @@ That is what makes it work rather than a hack: the role decides whether to call 
 
 On the VM this is a non-event: `vm.sh console` always works, and `vm.sh reset` is seconds. On the metal it is unrecoverable without physical access. Either way:
 
-* **`users`** manages `authorized_keys` authoritatively (`authorized_keys_exclusive`). Only the keys in `inventories/group_vars/testlab/users.yml` survive a run — it carries both `~/.ssh/nyarlathotep.pub` and `~/.ssh/yuggoth.pub`. `lab.sh check` refuses to continue if the relevant one is missing.
+* **`users`** manages `authorized_keys` authoritatively (`authorized_keys_exclusive`). Only the keys in `inventories/group_vars/testlab/users.yml` survive a run — it carries the public keys of both the `nyarlathotep` and the `yuggoth` Host blocks in `~/.ssh/config` (`ssh -G <host> | grep -i identityfile` shows the file; the names are opaque). `lab.sh check` refuses to continue if the relevant one is missing.
 * **`sshd`** replaces host keys on every run. Handled: both `~/.ssh/config` blocks set `StrictHostKeyChecking no`, `UserKnownHostsFile /dev/null` and `LogLevel ERROR`, which Ansible inherits. No MITM protection for these two hosts — accepted, and must not be copied to the `carcosa` block.
 * **`firewall`** flushes and reloads the whole filter table. It opens 22, but a half-applied run may not.
 

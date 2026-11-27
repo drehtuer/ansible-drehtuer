@@ -27,6 +27,7 @@ ANSIBLE_PLAYBOOK_BIN = 'ansible-playbook'
 ANSIBLE_LINT_BIN = 'ansible-lint'
 YAMLLINT_BIN = 'yamllint'
 RUFF_BIN = 'ruff'
+SHELLCHECK_BIN = 'shellcheck'
 ASCIIDOCTOR_BIN = 'asciidoctor'
 ANTORA_BIN = 'antora'
 # Converts Markdown to AsciiDoc, so the skill pages go through the
@@ -45,6 +46,11 @@ TEST_INVENTORY = f'{INVENTORY_DIR}/test/machines.yml'
 TESTS_DIR = 'tests'
 STATIC_TESTS = f'{TESTS_DIR}/static.yml'
 CHECK_PINS = f'{TESTS_DIR}/check_pins.py'
+# Pull the SSH public keys out of the inventory, then check them for
+# strength and against the leak lists. CI runs the same pair in
+# .github/workflows/security.yml.
+EXTRACT_SSH_KEYS = f'{TESTS_DIR}/extract-ssh-keys.sh'
+CHECK_SSH_KEYS = f'{TESTS_DIR}/check-ssh-keys.sh'
 ROLES_DIR = 'roles'
 PLAYBOOKS_DIR = 'playbooks'
 HOSTS_ALL = 'all'
@@ -53,6 +59,13 @@ HOOKS_DIR = '.githooks'
 # Every AsciiDoc page: doc/, README.adoc and
 # .claude/CLAUDE.adoc alike.
 DOCS_GLOB = '*.adoc'
+# A shell script is a tracked `*.sh`, or a tracked file with no
+# extension at all whose first line is a sh/bash shebang - the
+# hooks in .githooks/ are the case this exists for. The same rule is
+# spelled out again in .github/workflows/lint.yml and
+# .githooks/pre-commit; keep all three in step.
+SHELL_SUFFIX = '.sh'
+SHELL_SHEBANG = re.compile(r'^#! ?/[^ ]*/(env +)?(ba)?sh( |$)')
 # Rendered documentation. Named for what it holds rather than for the
 # tool: `playbooks/site.yml` builds a *host*, and these two must not be
 # confused when someone greps for "site".
@@ -367,6 +380,87 @@ def docs_lint_cmds() -> list[list[str]]:
   ]
 
 
+def is_shell_script(
+  path: Path,
+) -> bool:
+  """
+  Whether `path` is a shell script by the
+  rule at `SHELL_SHEBANG`.
+
+  `*.sh.j2` is not, on purpose: those are
+  Jinja templates, and shellcheck cannot
+  parse the `{% %}` and `{{ }}` in them. They
+  have an extension, so the shebang test is
+  never reached either.
+  """
+  if path.name.endswith(SHELL_SUFFIX):
+    return True
+  if '.' in path.name:
+    return False
+
+  with path.open('rb') as script:
+    first = script.readline().decode(errors='replace').rstrip('\n')
+
+  return SHELL_SHEBANG.match(first) is not None
+
+
+def shell_files(
+  ctx: context,
+) -> list[str]:
+  """
+  Every tracked shell script, in `git ls-files`
+  order, so that a run reports them in a stable
+  order.
+
+  Tracked rather than globbed: the working tree
+  also holds log/, build/ and untracked scratch
+  files, none of them this repository's scripts.
+  A new script is therefore picked up once it
+  has been `git add`ed - the pre-commit hook
+  lints it at that point too.
+  """
+  listed = ctx.run(
+    'git ls-files -z',
+    hide=True,
+    echo=False,
+    # A pty would merge stderr into the output
+    # parsed here.
+    pty=False,
+  ).stdout
+
+  return [
+    name
+    for name in listed.split('\0')
+    # Tracked, but deleted in the working tree.
+    if name and Path(name).is_file() and is_shell_script(Path(name))
+  ]
+
+
+def shell_lint_cmds(
+  ctx: context,
+) -> list[list[str]]:
+  """
+  Commands to lint shell scripts via
+  `shellcheck`.
+
+  One invocation for every script, like
+  `docs_lint_cmds`: shellcheck reports on all
+  of its inputs before exiting. No options:
+  every severity down to `style` fails by
+  default, which is the `yamllint --strict`
+  stance already, and the dialect comes from
+  each file's shebang.
+
+  There is no `--fix` counterpart, so this takes
+  no flag.
+  """
+  files = shell_files(ctx)
+  if not files:
+    return []
+
+  return [[SHELLCHECK_BIN, *files]]
+
+
 def python_lint_cmds(
   fix: bool,
 ) -> list[list[str]]:
@@ -417,6 +511,16 @@ def lint_python(
 
 
 @task
+def lint_shell(
+  ctx: context,
+) -> None:
+  """
+  Lint shell scripts via `shellcheck`.
+  """
+  run_linters(ctx, shell_lint_cmds(ctx))
+
+
+@task
 def lint_docs(
   ctx: context,
 ) -> None:
@@ -436,14 +540,16 @@ def lint(
 
   With `--fix`, apply the fixes the linters
   can make on their own instead of only
-  reporting them. `lint-docs` has no such
-  mode and runs unchanged either way.
+  reporting them. `lint-shell` and
+  `lint-docs` have no such mode and run
+  unchanged either way.
   """
   run_linters(
     ctx,
     yaml_lint_cmds()
     + ansible_lint_cmds(fix)
     + python_lint_cmds(fix)
+    + shell_lint_cmds(ctx)
     + docs_lint_cmds(),
   )
 
@@ -840,6 +946,32 @@ def check_pins(
   `test-static`; CI runs it on every pull request.
   """
   ctx_run(ctx, ['python3', CHECK_PINS])
+
+
+@task
+def check_ssh_keys(
+  ctx: context,
+) -> None:
+  """
+  Check the inventory's SSH public keys for
+  strength and against published leak lists.
+
+  Only the keys in plain-text files are seen -
+  a vaulted file is never decrypted for this.
+  Needs `badkeys`, which is not part of the Dev
+  Container image (`pip install badkeys` into a
+  venv), and network access for its blocklist;
+  CI runs it in .github/workflows/security.yml.
+  """
+  workdir = Path(mkdtemp())
+  keys = workdir / 'ssh-keys'
+  try:
+    ctx_run(
+      ctx,
+      [EXTRACT_SSH_KEYS, '>', str(keys), '&&', CHECK_SSH_KEYS, str(keys)],
+    )
+  finally:
+    rmtree(workdir, ignore_errors=True)
 
 
 @task(pre=[clean], iterable=['role'])

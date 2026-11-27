@@ -86,8 +86,8 @@ get() {
 import json
 import sys
 
-# `host | SUCCESS => {json}` - cut the banner at the first brace,
-# then unwrap the JSON string `debug` wrapped the value in.
+# "host | SUCCESS => {json}" - cut the banner at the first brace,
+# then unwrap the JSON string "debug" wrapped the value in.
 result = sys.stdin.read()
 value = json.loads(json.loads(result[result.index("{"):])["msg"])
 for key in sys.argv[1].split("."):

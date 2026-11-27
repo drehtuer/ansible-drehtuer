@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Lint staged YAML and Python before the commit is created.
+# Lint staged YAML, Python and shell before the commit is created.
 #
 # Enable with `invoke install-hooks` (points core.hooksPath here),
 # bypass a single commit with `git commit --no-verify`.
@@ -19,8 +19,16 @@ status=0
 mapfile -t staged < <(git diff --cached --name-only --diff-filter=ACMR)
 ((${#staged[@]})) || exit 0
 
+# A shell script is a `*.sh`, or a file with no extension at all whose
+# first line is a sh/bash shebang - this hook among them. `*.sh.j2` is
+# neither: those are Jinja templates, which shellcheck cannot parse.
+# The same rule as `shell_files()` in tasks.py and the shellcheck job
+# in .github/workflows/lint.yml; keep all three in step.
+shell_shebang='^#! ?/[^ ]*/(env +)?(ba)?sh( |$)'
+
 yaml_files=()
 py_files=()
+shell_files=()
 for file in "${staged[@]}"; do
   # Staged but no longer in the working tree, e.g. deleted after
   # `git add`.
@@ -29,6 +37,12 @@ for file in "${staged[@]}"; do
   case "${file}" in
     *.yml | *.yaml) yaml_files+=("${file}") ;;
     *.py) py_files+=("${file}") ;;
+    *.sh) shell_files+=("${file}") ;;
+    *)
+      first=''
+      [[ ${file##*/} == *.* ]] || IFS= read -r first < "${file}"
+      [[ ${first} =~ ${shell_shebang} ]] && shell_files+=("${file}")
+      ;;
   esac
 done
 
@@ -80,6 +94,10 @@ fi
 if ((${#py_files[@]})); then
   run_linter ruff check "${py_files[@]}"
   run_linter ruff format --check "${py_files[@]}"
+fi
+
+if ((${#shell_files[@]})); then
+  run_linter shellcheck "${shell_files[@]}"
 fi
 
 ((status == 0)) || printf 'pre-commit: linting failed, commit aborted\n' >&2

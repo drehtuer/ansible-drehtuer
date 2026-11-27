@@ -46,12 +46,14 @@ See `invoke --list` for all available tasks.
 :url-yamllint: https://yamllint.readthedocs.io/en/stable[yamllint^]
 :url-ansible-lint: https://ansible.readthedocs.io/projects/lint[ansible-lint^]
 :url-ruff: https://docs.astral.sh/ruff[ruff^]
+:url-shellcheck: https://www.shellcheck.net[shellcheck^]
 :url-asciidoctor: https://asciidoctor.org[asciidoctor^]
 
 YAML is checked with link:{url-yamllint} (style, configured in `.yamllint`) and link:{url-ansible-lint} (Ansible practices, configured in `.ansible-lint`, strictest `production` profile).
 Python is checked and formatted with link:{url-ruff} (configured in `pyproject.toml`).
+Shell scripts are checked with link:{url-shellcheck} at its defaults, with no configuration file: every tracked `+*.sh+`, plus extension-less files with a sh/bash shebang such as `.githooks/pre-commit`. The `+*.sh.j2+` templates are not, since shellcheck cannot parse Jinja.
 The AsciiDoc pages are checked with link:{url-asciidoctor} itself, run as `--failure-level=WARN` so that a dropped table cell, a missing include or a skipped section level fails instead of scrolling past — it needs no configuration file. Note it does *not* check cross-references: an unresolved one renders as a dead link and is reported nowhere.
-All four are installed in the Dev Container.
+All five are installed in the Dev Container.
 
 [source, bash]
 ----
@@ -63,12 +65,13 @@ invoke lint --fix
 invoke lint-yaml
 invoke lint-ansible
 invoke lint-python
+invoke lint-shell
 invoke lint-docs
 ----
 
 The same checks run automatically in two places:
 
-* *Before each commit*, via the hook in `.githooks/pre-commit`, which lints the staged YAML and Python files — the AsciiDoc check is deliberately not in the hook yet, so it runs only via `invoke lint` and in CI. Git only picks the hook up once per clone:
+* *Before each commit*, via the hook in `.githooks/pre-commit`, which lints the staged YAML, Python and shell files — the AsciiDoc check is deliberately not in the hook yet, so it runs only via `invoke lint` and in CI. Git only picks the hook up once per clone:
 +
 [source, bash]
 ----
@@ -76,7 +79,7 @@ invoke install-hooks
 ----
 +
 Use `git commit --no-verify` to bypass it for a single commit.
-* *On every push to `main` and every pull request*, via `.github/workflows/lint.yml` — the tests in `.github/workflows/test.yml` and a SonarCloud scan in `.github/workflows/sonar.yml` run alongside it.
+* *On every push to `main` and every pull request*, via `.github/workflows/lint.yml` — the tests in `.github/workflows/test.yml`, a SonarCloud scan in `.github/workflows/sonar.yml` and the secret and SSH key checks in `.github/workflows/security.yml` run alongside it.
 
 Editor-side formatting is described in `.editorconfig`, which mirrors the same rules (two spaces, 80 columns, final newline, no trailing whitespace). VS Code needs the EditorConfig extension for it to take effect; it is installed by the Dev Container.
 
@@ -86,7 +89,7 @@ Editor-side formatting is described in `.editorconfig`, which mirrors the same r
 
 Every version this repository deploys is pinned - container images by tag and digest, Nextcloud and Prometheus by version and checksum, the Dev Container and CI tools by version - so a rebuild produces the same host. The cost of pinning is that nothing moves on its own. link:{url-renovate}, configured in `.github/renovate.json5`, watches those pins and opens a pull request when upstream has a newer release, or when a pin has a known vulnerability. Its *Dependency Dashboard* issue lists every pin it tracks and which are outdated.
 
-A Renovate PR only changes the pin. Nothing reaches a host until it is merged and the playbook is run. Two kinds need a hand before merging: Renovate cannot compute the checksum of a Nextcloud or Prometheus download, so those PRs say where to take it from - and the *Pinned checksums* check (`invoke check-pins`) fails them until it is done. The Valheim mods are deliberately not watched - `invoke valheim-mods` checks them against Thunderstore instead.
+A Renovate PR only changes the pin. Nothing reaches a host until it is merged and the playbook is run. Two kinds need a hand before merging: Renovate cannot compute the checksum of a Nextcloud, Prometheus or gitleaks download, so those PRs say where to take it from - and the *Pinned checksums* check (`invoke check-pins`), or for gitleaks the *Secrets in history* check, fails them until it is done. The Valheim mods are deliberately not watched - `invoke valheim-mods` checks them against Thunderstore instead.
 
 Pins outside role defaults and inventories carry a `# renovate: datasource=... depName=...` comment on the line above them. Add one to a new pin to have it watched.
 
@@ -132,6 +135,9 @@ invoke test-molecule
 invoke test
 # Pinned release checksums against upstream, needs network
 invoke check-pins
+# SSH public keys in the inventory: strength and leak lists.
+# Needs badkeys and network.
+invoke check-ssh-keys
 # What differs between this repo and the real host?
 # Local only: needs the vault password.
 invoke check-drift
